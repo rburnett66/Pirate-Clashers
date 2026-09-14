@@ -75,7 +75,7 @@
   }
   .scope-label[data-port="1"] { color: #FFD9A8; border-color: rgba(255, 200, 130, 0.7); }
 </style>
-<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark):not(#gameCrew){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
+<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark):not(#gameCrew):not(#gamePorts){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
 <body>
 <canvas id="ship" aria-label="A pirate ship in cross section. Tap the hull to fire the selected projectile at it."></canvas>
 <div class="scope-labels" id="scopeLabels" aria-live="polite"></div>
@@ -303,12 +303,18 @@ out vec4 outColor;
 float band(float v, float a, float b, float aa) {
   return smoothstep(a - aa, a + aa, v) * (1.0 - smoothstep(b - aa, b + aa, v));
 }
-uniform float uGamePartHP[8];
-uniform int uGamePartCount;
-float gameHP(vec2 p){if(uGamePartCount==0)return 1.0;int i=clamp(int(floor((p.x+1.08)/2.44*float(uGamePartCount))),0,uGamePartCount-1);return uGamePartHP[i];}
+
+uniform sampler2D uMaterial;
+uniform vec4 uMaterialBounds;
+float materialAt(vec2 p){
+ ivec2 size=textureSize(uMaterial,0);
+ ivec2 cell=ivec2(floor((p-uMaterialBounds.xy)/uMaterialBounds.zw*vec2(size)));
+ if(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,size)))return 0.0;
+ return texelFetch(uMaterial,cell,0).r;
+}
 void main() {
   vec2 p = vShip;
-  if(gameHP(p)<=0.0)discard;
+  if(materialAt(p)<0.5)discard;
   float aa = uUnit * 1.5;
   float inside = hullField(p, uHullShape.x, uHullShape.y);
   if (inside < -0.02) discard;                    // nothing inside the hull here
@@ -386,12 +392,18 @@ uniform float uUnit, uTime, uReveal, uCharTime;
 uniform vec3 uPlank, uPlankDark, uTrim, uOutline, uChar;
 out vec4 outColor;
 
-uniform float uGamePartHP[8];
-uniform int uGamePartCount;
-float gameHP(vec2 p){if(uGamePartCount==0)return 1.0;int i=clamp(int(floor((p.x+1.08)/2.44*float(uGamePartCount))),0,uGamePartCount-1);return uGamePartHP[i];}
+
+uniform sampler2D uMaterial;
+uniform vec4 uMaterialBounds;
+float materialAt(vec2 p){
+ ivec2 size=textureSize(uMaterial,0);
+ ivec2 cell=ivec2(floor((p-uMaterialBounds.xy)/uMaterialBounds.zw*vec2(size)));
+ if(any(lessThan(cell,ivec2(0)))||any(greaterThanEqual(cell,size)))return 0.0;
+ return texelFetch(uMaterial,cell,0).r;
+}
 void main() {
   vec2 p = vShip;
-  if(gameHP(p)<=0.0)discard;
+  if(materialAt(p)<0.5)discard;
   float aa = uUnit * 1.5;
   float inside = hullField(p, uHullShape.x, uHullShape.y);
   if (inside < -0.03) discard;
@@ -446,8 +458,7 @@ void main() {
   // Shade the inside of the hull just behind the hole.
   col = mix(col, col * 0.45, smoothstep(0.55, 0.9, dRel));
 
-  float gone = min(0.25, smoothstep(0.62, 0.72, dRel));
-  col *= mix(0.45,1.0,gameHP(p));
+  float gone = 0.0;
   // Reach full opacity slightly INSIDE the silhouette, so undamaged hull always
   // covers the inner structure completely and no interior shows at the edge.
   float a = (1.0 - gone) * smoothstep(-0.035, -0.005, inside);
@@ -888,7 +899,9 @@ void main() {
 }
 </script>
 
-<script>
+<script type="module">
+import {HULL_MASK,maskPixels} from "/src/hull-mask.js";
+import {stationPosition} from "/src/ballistics.js";
 (() => {
   'use strict';
 
@@ -1100,8 +1113,20 @@ void main() {
   }
   if (!gl) { fatal('This prototype needs WebGL2. Open it in a current Chrome, Safari, Firefox or Edge.'); return; }
 
-  let gamePartCount=0;const gamePartHP=new Float32Array(8).fill(1);
-  const COMMON_GLSL = document.getElementById('common').textContent.trim();
+
+let lastMaterialBits=null;
+const gameMaterialTexture=gl.createTexture();
+function uploadMaterial(f){
+ const pixels=maskPixels(f);if(lastMaterialBits===f.hullMask.bits)return;
+ gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,gameMaterialTexture);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+ gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,HULL_MASK.width,HULL_MASK.height,0,gl.RED,gl.UNSIGNED_BYTE,pixels);
+ lastMaterialBits=f.hullMask.bits;gl.activeTexture(gl.TEXTURE0);
+}
+uploadMaterial({});
+
+const COMMON_GLSL = document.getElementById('common').textContent.trim();
   function compile(type, id) {
     const sh = gl.createShader(type);
     gl.shaderSource(sh, document.getElementById(id).textContent.trim().replace('// #include common', COMMON_GLSL));
@@ -1524,7 +1549,7 @@ void main() {
       const L = innerProg.loc;
       gl.useProgram(innerProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
+      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform4fv(L.uCrew, crewBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1538,7 +1563,7 @@ void main() {
       const L = hullProg.loc;
       gl.useProgram(hullProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
+      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       gl.uniform1i(L.uMask, 0);
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1557,7 +1582,7 @@ void main() {
 
     // Crew the enemy can actually see: deck gunners above the rail, and port
     // gunners in the moment they lean out. Drawn after the hull, before effects.
-    // Crew use supplied sprites through the combat adapter.
+    // Supplied crew sprites have their own health; port crew render behind the masked hull.
 
     if (showRig) drawRig(1);
 
@@ -1565,7 +1590,7 @@ void main() {
       const L = fxProg.loc;
       gl.useProgram(fxProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
+      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       if (fxDirty) {
         gl.uniform4fv(L.uHits, hitBuf);
         gl.uniform4fv(L.uHitPts, hitPtBuf);
@@ -1798,32 +1823,33 @@ void main() {
  const gameSide=new URLSearchParams(location.search).get('side');
  const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
  const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
- let gameRows=[],gameSelected=null;
+ const portPortraits=document.createElement('div');portPortraits.id='gamePorts';portPortraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1';document.body.append(portPortraits);canvas.style.zIndex='2';
+ let gameRows=[],gameSelected=null,gameLevel=3;
  function syncCrew(rows){
   gameRows=rows||[];let d=0,h=0;
   stations.forEach(st=>{const key=st.port?'h'+h++:'d'+d++,g=gameRows.find(g=>g.slot===key);st.slot=key;st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});
   uploadStations();updateScopeLabels();drawPortraits();
  }
  function syncParts(f){
-  if(!f)return;gamePartCount=f.hullParts?.length||0;
-  gamePartHP.fill(1);f.hullParts?.forEach((p,i)=>gamePartHP[i]=p.hp/p.maxHp);
+  if(!f)return;uploadMaterial(f);
   f.sailParts?.forEach((p,i)=>{if(sails[i])sails[i].damage=1-p.hp/p.maxHp;});
   f.mastParts?.forEach((p,i)=>{if(p.hp<=0&&masts[i]?.breakTime<0)breakMast(masts[i]);});uploadRig();
  }
  function drawPortraits(){
   const rect=canvas.getBoundingClientRect(),ratio=rect.width/canvas.width,ppu=cam.ppu*ratio;
-  portraits.innerHTML=stations.filter(st=>st.gunner>=1).map(st=>{
-   const foot=st.port?-.065:st.y-.055,w=(st.port?.22:.32)*ppu,h=(st.port?.22:.44)*ppu;
+  const drawRows=port=>stations.filter(st=>st.gunner>=1&&st.slot&&st.port===port).map(st=>{
+   const position=stationPosition({shipLevel:gameLevel},st.slot),foot=position.y,w=position.width*ppu,h=position.height*ppu;
    const x=rect.width/2+(st.x-cam.x)*ppu,y=rect.height/2-(foot-cam.y)*ppu;
    return '<img data-gunner="'+st.gunner+'" alt="'+(st.name||'Gunner')+'" src="/Pirate%20Art/pirate_segments/zombie-pirate/zombie-pirate-'+st.gunner+'.png" style="position:absolute;object-fit:contain;left:'+(x-w/2)+'px;top:'+(y-h)+'px;width:'+w+'px;height:'+h+'px;opacity:'+(st.out?.18:1)+';filter:'+(st.out?'grayscale(1)':st.gunner===gameSelected?'drop-shadow(0 0 3px #fff29a)':'none')+'">';
   }).join('');
+  portraits.innerHTML=drawRows(false);portPortraits.innerHTML=drawRows(true);
   mark.style.left=rect.width/2+(.02-cam.x)*ppu+'px';mark.style.top=rect.height/2-(1.13-cam.y)*ppu+'px';mark.style.fontSize=Math.max(14,ppu*.22)+'px';
  }
  window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
   if(d.action==='configure'){
    const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-   [P.deckStations,P.hullStations]=ladder[d.level]||ladder[3];P.shake=0;repair();
+   gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
    gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
   }
   if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}

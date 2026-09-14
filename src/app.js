@@ -101,19 +101,28 @@ function sound(freq=120,length=.15){if(!state.settings.sound)return;try{const a=
 let audioContext;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+
 async function animateShot(flight){
  if(!flight)return;flying=true;send(flight.side,{action:'fire',gunner:flight.gunnerId});sound(120,.25);
- const layer=el('flyingShots'),readout=el('shotReadout'),spec=flight.spec;
+ const layer=el('flyingShots'),readout=el('shotReadout'),spec=flight.spec,offset=state.battle.pending?.elapsed||0;
  if(readout)readout.textContent=(flight.side==='player'?'YOUR':'ENEMY')+' '+spec.name.toUpperCase()+' · '+flight.angle.toFixed(1)+'°';
- // A constant time scale changes playback speed, never the physical trajectory.
- const timeScale=1500;
- await new Promise(resolve=>{let start;function tick(now){start??=now;const t=(now-start)/timeScale;
-  if(layer)layer.innerHTML=flight.shots.map(shot=>{if(t>shot.duration+.12)return '';const p=screenPoint(pointAt(shot.path,Math.min(t,shot.duration))),trail=shot.path.filter(q=>q.t<=t&&q.t>=t-.16).filter((_,i)=>i%3===0).map(screenPoint);return '<polyline points="'+trail.map(q=>q.x+','+q.y).join(' ')+'" fill="none" stroke="'+spec.color+'" stroke-opacity=".5" stroke-width="3"/><circle cx="'+p.x+'" cy="'+p.y+'" r="'+(spec.count>1?3:5)+'" fill="'+spec.color+'" stroke="#fff1ba" stroke-width="1.3"/>';}).join('');
-  if(t<flight.duration){requestAnimationFrame(tick);}else{if(layer)layer.innerHTML='';resolve();}
+ const timeScale=1500;let event=null;
+ await new Promise(resolve=>{let start;function tick(now){
+  start??=now;const t=offset+(now-start)/timeScale,step=M.advanceShot(state,t);
+  if(step?.impacts.length){
+   for(const hit of step.impacts)send(flight.side==='player'?'enemy':'player',{action:'hit',x:hit.x,y:hit.y,kind:hit.kind,weapon:spec.effect});
+   sound(75,.2);updateArena();
+  }
+  if(step?.event)event=step.event;
+  if(layer)layer.innerHTML=flight.shots.map(shot=>{
+   if(t>=shot.duration)return '';
+   const p=screenPoint(pointAt(shot.path,t)),trail=shot.path.filter(q=>q.t<=t&&q.t>=t-.16).filter((_,i)=>i%3===0).map(screenPoint);
+   return '<polyline points="'+trail.map(q=>q.x+','+q.y).join(' ')+'" fill="none" stroke="'+spec.color+'" stroke-opacity=".5" stroke-width="3"/><circle cx="'+p.x+'" cy="'+p.y+'" r="'+(spec.count>1?3:5)+'" fill="'+spec.color+'" stroke="#fff1ba" stroke-width="1.3"/>';
+  }).join('');
+  if(t<flight.duration)requestAnimationFrame(tick);else{if(layer)layer.innerHTML='';resolve();}
  }requestAnimationFrame(tick);});
- const e=M.resolveShot(state);flying=false;
- if(e?.hit){const foe=e.side==='player'?'enemy':'player';for(const hit of e.impacts)send(foe,{action:'hit',x:hit.x,y:hit.y,kind:hit.kind,weapon:e.weapon});sound(75,.3);}
- if(readout)readout.textContent=e?.hit?e.damage+' DAMAGE · '+e.impacts.map(i=>i.kind+(i.bonus?' BONUS':'')).filter((v,i,a)=>a.indexOf(v)===i).join(' + '):'SPLASH — SHOT FELL SHORT OR PASSED THE SHIP';
+ flying=false;const e=event;
+ if(readout)readout.textContent=e?.hit?Math.round(e.damage)+' DAMAGE · '+e.impacts.map(i=>i.kind+(i.bonus?' BONUS':'')).filter((v,i,a)=>a.indexOf(v)===i).join(' + '):'SPLASH — SHOT FELL SHORT OR PASSED THE SHIP';
  updateArena();
 }
 async function runEnemyTurn(){

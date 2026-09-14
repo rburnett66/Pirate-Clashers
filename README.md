@@ -23,6 +23,7 @@ npm ci
 npm run build
 npm run check
 npm test
+node scripts/browser-hull-mask.cjs
 node scripts/browser-combat.cjs
 node scripts/browser-acceptance.cjs
 ```

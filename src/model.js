@@ -1,4 +1,5 @@
-import {ensureGeometry,trajectory,projectileFor,rigLayout} from './ballistics.js';
+import {chipHull,maskPixels} from './hull-mask.js';
+import {ensureGeometry,trajectory,projectileFor,rigLayout,traceProjectile,muzzle,parabolicPath} from './ballistics.js';
 export {projectileFor} from './ballistics.js';
 import {ROSTER,ECON as E} from './catalog.js';
 export {E};
@@ -30,9 +31,16 @@ if(Object.entries(s.enh).some(([k,v])=>!E.ENHANCEMENTS[k]||!int(v,5))||Object.en
 for(const k of ['week','day'])if(typeof s[k]!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s[k]))bad();
 if(s.bench!==null&&(!obj(s.bench)||!s.levels[s.bench.id]||s.levels[s.bench.id]>=12||!int(s.bench.ends)))bad();
 const partsOK=(parts,n)=>Array.isArray(parts)&&parts.length===n&&parts.every(p=>obj(p)&&num(p.hp)&&num(p.maxHp)&&p.maxHp>0&&p.hp<=p.maxHp);
-const fighterOK=f=>obj(f)&&(!f.hullParts||(num(f.x,12)&&LADDER[f.shipLevel]&&partsOK(f.hullParts,f.shipLevel)&&partsOK(f.mastParts,3)&&partsOK(f.sailParts,8)))&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
+const maskOK=f=>{try{return !f.hullMask||!!maskPixels(f);}catch{return false;}};
+const fighterOK=f=>obj(f)&&maskOK(f)&&(!f.hullParts||(num(f.x,12)&&LADDER[f.shipLevel]&&partsOK(f.hullParts,f.shipLevel)&&partsOK(f.mastParts,3)&&partsOK(f.sailParts,8)))&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
 if(s.battle!==null){const b=s.battle;if(!obj(b)||!['player','enemy','flight','result'].includes(b.phase)||!fighterOK(b.player)||!fighterOK(b.enemy)||!int(b.rng,4294967295)||!int(b.turn,25)||!int(b.shots,2)||!Array.isArray(b.events)||!Array.isArray(b.log)||!bool(b.rewarded)||!bool(b.charged)||!bool(b.used))bad();}
 if(s.battle?.phase==='flight'&&(!s.battle.pending||!['player','enemy'].includes(s.battle.pending.side)||!num(s.battle.pending.angle,75)||s.battle.pending.angle<5||!s.battle[s.battle.pending.side]?.crew.some(g=>g.id===s.battle.pending.gunner&&g.hp>0)))bad();
+
+if(s.battle?.pending?.plan){
+ const p=s.battle.pending,impactOK=i=>i===null||(obj(i)&&['hull','crew','sails','masts'].includes(i.kind)&&Number.isFinite(i.x)&&Math.abs(i.x)<=1.5&&Number.isFinite(i.y)&&Math.abs(i.y)<=2.5&&(i.kind==='crew'?int(i.id,36)&&/^[dh][0-3]$/.test(i.slot):int(i.index,7)));
+ if(!Array.isArray(p.plan)||![1,7].includes(p.plan.length)||!p.plan.every(q=>obj(q)&&num(q.angle,80)&&num(q.duration,5)&&impactOK(q.impact)&&obj(q.end)&&Number.isFinite(q.end.x)&&Number.isFinite(q.end.y)&&num(q.end.t,5))||!Array.isArray(p.resolved)||new Set(p.resolved).size!==p.resolved.length||!p.resolved.every(i=>int(i,p.plan.length-1))||!Array.isArray(p.impacts)||!p.impacts.every(i=>impactOK(i)&&num(i.damage))||!num(p.elapsed,5))bad();
+}
+
 if(s.lastResult!==null&&(!obj(s.lastResult)||typeof s.lastResult.enemyName!=='string'||!bool(s.lastResult.won)||!Array.isArray(s.lastResult.log)||(s.lastResult.opponent&&!fighterOK(s.lastResult.opponent))))bad();
 if(!Array.isArray(s.plates)||s.plates.length!==8||s.plates.some(p=>!obj(p)||!['bare','hardwood','iron'].includes(p.kind)||!num(p.durability,100))||!num(s.canvasDurability,100)||!Array.isArray(s.offerQueue)||!Array.isArray(s.offerEvents)||!int(s.created))bad();return s;
 }
@@ -86,14 +94,13 @@ export function moveShip(s,direction,side='player'){
 export function previewShot(s,{side='player',gunner=null,angle=35}={}){
  const b=prepareBattle(s.battle);if(!b||!['player','enemy'].includes(side)||!Number.isFinite(angle)||angle<5||angle>75)return null;
  const g=active(b[side]).find(g=>g.id===gunner)||(!gunner?active(b[side])[0]:null);if(!g)return null;
- const p=PIRATES.find(p=>p.id===g.id),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)};return trajectory(b,side,g,spec,angle);
+ const p=PIRATES.find(p=>p.id===g.id),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)};return forecastVolley(b,trajectory(b,side,g,spec,angle),g,p);
 }
 export function launchShot(s,{side='player',gunner=null,angle=35}={}){
  const b=prepareBattle(s.battle);if(!b||b.phase!==side||b.pending||(side==='player'?b.shots:b.enemyShots)<=0)return null;
  const flight=previewShot(s,{side,gunner,angle});if(!flight)return null;
- b.pending={side,gunner:flight.gunnerId,angle};b.phase='flight';return flight;
+ b.pending={side,gunner:flight.gunnerId,angle};rememberFlight(b.pending,flight);b.phase='flight';return flight;
 }
-export function pendingFlight(s){return s.battle?.pending?previewShot(s,s.battle.pending):null;}
 function totalDamage(f){
  f.hull=Math.min(f.maxHull,f.hullParts.reduce((a,p)=>a+p.hp,0));
  f.sails=100*f.sailParts.reduce((a,p)=>a+p.hp,0)/f.sailParts.reduce((a,p)=>a+p.maxHp,0);
@@ -105,7 +112,7 @@ export function impactDamage(f,impact,base,spec,fraction=1){
  if(impact.kind==='hull'){
   part=f.hullParts[impact.index];const plate=f.plates?.[impact.index],armor=({hardwood:.2,iron:.3}[plate?.kind]||0)*(plate?.durability??100)/100;
   damage*= (1-armor)*(1-(f.enh['Hull plating']||0)*.025-figureBonus(f,'defence'));
-  if(plate&&plate.kind!=='bare')plate.durability=Math.max(0,plate.durability-damage*.12);
+  const removed=chipHull(f,impact.x,impact.y,damage,spec.effect);if(plate&&plate.kind!=='bare')plate.durability=Math.max(0,plate.durability-removed*.12);totalDamage(f);return removed;
  }else if(impact.kind==='sails'){
   part=f.sailParts[impact.index];damage*=1-({heavy:.2,storm:.3}[f.canvas]||0)*(f.canvasDurability??100)/100;
   if(f.canvas!=='plain')f.canvasDurability=Math.max(0,f.canvasDurability-damage*.3);
@@ -115,15 +122,48 @@ export function impactDamage(f,impact,base,spec,fraction=1){
  if(impact.kind==='masts'&&part.hp===0)rigLayout().sails.forEach((s,i)=>{if(s.mast===impact.index)f.sailParts[i].hp=0;});
  totalDamage(f);return damage;
 }
-export function resolveShot(s){
+
+const flightCache=new WeakMap();
+function shotPower(own,p,g){const enh=(own.enh['Gun mounts']||0)+(own.enh['Powder store']||0);return stats(p,g.level).damage*(1+enh*.035+figureBonus(own,'attack'));}
+function forecastVolley(b,flight,g,p){
+ if(flight.shots.length===1)return flight;
+ const foe=clone(b[flight.side==='player'?'enemy':'player']),base=shotPower(b[flight.side],p,g),remaining=new Set(flight.shots.map((_,i)=>i));
+ while(remaining.size){
+  const i=[...remaining].sort((a,b)=>flight.shots[a].duration-flight.shots[b].duration||a-b)[0],shot=flight.shots[i];
+  if(shot.impact)impactDamage(foe,shot.impact,base,flight.spec,1/flight.spec.count);
+  remaining.delete(i);
+  for(const j of remaining){const angle=flight.shots[j].angle;flight.shots[j]={...traceProjectile(foe,flight.side,flight.origin,angle,flight.spec.speed),angle};}
+ }
+ flight.duration=Math.max(...flight.shots.map(s=>s.duration));return flight;
+}
+function rememberFlight(pending,flight){
+ pending.plan=flight.shots.map(s=>({angle:s.angle,duration:s.duration,impact:s.impact,end:s.path.at(-1)}));
+ pending.resolved=[];pending.impacts=[];pending.elapsed=0;flightCache.set(pending,flight);return flight;
+}
+export function pendingFlight(s){
+ const b=s.battle,pending=b?.pending;if(!pending)return null;
+ if(flightCache.has(pending))return flightCache.get(pending);
+ if(!pending.plan){const flight=previewShot(s,pending);return flight?rememberFlight(pending,flight):null;}
+ const {side,gunner,angle}=pending,g=b[side].crew.find(g=>g.id===gunner);if(!g)return null;
+ const p=PIRATES.find(p=>p.id===gunner),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)},origin=muzzle(b[side],side,g);
+ const shots=pending.plan.map(({end,...q})=>({...q,path:parabolicPath(origin,side,spec.speed,q.angle,q.duration,end)}));
+ const flight={side,gunnerId:gunner,angle,spec,origin,shots,duration:Math.max(...shots.map(s=>s.duration))};flightCache.set(pending,flight);return flight;
+}
+export function advanceShot(s,elapsed){
  const b=prepareBattle(s.battle);if(!b||b.phase!=='flight'||!b.pending)return null;
- const flight=pendingFlight(s),side=b.pending.side,own=b[side],foe=b[side==='player'?'enemy':'player'];
- if(!flight)return null;const g=own.crew.find(g=>g.id===flight.gunnerId),p=PIRATES.find(p=>p.id===g.id),enh=(own.enh['Gun mounts']||0)+(own.enh['Powder store']||0);
- const base=stats(p,g.level).damage*(1+enh*.035+figureBonus(own,'attack')),impacts=[];
- for(const shot of flight.shots)if(shot.impact){const damage=impactDamage(foe,shot.impact,base,flight.spec,1/flight.spec.count);impacts.push({...shot.impact,damage,bonus:shot.impact.kind===flight.spec.bonus});}
- const damage=impacts.reduce((a,i)=>a+i.damage,0),first=impacts[0],hit=impacts.length>0;
+ const pending=b.pending,flight=pendingFlight(s);if(!flight)return null;
+ const side=pending.side,own=b[side],foe=b[side==='player'?'enemy':'player'],g=own.crew.find(g=>g.id===flight.gunnerId),p=PIRATES.find(p=>p.id===g.id);
+ const base=shotPower(own,p,g),fresh=[];pending.elapsed=Math.min(flight.duration,Math.max(pending.elapsed||0,elapsed));
+ const order=flight.shots.map((shot,i)=>({shot,i})).sort((a,b)=>a.shot.duration-b.shot.duration||a.i-b.i);
+ for(const {shot,i} of order){
+  if(shot.duration>pending.elapsed+1e-10||pending.resolved.includes(i))continue;
+  pending.resolved.push(i);
+  if(shot.impact){const damage=impactDamage(foe,shot.impact,base,flight.spec,1/flight.spec.count),hit={...shot.impact,damage,bonus:shot.impact.kind===flight.spec.bonus};pending.impacts.push(hit);fresh.push(hit);}
+ }
+ if(pending.elapsed+1e-10<flight.duration)return {impacts:fresh,event:null};
+ const impacts=pending.impacts,damage=impacts.reduce((a,i)=>a+i.damage,0),first=impacts[0],hit=impacts.length>0;
  const e={side,gunnerId:g.id,angle:flight.angle,target:first?.kind||'sea',hit,damage,x:first?.x||0,y:first?.y||0,impacts,pirate:p.name,weapon:flight.spec.effect,projectile:flight.spec.name,bonus:flight.spec.bonus,n:b.events.length};
- b.events.push(e);b.log.push(p.name+(hit?' hits '+[...new Set(impacts.map(i=>i.kind))].join(' / ')+' for '+damage+(impacts.some(i=>i.bonus)?' · specialty bonus!':''):' splashes into the sea.'));
+ b.events.push(e);b.log.push(p.name+(hit?' hits '+[...new Set(impacts.map(i=>i.kind))].join(' / ')+' for '+Math.round(damage)+(impacts.some(i=>i.bonus)?' · specialty bonus!':''):' splashes into the sea.'));
  b.pending=null;b.phase=side;
  if(side==='player'){
   b.shots--;if(hit)b.dualHits++;
@@ -133,8 +173,10 @@ export function resolveShot(s){
   if(b.enemyShots<=0){b.turn++;b.phase='player';b.shots=2;b.seconds=30;b.dualHits=0;b.movesLeft=2;b.log.push(b.enemyName+': '+EMOTES[b.temperament]);}
  }
  const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}
- return e;
+ return {impacts:fresh,event:e};
 }
+export function resolveShot(s){return advanceShot(s,Infinity)?.event||null;}
+
 // Synchronous helper for simulation/tests; the browser uses launch/animate/resolve.
 export function attack(s,options={}){return launchShot(s,options)?resolveShot(s):null;}
 export const EMOTES={supportive:'Good shot, captain!',angry:'You will pay for that!',fun:'Now this is a party!',playful:'Catch this broadside!',competitive:'Keep up, captain.',rager:'All guns! Fire!',silly:'Mind the seagulls!'};
@@ -158,7 +200,7 @@ export function enemyTurn(s){
  return events.filter(Boolean);
 }
 
-export function finishMove(s){const b=s.battle,m=FINISHERS[s.move];if(!b||!b.charged||b.used||!m||!s.moves.includes(s.move)||b.phase!=='player')return false;b.used=true;b.charged=false;const f=ensureGeometry(b.enemy,'enemy');if(m.id===0){const g=active(f).find(g=>g.slot.startsWith('d'))||active(f)[0];if(g)g.hp=0;}if(m.id===5)f.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);if(m.id===2){let left=220;for(const p of [...f.hullParts].reverse()){const n=Math.min(left,p.hp);p.hp-=n;left-=n;}}if(m.id===3){const i=f.mastParts.findIndex(p=>p.hp>0);if(i>=0){f.mastParts[i].hp=0;rigLayout().sails.forEach((r,j)=>{if(r.mast===i)f.sailParts[j].hp=0;});}}if([1,4].includes(m.id))f.sailParts.forEach(p=>p.hp=Math.max(0,p.hp-p.maxHp*(m.id===1?.65:.45)));totalDamage(f);b.log.push(m.name+' unleashed');const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}return m;}
+export function finishMove(s){const b=s.battle,m=FINISHERS[s.move];if(!b||!b.charged||b.used||!m||!s.moves.includes(s.move)||b.phase!=='player')return false;b.used=true;b.charged=false;const f=ensureGeometry(b.enemy,'enemy');if(m.id===0){const g=active(f).find(g=>g.slot.startsWith('d'))||active(f)[0];if(g)g.hp=0;}if(m.id===5)f.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);if(m.id===2)chipHull(f,.6,-.15,220,'roundshot');if(m.id===3){const i=f.mastParts.findIndex(p=>p.hp>0);if(i>=0){f.mastParts[i].hp=0;rigLayout().sails.forEach((r,j)=>{if(r.mast===i)f.sailParts[j].hp=0;});}}if([1,4].includes(m.id))f.sailParts.forEach(p=>p.hp=Math.max(0,p.hp-p.maxHp*(m.id===1?.65:.45)));totalDamage(f);b.log.push(m.name+' unleashed');const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}return m;}
 export function settle(s,t=Date.now()){const b=s.battle;if(!b||b.phase!=='result'||b.rewarded)return null;b.rewarded=true;const gold=Math.floor(E.MATCH.gold*(b.won?1:E.MATCH.lossShare));s.gold+=gold;s.xp+=b.won?50:20;s.quests.matches++;if(b.won){s.weeklyWins++;s.trophies++;s.lastWin=t;s.quests.wins++;}let chest=null;if(b.won&&s.chests.length<5&&s.dailyChests<5){chest={id:b.id,kind:roll(()=>random(b),E.BONUS_ODDS),seed:b.rng};s.chests.push(chest);s.dailyChests++;s.chestRun++;if(s.chestRun%5===0){s.gems+=E.GEMS.fifthChest;queueOffer(s,'chests-'+s.chestRun,1,t);}}s.durability=b.player.durability;if(b.player.plates)b.player.plates.forEach((p,i)=>s.plates[i]=clone(p));s.canvasDurability=b.player.canvasDurability??100;const result={id:b.id,won:b.won,gold,chest,seed:b.seed,enemyName:b.enemyName,rematch:b.rematch,rematchAsked:false,opponent:clone(b.opponent||b.enemy),temperament:b.temperament,log:b.log.slice(-8),turns:b.turn};s.lastResult=result;return result;}
 export function requestRematch(s,r=Math.random){const q=s.lastResult;if(!q||q.won||q.rematch||q.rematchAsked)return null;const accept=r()<.65;if(accept){const b=startBattle(s,Date.now(),true);q.rematchAsked=true;return !!b;}q.rematchAsked=true;return false;}
 

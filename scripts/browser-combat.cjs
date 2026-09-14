@@ -15,7 +15,7 @@ await page.locator('[data-action=start]').click();
 await page.waitForTimeout(1800);
 console.log('phase',await page.locator('#phaseLabel').innerText());
 console.log('weapon',await page.locator('#weaponInfo').innerText());
-console.log('frames',await Promise.all(page.frames().map(async f=>({url:f.url(),fatal:await f.locator('.fatal').allTextContents(),images:await f.locator('#gameCrew img').count()}))));
+console.log('frames',await Promise.all(page.frames().map(async f=>({url:f.url(),fatal:await f.locator('.fatal').allTextContents(),images:await f.locator('#gameCrew img, #gamePorts img').count()}))));
 await page.screenshot({path:'test-results/combat-angle.png'});
 await page.locator('[data-action=sail][data-id="1"]').click();
 await page.locator('[data-action=sail][data-id="-1"]').click();

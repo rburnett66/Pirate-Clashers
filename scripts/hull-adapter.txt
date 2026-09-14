@@ -2,32 +2,33 @@
  const gameSide=new URLSearchParams(location.search).get('side');
  const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
  const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
- let gameRows=[],gameSelected=null;
+ const portPortraits=document.createElement('div');portPortraits.id='gamePorts';portPortraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1';document.body.append(portPortraits);canvas.style.zIndex='2';
+ let gameRows=[],gameSelected=null,gameLevel=3;
  function syncCrew(rows){
   gameRows=rows||[];let d=0,h=0;
   stations.forEach(st=>{const key=st.port?'h'+h++:'d'+d++,g=gameRows.find(g=>g.slot===key);st.slot=key;st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});
   uploadStations();updateScopeLabels();drawPortraits();
  }
  function syncParts(f){
-  if(!f)return;gamePartCount=f.hullParts?.length||0;
-  gamePartHP.fill(1);f.hullParts?.forEach((p,i)=>gamePartHP[i]=p.hp/p.maxHp);
+  if(!f)return;uploadMaterial(f);
   f.sailParts?.forEach((p,i)=>{if(sails[i])sails[i].damage=1-p.hp/p.maxHp;});
   f.mastParts?.forEach((p,i)=>{if(p.hp<=0&&masts[i]?.breakTime<0)breakMast(masts[i]);});uploadRig();
  }
  function drawPortraits(){
   const rect=canvas.getBoundingClientRect(),ratio=rect.width/canvas.width,ppu=cam.ppu*ratio;
-  portraits.innerHTML=stations.filter(st=>st.gunner>=1).map(st=>{
-   const foot=st.port?-.065:st.y-.055,w=(st.port?.22:.32)*ppu,h=(st.port?.22:.44)*ppu;
+  const drawRows=port=>stations.filter(st=>st.gunner>=1&&st.slot&&st.port===port).map(st=>{
+   const position=stationPosition({shipLevel:gameLevel},st.slot),foot=position.y,w=position.width*ppu,h=position.height*ppu;
    const x=rect.width/2+(st.x-cam.x)*ppu,y=rect.height/2-(foot-cam.y)*ppu;
    return '<img data-gunner="'+st.gunner+'" alt="'+(st.name||'Gunner')+'" src="/Pirate%20Art/pirate_segments/zombie-pirate/zombie-pirate-'+st.gunner+'.png" style="position:absolute;object-fit:contain;left:'+(x-w/2)+'px;top:'+(y-h)+'px;width:'+w+'px;height:'+h+'px;opacity:'+(st.out?.18:1)+';filter:'+(st.out?'grayscale(1)':st.gunner===gameSelected?'drop-shadow(0 0 3px #fff29a)':'none')+'">';
   }).join('');
+  portraits.innerHTML=drawRows(false);portPortraits.innerHTML=drawRows(true);
   mark.style.left=rect.width/2+(.02-cam.x)*ppu+'px';mark.style.top=rect.height/2-(1.13-cam.y)*ppu+'px';mark.style.fontSize=Math.max(14,ppu*.22)+'px';
  }
  window.addEventListener('message',e=>{
   if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
   if(d.action==='configure'){
    const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-   [P.deckStations,P.hullStations]=ladder[d.level]||ladder[3];P.shake=0;repair();
+   gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
    gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
   }
   if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}

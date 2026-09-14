@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as M from '../src/model.js';
 import {BALLISTICS,traceProjectile,collisionAt,pointAt} from '../src/ballistics.js';
+import {chipHull} from '../src/hull-mask.js';
 const T=Date.UTC(2026,8,13,12),clone=x=>structuredClone(x);
 const battle=()=>{const s=M.fresh(T);M.startBattle(s,T);return s;};
 test('angle trajectory is repeatable, independent of legacy target coordinates',()=>{
@@ -44,24 +45,24 @@ test('movement changes the trajectory origin, obeys turn and per-turn limits',()
  assert.equal(s.battle.movesLeft,0);assert.equal(M.moveShip(s,1),false);
  M.elapse(s,30);assert.equal(M.moveShip(s,-1),false);M.enemyTurn(s);assert.equal(s.battle.movesLeft,2);
 });
-test('the front hull section blocks the shot until removed, exposing the next section',()=>{
+test('a blast chips the first collision and the next shot reaches deeper wood',()=>{
  const f=battle().battle.enemy,origin={x:6,y:-.2};
  const first=traceProjectile(f,'player',origin,5,4);assert.equal(first.impact.kind,'hull');assert.equal(first.impact.index,2);
- f.hullParts[2].hp=0;
- const next=traceProjectile(f,'player',origin,5,4);assert.equal(next.impact.kind,'hull');assert.equal(next.impact.index,1);
+ chipHull(f,first.impact.x,first.impact.y,8);
+ const next=traceProjectile(f,'player',origin,5,4);assert.equal(next.impact.kind,'hull');assert.ok(f.hullParts[2].hp>0);
  assert.ok(next.path.at(-1).x>first.path.at(-1).x);
 });
-test('intact planking covers port crew and a cleared section exposes them',()=>{
+test('intact planking covers port crew and a pixel hole exposes them',()=>{
  const f=battle().battle.enemy,point={x:f.x,y:0};
  assert.equal(collisionAt(f,'enemy',point).kind,'hull');
- f.hullParts[1].hp=0;assert.equal(collisionAt(f,'enemy',point).kind,'crew');
+ chipHull(f,0,0,8);assert.equal(collisionAt(f,'enemy',point).kind,'crew');
 });
 test('every projectile has exactly one specialty and does less damage off specialty',()=>{
  for(const p of M.PIRATES){const spec=M.projectileFor(p);assert.ok(['hull','crew','sails','masts'].includes(spec.bonus));assert.equal(typeof spec.bonus,'string');}
  for(const kind of ['hull','crew','sails','masts']){
-  const a=battle().battle.enemy,b=clone(a),hit={kind,index:0,id:a.crew[0].id,slot:a.crew[0].slot};
+  const a=battle().battle.enemy,b=clone(a),hit={kind,index:0,x:-.7,y:-.15,id:a.crew[0].id,slot:a.crew[0].slot};
   const bonus=M.impactDamage(a,hit,20,{bonus:kind}),ordinary=M.impactDamage(b,hit,20,{bonus:kind==='hull'?'crew':'hull'});
-  assert.equal(bonus,32);assert.equal(ordinary,13);
+  if(kind==='hull'){assert.ok(bonus>ordinary&&ordinary>0);}else{assert.equal(bonus,32);assert.equal(ordinary,13);}
  }
  assert.equal(M.projectileFor(M.PIRATES[0]).bonus,'hull');
  assert.equal(M.projectileFor(M.PIRATES[5]).bonus,'crew');
