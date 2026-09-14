@@ -61,3 +61,16 @@ test('invalid masks fail restoration and replacement cannot add material outside
  const f=battle().battle.enemy,pixels=H.maskPixels(f).slice();pixels[0]=255;H.replaceHullPixels(f,pixels);
  assert.equal(H.maskPixels(f)[0],0);assert.deepEqual(H.maskPixels(f),H.maskPixels(structuredClone(f)));
 });
+
+test('exposed hull crew take the same damage as deck crew and the interior cannot shield them',()=>{
+ const s=battle(),f=s.battle.enemy,point={x:f.x+.07,y:.06},port=f.crew.find(g=>g.slot==='h0'),deck=f.crew.find(g=>g.slot==='d0');
+ assert.equal(collisionAt(f,'enemy',point).kind,'hull');
+ const protectedHp=port.hp;H.chipHull(f,-.07,.06,8);assert.equal(port.hp,protectedHp);
+ const hit=collisionAt(f,'enemy',point);assert.equal(hit.kind,'crew');assert.equal(hit.id,port.id);
+ const hull=f.hull,portBefore=port.hp,deckBefore=deck.hp;
+ const damage=M.impactDamage(f,hit,20,{bonus:'crew'});
+ assert.equal(damage,M.impactDamage(f,{kind:'crew',id:deck.id,slot:deck.slot},20,{bonus:'crew'}));
+ assert.equal(portBefore-port.hp,32);assert.equal(deckBefore-deck.hp,32);assert.equal(f.hull,hull);
+ const restored=M.restore(JSON.stringify(s),T);assert.equal(collisionAt(restored.battle.enemy,'enemy',point).kind,'crew');
+ M.impactDamage(f,hit,1000,{bonus:'crew'});assert.equal(port.hp,0);assert.equal(collisionAt(f,'enemy',point),null);
+});

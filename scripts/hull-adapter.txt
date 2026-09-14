@@ -1,6 +1,7 @@
 
  const gameSide=new URLSearchParams(location.search).get('side');
  const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
+ const interior=document.createElement('canvas');interior.id='gameInterior';interior.setAttribute('aria-hidden','true');interior.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';document.body.append(interior);let interiorKey='';
  const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
  const portPortraits=document.createElement('div');portPortraits.id='gamePorts';portPortraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1';document.body.append(portPortraits);canvas.style.zIndex='2';
  let gameRows=[],gameSelected=null,gameLevel=3;
@@ -16,6 +17,8 @@
  }
  function drawPortraits(){
   const rect=canvas.getBoundingClientRect(),ratio=rect.width/canvas.width,ppu=cam.ppu*ratio;
+  const key=[canvas.width,canvas.height,cam.ppu,cam.x,cam.y,gameLevel].join(':');
+  if(interiorKey!==key){interior.width=canvas.width;interior.height=canvas.height;paintShipInterior(interior,cam,stations);interiorKey=key;}
   const drawRows=port=>stations.filter(st=>st.gunner>=1&&st.slot&&st.port===port).map(st=>{
    const position=stationPosition({shipLevel:gameLevel},st.slot),foot=position.y,w=position.width*ppu,h=position.height*ppu;
    const x=rect.width/2+(st.x-cam.x)*ppu,y=rect.height/2-(foot-cam.y)*ppu;
@@ -28,7 +31,7 @@
   if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
   if(d.action==='configure'){
    const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-   gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
+   interiorKey='';gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
    gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
   }
   if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}

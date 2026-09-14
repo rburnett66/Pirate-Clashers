@@ -3,7 +3,7 @@
 ## Automated checks
 - npm run build regenerated the extracted catalog and original-renderer adapters.
 - npm run check passed for model.js and app.js.
-- npm test passed 42 tests, including 40 full seeded battle simulations.
+- npm test passed 43 tests, including 40 full seeded battle simulations.
 - scripts/browser-combat.cjs passed regional ordering, explicit turn labels, movement, gunner details, angle-only controls, slow visible flight, damage-after-impact timing, full enemy response, steep-arc framing, mid-flight reload and portrait/landscape control bounds without console/page errors.
 - scripts/browser-acceptance.cjs passed 17 named acceptance checks with no JavaScript or HTTP resource errors.
 
@@ -21,3 +21,5 @@ The Windows sandbox helper remains broken outside the project. Tests were run wi
 The combat tests additionally check parabolic samples against the analytic equations, weapon range against launch speed, first-contact hull occlusion and deeper-pixel exposure, port crew cover, one specialty per projectile, independent part HP, mast/sail coupling, deterministic grape pellets, turn/movement locks and safe pending-shot reload. Original material-wear tests use explicit physical impacts; browser victory fixtures retain a small real material patch rather than mutating aggregate hull HP.
 
 The pixel-mask regression suite checks local chipping, all mask pixel centers, single-texel interception in both firing directions, legacy-save conversion, corrupt-mask rejection, and reload after a partial pellet volley without repeat damage. scripts/browser-hull-mask.cjs compares all 163,840 uploaded GPU texels with the saved collision mask and reads framebuffer alpha to prove both wood layers disappear inside holes while nearby wood remains opaque. It also verifies equally sized deck/port portraits on separate layers; an 800 x 900 hull close-up was inspected.
+
+Interior clarification: the browser test verifies an opaque interior image beneath open hull pixels, correct interior/crew/exterior layer order, and a transparent boundary outside the ship. A regression test proves planking initially protects port crew, removal exposes them, and exposed port/deck crew take equal damage without changing hull health. Their exposure persists across reload.
