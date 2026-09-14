@@ -24,3 +24,23 @@ Run `npm start`, then `node scripts/browser-menu-art.cjs`. The isolated browser 
 Verified at 1440×1000, 844×390 and 390×844: six main sections without page-width overflow; all Crew tabs, 36 portraits, details, placement, persistent scenery, store shortcut with a 44px target, combat/defeat, settled victory, chest rewards, matching regional panorama and idempotent result reopening. Browser checks report no page exceptions or failed local resources. Also verified: `npm test` (55 passing) and `npm run check`.
 
 This is a local game with seeded rivals. Existing purchase controls remain disconnected; no live accounts, online multiplayer or payment integration were added.
+
+## Proportions and resolution scaling
+
+Desktop menus use the source mockup's 1792×1008 reference coordinates. The rail is 244px wide; central and right panels start at x=264 and x=1288. `src/ui-scale.js` fits that 16:9 composition with a single uniform scale; `src/ui-scale.css` keeps layout, type, artwork, borders and controls in the same proportions. Other aspect ratios center the composition over the wood background. Long collection/store/settings content scrolls within the main panel; the main menu fits in one view. Scenery choices now live beside the crew, and the hold occupies the lower central panel.
+
+Reference scaling applies to landscape windows at least 1000×560 CSS pixels. Smaller windows retain the adapted layout. The header always preserves its 1758:464 source ratio. Navigation artwork is positioned according to each export's visible tile so transparent margins no longer make some icons look undersized. Raster sources and their shadows remain unchanged.
+
+The live combat scene continues to use its existing viewport projection and pointer coordinates; it is not zoomed with the menu stage. Desktop dialogs, including results, use the common UI scale.
+
+`node scripts/browser-ui-scale.cjs` measures invariant reference rectangles and centering at 1280×720, 1792×1008, 1920×1080, 2560×1440, 3840×2160, 2560×1080 and 1600×1200. It also checks all other main menu sections at 1440p. Screenshots are in `test-results/ui-scale/`. The original browser flow suite and all 55 model tests continue to pass.
+
+## Testing on a phone
+
+Run `npm run start:phone` from the project root. Open the printed `http://<computer-wifi-address>:4174` URL on a phone connected to the same Wi-Fi. Keep the computer awake and the server running. Ctrl+C stops it. If multiple private network interfaces are present, select one with `npm run start:phone -- --host <assigned-private-ip>`.
+
+The phone server binds only the selected private interface and serves GET/HEAD requests for the game entry point, source modules/styles, public runtime assets and pirate PNGs. It does not serve project guidance, Git data, documentation or arbitrary repository files. Firewall settings are not modified.
+
+Phone progress is stored separately in that browser. To transfer a captain, use Settings → Export captain on the original browser and Import backup on the phone. Refresh to load UI updates. Water preset IDs have a `getRandomValues` fallback because `randomUUID` is not available on plain HTTP LAN origins.
+
+`node scripts/browser-phone.cjs http://<computer-wifi-address>:4174` checks allowed/excluded routes and an isolated mobile HTTP browser flow: touch navigation, water-preset saving, battle entry, aim control and retreat/results. This verifies the network server from the development computer, not physical-device connectivity. Haptics have not been implemented.

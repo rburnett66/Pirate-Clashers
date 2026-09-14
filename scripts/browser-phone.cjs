@@ -1,0 +1,23 @@
+const {chromium}=require('@playwright/test'),assert=require('node:assert/strict');
+const base=process.argv[2];if(!base)throw Error('Pass the URL printed by npm run start:phone.');
+(async()=>{
+ for(const route of ['/','/src/app.js','/src/ui-scale.js','/public/ship.html','/public/menu-art/wood.svg'])assert.equal((await fetch(base+route)).status,200,route);
+ for(const route of ['/AGENTS.md','/.git/HEAD','/docs/MENU-ART-INTEGRATION.md','/package.json','/src/..%5cAGENTS.md','/public/menu-art/source-manifest.json'])assert.equal((await fetch(base+route)).status,404,route);
+ assert.equal((await fetch(base+'/',{method:'POST'})).status,405);
+ const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base);
+ await page.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});await page.reload();
+ assert.equal(await page.evaluate(()=>isSecureContext),false,'Exercise the HTTP LAN path');
+ await page.locator('#rail [data-id=settings]').tap();await page.locator('[data-action=water-open]').tap();
+ await page.waitForFunction(()=>!document.querySelector('[data-action=water-save]').disabled);
+ await page.locator('#waterName').fill('Phone test sea');await page.locator('[data-action=water-save]').tap();
+ assert.match(await page.locator('#waterStatus').innerText(),/Saved/);
+ assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).settings.water.presets.some(p=>p.name==='Phone test sea')));
+ await page.locator('#rail [data-id=battle]').tap();await page.locator('[data-action=start]').tap();
+ await page.waitForSelector('#aimAngle');await page.locator('#aimAngle').fill('30');assert.equal(await page.locator('#angleValue').innerText(),'30°');
+ await page.locator('[data-action=retreat]').tap();await page.locator('[data-action=confirm-retreat]').tap();assert.match(await page.locator('.result-title').innerText(),/OUTGUNNED/);
+ assert.deepEqual(errors,[]);console.log('LAN runtime routes and exclusions pass; mobile HTTP browser loads, saves a water preset and completes the battle/retreat flow.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});
