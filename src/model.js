@@ -1,3 +1,4 @@
+import {poseOf,seaShot,movingContact} from './moving-shot.js';
 import {waterLibrary} from './ocean-settings.js';
 import {chipHull,maskPixels} from './hull-mask.js';
 import {ensureGeometry,trajectory,projectileFor,rigLayout,traceProjectile,muzzle,parabolicPath} from './ballistics.js';
@@ -39,7 +40,10 @@ if(s.battle!==null){const b=s.battle;if(!obj(b)||!['player','enemy','flight','re
 if(s.battle?.phase==='flight'&&(!s.battle.pending||!['player','enemy'].includes(s.battle.pending.side)||!num(s.battle.pending.angle,75)||s.battle.pending.angle<5||!s.battle[s.battle.pending.side]?.crew.some(g=>g.id===s.battle.pending.gunner&&g.hp>0)))bad();
 
 if(s.battle?.pending?.plan){
- const p=s.battle.pending,impactOK=i=>i===null||(obj(i)&&['hull','crew','sails','masts'].includes(i.kind)&&Number.isFinite(i.x)&&Math.abs(i.x)<=1.5&&Number.isFinite(i.y)&&Math.abs(i.y)<=2.5&&(i.kind==='crew'?int(i.id,36)&&/^[dh][0-3]$/.test(i.slot):int(i.index,7)));
+ const p=s.battle.pending;
+ if(p.origin&&(!obj(p.origin)||!Number.isFinite(p.origin.x)||Math.abs(p.origin.x)>20||!Number.isFinite(p.origin.y)||Math.abs(p.origin.y)>5))bad();
+ if(p.live!==undefined&&(!bool(p.live)||!obj(p.previousPose)||!Number.isFinite(p.previousPose.heave)||Math.abs(p.previousPose.heave)>.4||!Number.isFinite(p.previousPose.roll)||Math.abs(p.previousPose.roll)>.27||!p.origin))bad();
+ const impactOK=i=>i===null||(obj(i)&&['hull','crew','sails','masts'].includes(i.kind)&&Number.isFinite(i.x)&&Math.abs(i.x)<=1.5&&Number.isFinite(i.y)&&Math.abs(i.y)<=2.5&&(i.kind==='crew'?int(i.id,36)&&/^[dh][0-3]$/.test(i.slot):int(i.index,7)));
  if(!Array.isArray(p.plan)||![1,7].includes(p.plan.length)||!p.plan.every(q=>obj(q)&&num(q.angle,80)&&num(q.duration,5)&&impactOK(q.impact)&&obj(q.end)&&Number.isFinite(q.end.x)&&Number.isFinite(q.end.y)&&num(q.end.t,5))||!Array.isArray(p.resolved)||new Set(p.resolved).size!==p.resolved.length||!p.resolved.every(i=>int(i,p.plan.length-1))||!Array.isArray(p.impacts)||!p.impacts.every(i=>impactOK(i)&&num(i.damage))||!num(p.elapsed,5))bad();
 }
 
@@ -98,10 +102,11 @@ export function previewShot(s,{side='player',gunner=null,angle=35}={}){
  const g=active(b[side]).find(g=>g.id===gunner)||(!gunner?active(b[side])[0]:null);if(!g)return null;
  const p=PIRATES.find(p=>p.id===g.id),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)};return forecastVolley(b,trajectory(b,side,g,spec,angle),g,p);
 }
-export function launchShot(s,{side='player',gunner=null,angle=35}={}){
+export function launchShot(s,{side='player',gunner=null,angle=35,live=false}={}){
  const b=prepareBattle(s.battle);if(!b||b.phase!==side||b.pending||(side==='player'?b.shots:b.enemyShots)<=0)return null;
  const flight=previewShot(s,{side,gunner,angle});if(!flight)return null;
- b.pending={side,gunner:flight.gunnerId,angle};rememberFlight(b.pending,flight);b.phase='flight';return flight;
+ if(live){flight.shots=flight.shots.map(q=>seaShot(flight.origin,side,flight.spec.speed,q.angle));flight.duration=Math.max(...flight.shots.map(q=>q.duration));}
+ b.pending={side,gunner:flight.gunnerId,angle,...(live?{live:true,previousPose:poseOf(b[side==='player'?'enemy':'player'])}:{})};rememberFlight(b.pending,flight);b.phase='flight';return flight;
 }
 function totalDamage(f){
  f.hull=Math.min(f.maxHull,f.hullParts.reduce((a,p)=>a+p.hp,0));
@@ -139,6 +144,7 @@ function forecastVolley(b,flight,g,p){
  flight.duration=Math.max(...flight.shots.map(s=>s.duration));return flight;
 }
 function rememberFlight(pending,flight){
+ pending.origin={...flight.origin};
  pending.plan=flight.shots.map(s=>({angle:s.angle,duration:s.duration,impact:s.impact,end:s.path.at(-1)}));
  pending.resolved=[];pending.impacts=[];pending.elapsed=0;flightCache.set(pending,flight);return flight;
 }
@@ -147,13 +153,40 @@ export function pendingFlight(s){
  if(flightCache.has(pending))return flightCache.get(pending);
  if(!pending.plan){const flight=previewShot(s,pending);return flight?rememberFlight(pending,flight):null;}
  const {side,gunner,angle}=pending,g=b[side].crew.find(g=>g.id===gunner);if(!g)return null;
- const p=PIRATES.find(p=>p.id===gunner),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)},origin=muzzle(b[side],side,g);
+ const p=PIRATES.find(p=>p.id===gunner),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)},origin=pending.origin||muzzle(b[side],side,g);
  const shots=pending.plan.map(({end,...q})=>({...q,path:parabolicPath(origin,side,spec.speed,q.angle,q.duration,end)}));
  const flight={side,gunnerId:gunner,angle,spec,origin,shots,duration:Math.max(...shots.map(s=>s.duration))};flightCache.set(pending,flight);return flight;
 }
+
+function refreshMovingFlight(b,pending,flight,elapsed){
+ const from=pending.elapsed||0,to=Math.min(elapsed,flight.duration),target=b[flight.side==='player'?'enemy':'player'];
+ if(to<=from)return;
+ const foe=clone(target),previous=pending.previousPose||poseOf(target),own=b[flight.side],g=own.crew.find(g=>g.id===flight.gunnerId),pirate=PIRATES.find(p=>p.id===g.id);
+ const base=shotPower(own,pirate,g),remaining=new Set(flight.shots.map((_,i)=>i).filter(i=>!pending.resolved.includes(i)));
+ let cursor=from;
+ while(remaining.size){
+  const candidates=[];
+  for(const i of remaining){
+   const shot=flight.shots[i],hit=movingContact(foe,flight.side,flight.origin,flight.spec.speed,shot.angle,cursor,Math.min(to,shot.duration),previous,from,to);
+   if(hit)candidates.push({i,...hit});
+   else if(shot.duration<=to)candidates.push({i,duration:shot.duration,impact:null,end:shot.path.at(-1)});
+  }
+  if(!candidates.length)break;
+  candidates.sort((a,b)=>a.duration-b.duration||a.i-b.i);
+  const {i,duration,impact,end}=candidates[0],shot=flight.shots[i];
+  Object.assign(shot,{duration,impact,path:parabolicPath(flight.origin,flight.side,flight.spec.speed,shot.angle,duration,end)});
+  pending.plan[i]={angle:shot.angle,duration,impact,end};
+  if(impact)impactDamage(foe,impact,base,flight.spec,1/flight.spec.count);
+  remaining.delete(i);cursor=duration;
+ }
+ pending.previousPose=poseOf(target);
+ flight.duration=Math.max(...flight.shots.map(s=>s.duration));
+}
+
 export function advanceShot(s,elapsed){
  const b=prepareBattle(s.battle);if(!b||b.phase!=='flight'||!b.pending)return null;
  const pending=b.pending,flight=pendingFlight(s);if(!flight)return null;
+ if(pending.live)refreshMovingFlight(b,pending,flight,elapsed);
  const side=pending.side,own=b[side],foe=b[side==='player'?'enemy':'player'],g=own.crew.find(g=>g.id===flight.gunnerId),p=PIRATES.find(p=>p.id===g.id);
  const base=shotPower(own,p,g),fresh=[];pending.elapsed=Math.min(flight.duration,Math.max(pending.elapsed||0,elapsed));
  const order=flight.shots.map((shot,i)=>({shot,i})).sort((a,b)=>a.shot.duration-b.shot.duration||a.i-b.i);

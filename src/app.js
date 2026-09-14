@@ -1,3 +1,4 @@
+import {aimGuide} from './aim-guide.js';
 import {waterValues,waterName,waterLibrary,activeWater,parseWater,exportWater} from './ocean-settings.js';
 import {worldToShip} from './ship-pose.js';
 import {pointAt} from './ballistics.js';
@@ -112,9 +113,9 @@ function drawAim(){
  const b=state.battle,arc=el('aimArc');if(!arc||!b)return;
  const flight=M.previewShot(state,{gunner,angle:b.aimAngle??35});
  if(!flight||busy||b.phase!=='player'){arc.innerHTML='';return;}
- const path=flight.shots[Math.floor(flight.shots.length/2)].path,points=path.filter((_,i)=>i%5===0).map(screenPoint);
+ const path=flight.shots[Math.floor(flight.shots.length/2)].path,points=aimGuide(path).map(screenPoint);
  const o=screenPoint(flight.origin);
- arc.innerHTML='<polyline points="'+points.map(p=>p.x+','+p.y).join(' ')+'" fill="none" stroke="#fff3aa" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round" opacity=".85"/><circle cx="'+o.x+'" cy="'+o.y+'" r="7" fill="none" stroke="#fff3aa" stroke-width="2"/><text x="'+(o.x+12)+'" y="'+(o.y-12)+'" fill="#fff3aa" font-size="18" font-weight="800">'+(b.aimAngle??35)+'°</text>';
+ arc.innerHTML='<polyline points="'+points.map(p=>p.x+','+p.y).join(' ')+'" fill="none" stroke="#ff3038" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 2px #310b10)"/><circle cx="'+o.x+'" cy="'+o.y+'" r="7" fill="none" stroke="#ff3038" stroke-width="3"/><text x="'+(o.x+12)+'" y="'+(o.y-12)+'" fill="#ff3038" stroke="#fff5e7" stroke-width="3" paint-order="stroke" font-size="18" font-weight="800">'+(b.aimAngle??35)+'°</text>';
 }
 function updateArena(){
  const b=M.prepareBattle(state.battle);if(!b||!el('playerHealth'))return;
@@ -177,7 +178,7 @@ async function runEnemyTurn(){
  const b=state.battle;if(!b||b.phase!=='enemy')return;
  busy=true;updateArena();await sleep(650);
  if(b.enemyMoves>0){M.moveShip(state,b.enemy.x>8.4?1:-1,'enemy');updateArena();await sleep(250);}
- while(b.phase==='enemy'){const shot=M.planEnemyShot(state);if(!shot)break;const flight=M.launchShot(state,shot);if(!flight)break;updateArena();await animateShot(flight);if(b.phase==='enemy')await sleep(400);}
+ while(b.phase==='enemy'){const shot=M.planEnemyShot(state);if(!shot)break;const flight=M.launchShot(state,{...shot,live:true});if(!flight)break;updateArena();await animateShot(flight);if(b.phase==='enemy')await sleep(400);}
  busy=false;updateArena();if(b.phase==='result')finish();
 }
 async function resumeCombat(){
@@ -187,7 +188,7 @@ async function resumeCombat(){
 }
 async function fire(){
  if(busy||state.battle?.phase!=='player')return;
- const flight=M.launchShot(state,{gunner,angle:state.battle.aimAngle??35});if(!flight)return;
+ const flight=M.launchShot(state,{live:true,gunner,angle:state.battle.aimAngle??35});if(!flight)return;
  busy=true;updateArena();await animateShot(flight);busy=false;
  if(state.battle.phase==='enemy')await runEnemyTurn();else{updateArena();if(state.battle.phase==='result')finish();}
 }
@@ -280,7 +281,7 @@ window.addEventListener('message',e=>{
  for(const row of rows){
   if(!['player','enemy'].includes(row.side)||!row.pose||!Number.isFinite(row.pose.heave)||!Number.isFinite(row.pose.roll)||!Array.isArray(row.samples)||row.samples.length!==32)continue;
   const f=b[row.side],dir=row.side==='player'?1:-1;
-  if(!busy&&b.phase==='player')f.pose={heave:Math.max(-.2,Math.min(.2,row.pose.heave)),roll:Math.max(-Math.PI/12,Math.min(Math.PI/12,row.pose.roll))};
+  f.pose={heave:Math.max(-.2,Math.min(.2,row.pose.heave)),roll:Math.max(-Math.PI/12,Math.min(Math.PI/12,row.pose.roll))};
   const samples=row.samples.map(p=>({y:worldToShip(f,dir,p).y,foam:p.foam}));
   if(samples.every(p=>Number.isFinite(p.y)&&Number.isFinite(p.foam)))send(row.side,{action:'ocean',look:row.foamLook,surface:samples.map(p=>p.y),foam:samples.map(p=>p.foam)});
  }

@@ -3,7 +3,7 @@
 ## Automated checks
 - npm run build regenerated the extracted catalog and original-renderer adapters.
 - npm run check passed for model.js and app.js.
-- npm test passed 50 tests, including 40 full seeded battle simulations.
+- npm test passed 55 tests, including 40 full seeded battle simulations.
 - scripts/browser-combat.cjs passed regional ordering, explicit turn labels, movement, gunner details, angle-only controls, slow visible flight, damage-after-impact timing, full enemy response, steep-arc framing, mid-flight reload and portrait/landscape control bounds without console/page errors.
 - scripts/browser-acceptance.cjs passed 17 named acceptance checks with no JavaScript or HTTP resource errors.
 
@@ -25,8 +25,11 @@ The pixel-mask regression suite checks local chipping, all mask pixel centers, s
 Interior clarification: the browser test verifies an opaque interior image beneath open hull pixels, correct interior/crew/exterior layer order, and a transparent boundary outside the ship. A regression test proves planking initially protects port crew, removal exposes them, and exposed port/deck crew take equal damage without changing hull health. Their exposure persists across reload.
 
 ## Ocean and Water Workshop checkpoint
-- 50 model tests pass, including rotated single-texel collisions through the full 15-degree control range, saved shot poses, water JSON validation and captain-backup migration.
-- scripts/browser-ocean.cjs passes both-hull GPU coupling, visible rocking, sampled contact foam, frozen shot poses, exact analytic miss-to-splash coordinates, no premature/duplicate splash, no damage on a miss, portrait alignment and reduced-motion stability.
+- 55 model tests pass, including rotated single-texel collisions through the full 15-degree control range, saved shot poses, water JSON validation and captain-backup migration.
+- scripts/browser-ocean.cjs passes both-hull GPU coupling, visible rocking, sampled contact foam, continuous rocking during flight, exact analytic miss-to-splash coordinates, no premature/duplicate splash, no damage on a miss, portrait alignment and reduced-motion stability.
 - scripts/browser-workshop.cjs passes 66 exposed sliders, named-look persistence, manual-copy fallback, validated paste/preview, invalid-import preservation, reload, selected values reaching combat and zero rocking/foam-look settings. No console/page errors. Desktop and portrait screenshots inspected.
 - scripts/browser-hull-mask.cjs still passes all 163,840 GPU mask comparisons with zero mismatches, opaque interior behind breaches, equally sized crew layers and exposed-crew collision.
 - Reports/screenshots: test-results/ocean-report.json, water-workshop-report.json, ocean-combat.png, ocean-miss-splash.png, water-workshop.png and water-workshop-portrait.png.
+
+## Continuous rocking and aim-guide correction
+Both ships now keep rocking while either side fires. Live collision sweeps moving ship-local material, crew and rig bounds while the saved muzzle origin and ballistic path stay fixed. Five focused regressions cover a moving single texel from either direction, persistent launch origin/reload, stationary-target results across frame sizes, partial live grapeshot reload, and a guide trimmed to exactly half the full arc length. The aim guide is solid red with a 5 px stroke and contrasting angle text. Browser ocean and combat passes confirm continued rocking, exact missed-shot splashes, the red guide, turn locks, impacts, reload and responsive layouts. The prior frozen-pose notes on the MetaMax ticket are superseded by the owner correction.

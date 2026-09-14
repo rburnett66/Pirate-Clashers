@@ -37,6 +37,7 @@ await page.locator('[data-action=gun][data-id="2"]').click();
 assert.match(await page.locator('#weaponInfo').innerText(),/86 m/);
 await page.locator('#aimAngle').fill('75');
 const arc=await page.locator('#aimArc polyline').getAttribute('points');
+assert.equal(await page.locator('#aimArc polyline').getAttribute('stroke'),'#ff3038');assert.equal(await page.locator('#aimArc polyline').getAttribute('stroke-width'),'5');
 assert.ok(arc.split(' ').every(s=>Number(s.split(',')[1])>=0),'steep arc stays visible');
 await page.locator('#aimAngle').fill('35');
 await page.locator('[data-action=fire]').click();

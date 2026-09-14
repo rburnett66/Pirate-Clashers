@@ -23,7 +23,7 @@ const {chromium,expect}=require('@playwright/test'),fs=require('node:fs'),assert
   await page.locator('#aimAngle').fill('5');await page.locator('[data-action=fire]').click();
   const pending=await page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.pending);
   assert.equal(pending.plan[0].impact,null);const landing=pending.plan[0].end;
-  const frozen=await poses();await page.waitForTimeout(250);assert.deepEqual(await poses(),frozen);
+  const firingPose=await poses();await page.waitForTimeout(250);const laterPose=await poses();assert.ok(firingPose.every((p,i)=>p!==laterPose[i]),'both boats keep rocking during flight');
   assert.equal((await snapshot()).splashes,0,'no splash before sea contact');
   await ocean().waitForFunction(()=>window.pirateOceanSnapshot().splashes===1);
   await page.waitForTimeout(160);
@@ -38,7 +38,7 @@ const {chromium,expect}=require('@playwright/test'),fs=require('node:fs'),assert
   await reset(false);await page.waitForTimeout(1200);const reduced=await poses();await page.waitForTimeout(600);assert.deepEqual(await poses(),reduced);
   assert.ok((await snapshot()).contacts.every(c=>c.pose.heave===0&&c.pose.roll===0));
   assert.deepEqual(errors,[]);
-  const report={passed:true,errors,settings:sea.settings,first,second,landing,impact:record,checks:['both hulls coupled to ocean','visible rocking from water','foam sampled from simulation','pose held during flight','miss splash at exact analytic landing','no splash before impact or duplicate after','miss leaves health unchanged','portrait water alignment','reduced motion stable']};
+  const report={passed:true,errors,settings:sea.settings,first,second,landing,impact:record,checks:['both hulls coupled to ocean','visible rocking from water','foam sampled from simulation','both boats keep rocking during flight','miss splash at exact analytic landing','no splash before impact or duplicate after','miss leaves health unchanged','portrait water alignment','reduced motion stable']};
   fs.writeFileSync('test-results/ocean-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
