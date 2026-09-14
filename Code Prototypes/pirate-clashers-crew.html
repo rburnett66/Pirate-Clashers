@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crew — Pirate Clashers</title>
+<style>
+  :root {
+    --ink:        #0A2438;
+    --ink-deep:   #061A29;
+    --ink-line:   #16405C;
+    --parchment:  #E8D9B0;
+    --wood:       #4A2A17;
+    --wood-lit:   #6B3E22;
+    --brass:      #E9A23B;
+    --brass-deep: #A86A18;
+    --foam:       #7FD8D0;
+    --bone:       #F3EDDF;
+    --muted:      #8FB7CE;
+
+    --common:     #9BB2C2;
+    --rare:       #4FA3E3;
+    --epic:       #B072E8;
+    --legendary:  #F0A733;
+
+    --tabs-h: 48px;
+    --card-r: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(120% 90% at 30% -10%, #12405E 0%, var(--ink) 45%, var(--ink-deep) 100%);
+    color: var(--bone);
+    font-family: "Avenir Next", Nunito, "Trebuchet MS", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.26;
+    background-image: linear-gradient(var(--ink-line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--ink-line) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(120% 90% at 40% 40%, #000 30%, transparent 85%);
+  }
+  .app {
+    height: 100%; display: flex; flex-direction: column;
+    padding: max(0px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right))
+             max(0px, env(safe-area-inset-bottom)) max(0px, env(safe-area-inset-left));
+  }
+
+  /* ---------- Tabs ---------- */
+  .topbar {
+    height: var(--tabs-h); flex: 0 0 var(--tabs-h); display: flex; align-items: center;
+    gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--ink-line);
+    background: rgba(6,26,41,0.75);
+  }
+  .tabs { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; }
+  .tabs button {
+    font: inherit; font-weight: 800; font-size: 14px; color: var(--muted); cursor: pointer;
+    background: transparent; border: 2px solid transparent; border-radius: 10px; padding: 7px 14px;
+  }
+  .tabs button[aria-selected="true"] { color: var(--bone); background: rgba(22,64,92,0.6); border-color: var(--ink-line); }
+  .tabs button:focus-visible, button:focus-visible, .slot:focus-visible, .card:focus-visible { outline: 3px solid var(--foam); outline-offset: 2px; }
+  .purse { display: flex; gap: 14px; font-variant-numeric: tabular-nums; font-weight: 800; font-size: 14px; }
+  .purse span { color: var(--muted); font-weight: 700; }
+  .purse b.gold { color: var(--brass); }
+  .purse b.coin { color: var(--foam); }
+
+  .page { flex: 1 1 auto; min-height: 0; display: none; }
+  .page.on { display: flex; }
+
+  /* ---------- Ship tab: ship left, cards right ---------- */
+  .shipside {
+    flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column;
+    padding: 10px 12px; gap: 8px; border-right: 1px solid var(--ink-line);
+  }
+  .shiphead { display: flex; align-items: baseline; gap: 8px; }
+  .shiphead h2 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
+  .shiphead .sub { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .shipwrap { flex: 1 1 auto; min-height: 0; position: relative; }
+  .shipwrap svg { width: 100%; height: 100%; display: block; }
+
+  .slot {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 13%; aspect-ratio: 1; min-width: 44px;
+    border-radius: 50%; border: 2px dashed var(--ink-line); background: rgba(6,26,41,0.55);
+    display: grid; place-items: center; cursor: pointer; padding: 0;
+    font: inherit; color: var(--muted);
+  }
+  .slot .icon { font-size: clamp(16px, 3.4vh, 30px); line-height: 1; }
+  .slot .lvl {
+    position: absolute; right: -2px; bottom: -2px; min-width: 18px; height: 18px; padding: 0 4px;
+    border-radius: 9px; background: var(--ink-deep); border: 1.5px solid var(--brass-deep);
+    color: var(--brass); font-size: 10.5px; font-weight: 900; display: grid; place-items: center;
+  }
+  .slot.filled { border-style: solid; border-color: var(--brass-deep); background: linear-gradient(180deg, var(--wood-lit), var(--wood)); color: var(--bone); }
+  .slot.deck.filled { border-color: var(--foam); }
+  .slot.locked { opacity: 0.35; cursor: not-allowed; border-style: dotted; }
+  .slot.target { border-color: var(--foam); box-shadow: 0 0 0 3px rgba(127,216,208,0.28); }
+  @media (hover: hover) and (pointer: fine) { .slot:not(.locked):hover { border-color: var(--foam); } }
+
+  .placehint {
+    font-size: 12.5px; font-weight: 700; color: var(--foam); min-height: 17px;
+  }
+  .placehint.idle { color: var(--muted); }
+
+  /* ---------- Card column ---------- */
+  .cardside { flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column; padding: 10px 12px; gap: 8px; }
+  .cardside header { display: flex; align-items: baseline; gap: 8px; }
+  .cardside h2 { margin: 0; font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
+  .cardside .sub { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .grid {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); align-content: start;
+    padding-right: 4px;
+  }
+  .card {
+    position: relative; border-radius: var(--card-r); padding: 8px 6px 6px; cursor: pointer;
+    background: linear-gradient(180deg, #143B57, #0C2A40);
+    border: 2px solid var(--ink-line); font: inherit; color: inherit; text-align: center;
+    display: flex; flex-direction: column; gap: 3px; align-items: center;
+  }
+  .card .gun { font-size: clamp(26px, 5.4vh, 44px); line-height: 1.05; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4)); }
+  .card .title { font-size: 11.5px; font-weight: 800; line-height: 1.15; }
+  .card .lvl {
+    position: absolute; left: 6px; top: 6px; min-width: 20px; height: 18px; padding: 0 5px;
+    border-radius: 9px; background: var(--ink-deep); border: 1.5px solid var(--brass-deep);
+    color: var(--brass); font-size: 10.5px; font-weight: 900; display: grid; place-items: center;
+  }
+  .rarity { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+  .rarity i { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); display: block; }
+  .r-common    { color: var(--common); }    .r-common i    { background: var(--common); }
+  .r-rare      { color: var(--rare); }      .r-rare i      { background: var(--rare); }
+  .r-epic      { color: var(--epic); }      .r-epic i      { background: var(--epic); }
+  .r-legendary { color: var(--legendary); } .r-legendary i { background: var(--legendary); }
+  .card.c-common    { border-color: #3D5B70; }
+  .card.c-rare      { border-color: #2F6FA8; }
+  .card.c-epic      { border-color: #7B4CA8; }
+  .card.c-legendary { border-color: var(--brass-deep); }
+  .card[aria-pressed="true"] { border-color: var(--foam); box-shadow: 0 0 0 2px var(--foam), 0 6px 16px rgba(127,216,208,0.25); }
+  .card.posted::after {
+    content: 'ON SHIP'; position: absolute; right: 6px; top: 7px;
+    font-size: 8.5px; font-weight: 900; color: var(--ink); background: var(--foam);
+    border-radius: 5px; padding: 1px 4px;
+  }
+  .card.locked { opacity: 0.42; }
+  .card .view {
+    width: 100%; margin-top: 2px; font-size: 11px; font-weight: 900; letter-spacing: 0.06em;
+    padding: 5px 0; border-radius: 8px; border: 2px solid var(--foam);
+    background: rgba(127,216,208,0.14); color: var(--foam); cursor: pointer;
+  }
+
+  /* ---------- Shipyard tab ---------- */
+  .yard { flex: 1 1 auto; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .yard h2 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.02em; }
+  .yard .lead { margin: 0; font-size: 13.5px; color: var(--muted); font-weight: 700; max-width: 60ch; }
+  .ladder { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+  .rung {
+    display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 12px;
+    padding: 8px 12px; border-radius: 10px; border: 2px solid var(--ink-line);
+    background: rgba(12,42,64,0.55);
+  }
+  .rung.current { border-color: var(--foam); background: rgba(127,216,208,0.10); }
+  .rung.done { opacity: 0.62; }
+  .rung .lv { font-weight: 900; font-size: 13px; }
+  .pips { display: flex; gap: 10px; align-items: center; }
+  .pipset { display: flex; gap: 4px; align-items: center; }
+  .pipset span { font-size: 11px; font-weight: 800; color: var(--muted); margin-right: 2px; }
+  .pip { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink-line); }
+  .pip.deck { border-color: var(--foam); background: rgba(127,216,208,0.35); }
+  .pip.hull { border-color: var(--brass-deep); background: rgba(233,162,59,0.35); }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    font: inherit; font-weight: 800; font-size: 14px; border-radius: 11px; cursor: pointer;
+    border: 2px solid var(--ink-line); background: rgba(12,42,64,0.8); color: var(--bone);
+    padding: 10px 14px;
+  }
+  .btn.gold {
+    background: linear-gradient(180deg, var(--brass), var(--brass-deep));
+    border-color: #6E4409; color: #2A1704; text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn[disabled] { opacity: 0.42; cursor: not-allowed; }
+
+  /* ---------- Full detail view ---------- */
+  .detail { position: fixed; inset: 0; background: rgba(4,14,23,0.92); display: none; z-index: 20; }
+  .detail.open { display: flex; }
+  .detail .inner {
+    flex: 1; display: flex; min-height: 0;
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+             max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    gap: 14px;
+  }
+  .facts { flex: 1 1 52%; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .facts h2 { margin: 0; font-size: clamp(20px, 3.2vh, 30px); font-weight: 900; letter-spacing: -0.025em; line-height: 1; }
+  .facts .rarity { font-size: 12px; }
+  dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; align-items: baseline; }
+  dt { font-size: 12px; font-weight: 800; color: var(--muted); }
+  dd { margin: 0; font-size: 14.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+       display: flex; align-items: baseline; gap: 8px; }
+  /* What the next level adds, shown against the stat it changes rather than in a
+     sentence under the button: the number and its gain sit together. */
+  .gain { font-size: 12.5px; font-weight: 900; color: #6FE39A; }
+  .gain.dim { color: #4E8F68; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    border: 1.5px solid var(--ink-line); color: var(--bone); background: rgba(12,42,64,0.7);
+  }
+  .tag.hull  { border-color: #C06A3A; color: #F0B78C; }
+  .tag.sails { border-color: #64B08A; color: #A7E4C4; }
+  .tag.crew  { border-color: #C0574F; color: #F2A9A3; }
+  .tag.status{ border-color: var(--epic); color: #DCBDF6; }
+
+  .portrait { flex: 1 1 48%; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .portrait .frame {
+    flex: 1 1 auto; min-height: 0; border-radius: 16px; display: grid; place-items: center;
+    background: radial-gradient(120% 100% at 50% 20%, #1B5074, #0A2438 70%);
+    border: 2px solid var(--ink-line); position: relative; overflow: hidden;
+  }
+  .portrait .frame .big { font-size: clamp(70px, 26vh, 200px); line-height: 1; filter: drop-shadow(0 6px 6px rgba(0,0,0,0.45)); }
+  .portrait .frame .gunbadge {
+    position: absolute; left: 12px; bottom: 12px; font-size: clamp(24px, 6vh, 46px);
+    background: rgba(6,26,41,0.8); border: 2px solid var(--ink-line); border-radius: 12px; padding: 4px 8px;
+  }
+  .upgrade { display: flex; flex-direction: column; gap: 4px; }
+  .upgrade .note { font-size: 11.5px; font-weight: 700; color: var(--muted); text-align: center; }
+  .upgrade .btn { width: 100%; text-align: center; font-size: 15px; }
+  .detail .close {
+    position: absolute; right: max(14px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top));
+    width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 18px; font-weight: 900; padding: 0; z-index: 2;
+  }
+
+  /* ---------- Portrait phones and narrow windows ---------- */
+  @media (max-width: 720px) {
+    .page.on { flex-direction: column; }
+    .shipside { flex: 0 0 46%; border-right: none; border-bottom: 1px solid var(--ink-line); }
+    .detail .inner { flex-direction: column-reverse; }
+    .portrait .frame .big { font-size: clamp(60px, 18vh, 130px); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <nav class="tabs" role="tablist" aria-label="Crew and ship">
+      <button role="tab" id="tab-ship" aria-selected="true" aria-controls="page-ship">Ship</button>
+      <button role="tab" id="tab-crew" aria-selected="false" aria-controls="page-crew">Crew</button>
+      <button role="tab" id="tab-yard" aria-selected="false" aria-controls="page-yard">Shipyard</button>
+    </nav>
+    <div class="purse">
+      <span>gold</span><b class="gold" id="gold">12,400</b>
+      <span>coins</span><b class="coin" id="coins">640</b>
+    </div>
+  </div>
+
+  <!-- Ship: placement -->
+  <section class="page on" id="page-ship" role="tabpanel" aria-labelledby="tab-ship">
+    <div class="shipside">
+      <div class="shiphead">
+        <h2>Your ship</h2>
+        <span class="sub" id="shipSub"></span>
+      </div>
+      <div class="shipwrap" id="shipWrap"></div>
+      <p class="placehint idle" id="placehint">Pick a pirate on the right, then tap a position.</p>
+    </div>
+    <div class="cardside">
+      <header><h2>Your crew</h2><span class="sub" id="crewSub"></span></header>
+      <div class="grid" id="shipCards"></div>
+    </div>
+  </section>
+
+  <!-- Crew: collection and upgrading -->
+  <section class="page" id="page-crew" role="tabpanel" aria-labelledby="tab-crew">
+    <div class="cardside" style="flex:1 1 100%">
+      <header><h2>Collection</h2><span class="sub" id="collSub"></span></header>
+      <div class="grid" id="crewCards"></div>
+    </div>
+  </section>
+
+  <!-- Shipyard: the position ladder -->
+  <section class="page" id="page-yard" role="tabpanel" aria-labelledby="tab-yard">
+    <div class="yard">
+      <h2>Shipyard</h2>
+      <p class="lead">Every ship level opens one more gun position. The deck fills first, then the hull, so an early ship fights from the open and a late one fights from behind planking.</p>
+      <div class="ladder" id="ladder"></div>
+      <div><button class="btn gold" id="upgradeShip"></button></div>
+    </div>
+  </section>
+</div>
+
+<!-- Full-screen gunner view: details left, gunner right -->
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="dName">
+  <button class="btn close" id="detailClose" aria-label="Close">✕</button>
+  <div class="inner">
+    <div class="facts">
+      <div>
+        <h2 id="dName"></h2>
+        <div class="rarity" id="dRarity"><i></i><span></span></div>
+      </div>
+      <dl>
+        <dt>Level</dt><dd id="dLevel"></dd>
+        <dt>Hit points</dt><dd><span id="dHp"></span><span class="gain" id="gHp"></span></dd>
+        <dt>Range</dt><dd><span id="dRange"></span><span class="gain" id="gRange"></span></dd>
+        <dt>Damage</dt><dd><span id="dDamage"></span><span class="gain" id="gDamage"></span></dd>
+        <dt>Projectile</dt><dd id="dProjectile"></dd>
+      </dl>
+      <div>
+        <dt style="margin-bottom:5px">Damage type</dt>
+        <div class="tags" id="dTypes"></div>
+      </div>
+      <div>
+        <dt style="margin-bottom:5px">Posting</dt>
+        <div id="dPosting" style="font-size:13.5px;font-weight:700;color:var(--muted)"></div>
+      </div>
+    </div>
+    <div class="portrait">
+      <div class="frame">
+        <span class="big" id="dBig"></span>
+        <span class="gunbadge" id="dGun"></span>
+      </div>
+      <div class="upgrade">
+        <button class="btn gold" id="dUpgrade"></button>
+        <span class="note" id="dUpNote"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // The roster. These are the owner's 36 pirates, with the target each weapon is
+  // best against. Everything else on a card is derived from these three columns,
+  // so balancing is editing one table rather than 36 blocks of numbers.
+  // hull / sails / crew are damage; slow, dizzy, snare, burn, soak are status.
+  // ---------------------------------------------------------------------------
+  const ROSTER = [
+    [1,  'Ironshot',      '💣', 'Heavy iron cannonball',  ['hull']],
+    [2,  'Bandana Rifle', '🔫', 'Bolt-action rifle',      ['crew']],
+    [3,  'Twin Pistols',  '🔫', 'Twin revolvers',         ['crew']],
+    [4,  'Longshot',      '🎯', 'Sniper rifle',           ['crew', 'sails']],
+    [5,  'Torch Mage',    '🔥', 'Fire staff',             ['sails', 'burn']],
+    [6,  'Scattergun',    '💥', 'Scatter-gun',            ['crew']],
+    [7,  'Rocketeer',     '🚀', 'Missile',                ['hull']],
+    [8,  'Ice Zombie',    '❄️', 'Frost blast',            ['sails', 'slow']],
+    [9,  'Storm Wizard',  '⚡', 'Chain lightning',        ['crew', 'dizzy']],
+    [10, 'Chainshot',     '⛓️', 'Chain shot',             ['sails']],
+    [11, 'Bomb Thrower',  '🧨', 'Lit bomb',               ['hull']],
+    [12, 'Net Gunner',    '🕸️', 'Weighted net',           ['crew', 'snare']],
+    [13, 'Hook Slime',    '🧪', 'Acid hook',              ['hull']],
+    [14, 'Boomerang Eye', '🪃', 'Returning boomerang',    ['crew']],
+    [15, 'Robot Laser',   '🔴', 'Cutting beam',           ['hull']],
+    [16, 'Crossbow',      '🏹', 'Heavy bolt',             ['crew', 'sails']],
+    [17, 'Flamethrower',  '🔥', 'Flame stream',           ['sails', 'burn']],
+    [18, 'Bubble Gun',    '🫧', 'Bubble burst',           ['crew', 'dizzy']],
+    [19, 'Music Cannon',  '🎵', 'Sonic note',             ['crew', 'dizzy']],
+    [20, 'Jester',        '🤡', 'Jester ball',            ['crew', 'dizzy']],
+    [21, 'Treasure',      '🪙', 'Coin spray',             ['crew']],
+    [22, 'Ninja',         '⭐', 'Throwing stars',         ['crew']],
+    [23, 'Witch',         '🔮', 'Arcane blast',           ['sails', 'crew']],
+    [24, 'Ghost',         '👻', 'Ectoplasm',              ['crew']],
+    [25, 'Steam Gear',    '⚙️', 'Gear shrapnel',          ['hull']],
+    [26, 'Axe Pirate',    '🪓', 'Battle-axe',             ['crew', 'hull']],
+    [27, 'Lasso',         '🤠', 'Rope lasso',             ['crew', 'snare']],
+    [28, 'Cutlass',       '⚔️', 'Cutlass',                ['crew']],
+    [29, 'Caveman',       '🦴', 'Thrown bone',            ['crew']],
+    [30, 'Mermaid',       '💧', 'Water jet',              ['sails', 'soak']],
+    [31, 'Plasma',        '🔵', 'Plasma bolt',            ['hull']],
+    [32, 'Catapult',      '🪨', 'Stone',                  ['hull']],
+    [33, 'Vine Pirate',   '🌿', 'Vine whip',              ['sails', 'snare']],
+    [34, 'Flame Cannon',  '🔥', 'Flame shell',            ['sails', 'burn']],
+    [35, 'Snowman',       '⛄', 'Giant snowball',         ['crew', 'slow']],
+    [36, 'Clam Cannon',   '🐚', 'Pearl shell',            ['hull']],
+  ];
+
+  const DAMAGE_KINDS = ['hull', 'sails', 'crew'];
+  const RARITIES = ['common', 'rare', 'epic', 'legendary'];
+
+  // Base numbers per primary target, so a hull-breaker is always slow and heavy and
+  // a crew weapon is always quick and light. One table to balance, not 36.
+  const BASE = {
+    hull:  { hp: 120, range: 62, damage: 46, },
+    sails: { hp: 100, range: 74, damage: 30, },
+    crew:  { hp:  90, range: 86, damage: 22, },
+  };
+  const RARITY_MULT = { common: 1.00, rare: 1.12, epic: 1.26, legendary: 1.44 };
+
+  function rarityOf(p) {
+    const [id, , , , tags] = p;
+    const statusy = tags.length > 1;
+    if (id % 12 === 0) return 'legendary';
+    if (statusy && id % 3 === 0) return 'epic';
+    if (statusy || id % 4 === 0) return 'rare';
+    return 'common';
+  }
+
+  function makePirate(p) {
+    const [id, name, gun, projectile, tags] = p;
+    const primary = tags.find((t) => DAMAGE_KINDS.includes(t)) || 'crew';
+    const rarity = rarityOf(p);
+    const owned = id % 5 !== 0;                        // a partly collected roster
+    const level = owned ? 1 + ((id * 7) % 9) : 0;
+    return { id, name, gun, projectile, tags, primary, rarity, owned, level, maxLevel: 12 };
+  }
+  const crew = ROSTER.map(makePirate);
+  const byId = new Map(crew.map((c) => [c.id, c]));
+
+  function stats(c) {
+    const b = BASE[c.primary], m = RARITY_MULT[c.rarity];
+    const g = 1 + (c.level - 1) * 0.09;               // growth per level
+    return {
+      hp: Math.round(b.hp * m * g),
+      range: Math.round(b.range * (1 + (c.level - 1) * 0.02)),
+      damage: Math.round(b.damage * m * g),
+    };
+  }
+  // Upgrades cost premium coins, and the cost climbs with level and rarity.
+  function upgradeCost(c) {
+    const r = RARITIES.indexOf(c.rarity);
+    return Math.round((18 + c.level * 12) * (1 + r * 0.35));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ship state. Positions follow the owner's ladder: the deck fills first.
+  // ---------------------------------------------------------------------------
+  const LADDER = { 1: [1, 0], 2: [2, 0], 3: [2, 1], 4: [2, 2], 5: [3, 2], 6: [3, 3], 7: [4, 3], 8: [4, 4] };
+  const state = { gold: 12400, coins: 640, shipLevel: 5, selected: null, slots: {} };
+
+  // Where each position sits on the ship, as a percentage of the drawing.
+  const DECK_X = [26, 42, 58, 74], HULL_X = [28, 44, 60, 76];
+  const DECK_Y = 30, HULL_Y = 62;
+  function positions() {
+    const [deck, hull] = LADDER[state.shipLevel];
+    const out = [];
+    for (let i = 0; i < 4; i++) out.push({ key: `d${i}`, kind: 'deck', x: DECK_X[i], y: DECK_Y, open: i < deck });
+    for (let i = 0; i < 4; i++) out.push({ key: `h${i}`, kind: 'hull', x: HULL_X[i], y: HULL_Y, open: i < hull });
+    return out;
+  }
+
+  // Seed a few postings so the screen is not empty on arrival.
+  (function seed() {
+    const ready = crew.filter((c) => c.owned).slice(0, 4);
+    positions().filter((p) => p.open).slice(0, 4).forEach((p, i) => {
+      if (ready[i]) state.slots[p.key] = ready[i].id;
+    });
+  })();
+
+  // ---------------------------------------------------------------------------
+  // The ship drawing. Slots are real buttons on top of it, so they can be tapped,
+  // tabbed to and labelled.
+  // ---------------------------------------------------------------------------
+  const SHIP_SVG = `
+  <svg viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs>
+      <linearGradient id="hullg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#6B3E22"/><stop offset="1" stop-color="#3A2012"/>
+      </linearGradient>
+      <linearGradient id="inner" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2A1B12"/><stop offset="1" stop-color="#150D08"/>
+      </linearGradient>
+    </defs>
+    <path d="M20 26 H180 L188 34 L176 96 Q100 116 24 96 L12 34 Z" fill="url(#hullg)" stroke="#22120A" stroke-width="2.5"/>
+    <path d="M26 32 H174 L164 90 Q100 106 36 90 Z" fill="url(#inner)"/>
+    <rect x="26" y="44" width="148" height="3" fill="#4A2E19"/>
+    <rect x="32" y="72" width="136" height="3" fill="#4A2E19"/>
+    <g stroke="#3A2414" stroke-width="1.6" opacity="0.75">
+      <line x1="50" y1="32" x2="50" y2="95"/><line x1="80" y1="32" x2="80" y2="99"/>
+      <line x1="120" y1="32" x2="120" y2="99"/><line x1="150" y1="32" x2="150" y2="95"/>
+    </g>
+    <rect x="14" y="22" width="172" height="5" rx="2.5" fill="#C9953F"/>
+    <text x="100" y="41" text-anchor="middle" font-size="6" fill="#9C7B52" font-family="sans-serif" font-weight="700">DECK</text>
+    <text x="100" y="69" text-anchor="middle" font-size="6" fill="#9C7B52" font-family="sans-serif" font-weight="700">GUN PORTS</text>
+    <path d="M186 30 L196 36 L188 44 Z" fill="#C9953F"/>
+  </svg>`;
+
+  const shipWrap = document.getElementById('shipWrap');
+  function renderShip() {
+    shipWrap.replaceChildren();
+    shipWrap.insertAdjacentHTML('beforeend', SHIP_SVG);
+    for (const p of positions()) {
+      const b = document.createElement('button');
+      b.className = 'slot ' + p.kind + (p.open ? '' : ' locked');
+      b.style.left = p.x + '%';
+      b.style.top = p.y + '%';
+      b.dataset.key = p.key;
+      const id = state.slots[p.key];
+      const who = id ? byId.get(id) : null;
+      if (!p.open) {
+        b.innerHTML = `<span class="icon">🔒</span>`;
+        b.disabled = true;
+        b.setAttribute('aria-label', `${p.kind === 'deck' ? 'Deck' : 'Gun port'} position, locked until the ship is upgraded`);
+      } else if (who) {
+        b.classList.add('filled');
+        b.innerHTML = `<span class="icon">${who.gun}</span><span class="lvl">${who.level}</span>`;
+        b.setAttribute('aria-label', `${p.kind === 'deck' ? 'Deck' : 'Gun port'} position: ${who.name}, level ${who.level}. Tap to change.`);
+      } else {
+        b.innerHTML = `<span class="icon">+</span>`;
+        b.setAttribute('aria-label', `${p.kind === 'deck' ? 'Deck' : 'Gun port'} position, empty`);
+      }
+      if (state.selected && p.open) b.classList.add('target');
+      b.addEventListener('click', () => onSlot(p.key));
+      shipWrap.appendChild(b);
+    }
+    const [deck, hull] = LADDER[state.shipLevel];
+    const filled = positions().filter((p) => p.open && state.slots[p.key]).length;
+    document.getElementById('shipSub').textContent =
+      `Level ${state.shipLevel} · ${deck} on deck, ${hull} in the hull · ${filled} of ${deck + hull} manned`;
+  }
+
+  function onSlot(key) {
+    const p = positions().find((q) => q.key === key);
+    if (!p || !p.open) return;
+    if (!state.selected) {
+      // Tapping a manned position with nobody picked takes that gunner off.
+      if (state.slots[key]) { delete state.slots[key]; renderAll(); }
+      return;
+    }
+    // One gunner cannot stand in two places, so posting them here clears their old
+    // position. Anyone already at this position is simply relieved.
+    for (const k of Object.keys(state.slots)) if (state.slots[k] === state.selected) delete state.slots[k];
+    state.slots[key] = state.selected;
+    state.selected = null;
+    renderAll();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cards
+  // ---------------------------------------------------------------------------
+  function rarityMarkup(r) {
+    return `<span class="rarity r-${r}"><i></i>${r[0].toUpperCase() + r.slice(1)}</span>`;
+  }
+  function makeCard(c, withView) {
+    const el = document.createElement('button');
+    const posted = Object.values(state.slots).includes(c.id);
+    el.className = `card c-${c.rarity}` + (posted ? ' posted' : '') + (c.owned ? '' : ' locked');
+    el.setAttribute('aria-pressed', String(state.selected === c.id));
+    el.innerHTML =
+      (c.owned ? `<span class="lvl">${c.level}</span>` : '') +
+      `<span class="gun">${c.owned ? c.gun : '🔒'}</span>` +
+      `<span class="title">${c.name}</span>` +
+      rarityMarkup(c.rarity);
+    if (withView && state.selected === c.id) {
+      const v = document.createElement('span');
+      v.className = 'view';
+      v.setAttribute('role', 'button');
+      v.tabIndex = 0;
+      v.textContent = 'VIEW';
+      const open = (e) => { e.stopPropagation(); openDetail(c.id); };
+      v.addEventListener('click', open);
+      v.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') open(e); });
+      el.appendChild(v);
+    }
+    el.addEventListener('click', () => {
+      if (!c.owned) { openDetail(c.id); return; }
+      state.selected = state.selected === c.id ? null : c.id;
+      renderAll();
+    });
+    return el;
+  }
+
+  function renderCards() {
+    const owned = crew.filter((c) => c.owned);
+    const shipGrid = document.getElementById('shipCards');
+    shipGrid.replaceChildren();
+    for (const c of owned) shipGrid.appendChild(makeCard(c, true));
+    document.getElementById('crewSub').textContent = `${owned.length} pirates`;
+
+    const collGrid = document.getElementById('crewCards');
+    collGrid.replaceChildren();
+    for (const c of crew) collGrid.appendChild(makeCard(c, true));
+    document.getElementById('collSub').textContent = `${owned.length} of ${crew.length} collected`;
+
+    const hint = document.getElementById('placehint');
+    if (state.selected) {
+      const c = byId.get(state.selected);
+      hint.textContent = `${c.name} picked. Tap any position to post them.`;
+      hint.classList.remove('idle');
+    } else {
+      hint.textContent = 'Pick a pirate on the right, then tap a position. Tap a manned position to stand them down.';
+      hint.classList.add('idle');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shipyard
+  // ---------------------------------------------------------------------------
+  function shipUpgradeCost(level) { return 400 + level * 260; }
+  function renderYard() {
+    const ladder = document.getElementById('ladder');
+    ladder.replaceChildren();
+    for (let lvl = 1; lvl <= 8; lvl++) {
+      const [deck, hull] = LADDER[lvl];
+      const row = document.createElement('div');
+      row.className = 'rung' + (lvl === state.shipLevel ? ' current' : lvl < state.shipLevel ? ' done' : '');
+      const pips = (n, kind) => Array.from({ length: n }, () => `<span class="pip ${kind}"></span>`).join('');
+      row.innerHTML =
+        `<span class="lv">Level ${lvl}</span>` +
+        `<span class="pips">` +
+          `<span class="pipset"><span>deck</span>${pips(deck, 'deck') || '<span class="pip"></span>'}</span>` +
+          `<span class="pipset"><span>hull</span>${pips(hull, 'hull') || '<span class="pip"></span>'}</span>` +
+        `</span>` +
+        `<span class="lv">${deck + hull} gun${deck + hull === 1 ? '' : 's'}</span>`;
+      ladder.appendChild(row);
+    }
+    const btn = document.getElementById('upgradeShip');
+    if (state.shipLevel >= 8) {
+      btn.textContent = 'Ship fully rigged';
+      btn.disabled = true;
+    } else {
+      const cost = shipUpgradeCost(state.shipLevel);
+      const [d, h] = LADDER[state.shipLevel + 1];
+      btn.textContent = `Upgrade to level ${state.shipLevel + 1} — ${cost.toLocaleString()} gold  (${d} deck, ${h} hull)`;
+      btn.disabled = state.gold < cost;
+    }
+  }
+  document.getElementById('upgradeShip').addEventListener('click', () => {
+    const cost = shipUpgradeCost(state.shipLevel);
+    if (state.shipLevel >= 8 || state.gold < cost) return;
+    state.gold -= cost;
+    state.shipLevel++;
+    renderAll();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Full-screen gunner view: details on the left, the gunner on the right.
+  // ---------------------------------------------------------------------------
+  const detail = document.getElementById('detail');
+  let detailId = null, lastFocus = null;
+
+  function openDetail(id) {
+    detailId = id;
+    lastFocus = document.activeElement;
+    fillDetail();
+    detail.classList.add('open');
+    document.getElementById('detailClose').focus();
+  }
+  function fillDetail() {
+    const c = byId.get(detailId);
+    const s = stats(c);
+    document.getElementById('dName').textContent = c.name;
+    const rar = document.getElementById('dRarity');
+    rar.className = `rarity r-${c.rarity}`;
+    rar.querySelector('span').textContent = c.rarity[0].toUpperCase() + c.rarity.slice(1);
+    document.getElementById('dLevel').textContent = c.owned ? `${c.level} of ${c.maxLevel}` : 'Not collected';
+    document.getElementById('dHp').textContent = c.owned ? s.hp : '—';
+    document.getElementById('dRange').textContent = c.owned ? `${s.range} m` : '—';
+    document.getElementById('dDamage').textContent = c.owned ? s.damage : '—';
+
+    // The gain the next level buys, beside the stat it changes. Dimmed when the
+    // upgrade is out of reach, so it reads as a promise rather than a claim, and
+    // hidden where a level adds nothing rather than showing a meaningless +0.
+    const upgradable = c.owned && c.level < c.maxLevel;
+    const next = upgradable ? stats({ ...c, level: c.level + 1 }) : null;
+    const afford = upgradable && state.coins >= upgradeCost(c);
+    for (const [id, key] of [['gHp', 'hp'], ['gRange', 'range'], ['gDamage', 'damage']]) {
+      const el = document.getElementById(id);
+      const delta = next ? next[key] - s[key] : 0;
+      el.textContent = delta > 0 ? `+${delta}` : '';
+      el.classList.toggle('dim', !afford);
+    }
+    document.getElementById('dProjectile').textContent = c.projectile;
+    const types = document.getElementById('dTypes');
+    types.replaceChildren();
+    for (const t of c.tags) {
+      const el = document.createElement('span');
+      el.className = 'tag ' + (DAMAGE_KINDS.includes(t) ? t : 'status');
+      el.textContent = t === c.primary ? `${t} (best)` : t;
+      types.appendChild(el);
+    }
+    const postedAt = Object.keys(state.slots).find((k) => state.slots[k] === c.id);
+    document.getElementById('dPosting').textContent = !c.owned ? 'Collect this pirate to post them.'
+      : postedAt ? (postedAt[0] === 'd' ? 'On deck, in the open and easy to identify.' : 'At a gun port, behind planking until they fire.')
+      : 'Not posted. Pick them on the Ship tab to take a position.';
+    document.getElementById('dBig').textContent = c.owned ? '🏴‍☠️' : '🔒';
+    document.getElementById('dGun').textContent = c.gun;
+
+    const btn = document.getElementById('dUpgrade');
+    const note = document.getElementById('dUpNote');
+    if (!c.owned) {
+      btn.textContent = 'Not collected';
+      btn.disabled = true;
+      note.textContent = 'Found in chests and on the Captain\u2019s share.';
+    } else if (c.level >= c.maxLevel) {
+      btn.textContent = 'Fully upgraded';
+      btn.disabled = true;
+      note.textContent = `Level ${c.maxLevel} is the ceiling.`;
+    } else {
+      const cost = upgradeCost(c);
+      btn.textContent = `Upgrade to level ${c.level + 1} — ${cost} coins`;
+      btn.disabled = state.coins < cost;
+      note.textContent = btn.disabled ? `${cost - state.coins} more coins needed.` : '';
+    }
+  }
+  document.getElementById('dUpgrade').addEventListener('click', () => {
+    const c = byId.get(detailId);
+    const cost = upgradeCost(c);
+    if (!c.owned || c.level >= c.maxLevel || state.coins < cost) return;
+    state.coins -= cost;
+    c.level++;
+    fillDetail();
+    renderAll();
+  });
+  function closeDetail() {
+    detail.classList.remove('open');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.getElementById('detailClose').addEventListener('click', closeDetail);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detail.classList.contains('open')) closeDetail(); });
+
+  // ---------------------------------------------------------------------------
+  // Tabs
+  // ---------------------------------------------------------------------------
+  const TABS = [['tab-ship', 'page-ship'], ['tab-crew', 'page-crew'], ['tab-yard', 'page-yard']];
+  TABS.forEach(([tabId, pageId], i) => {
+    const tab = document.getElementById(tabId);
+    tab.addEventListener('click', () => show(i));
+    tab.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const n = (i + d + TABS.length) % TABS.length;
+      show(n);
+      document.getElementById(TABS[n][0]).focus();
+    });
+  });
+  function show(i) {
+    TABS.forEach(([tabId, pageId], j) => {
+      document.getElementById(tabId).setAttribute('aria-selected', String(i === j));
+      document.getElementById(pageId).classList.toggle('on', i === j);
+    });
+  }
+
+  function renderAll() {
+    document.getElementById('gold').textContent = state.gold.toLocaleString();
+    document.getElementById('coins').textContent = state.coins.toLocaleString();
+    renderShip();
+    renderCards();
+    renderYard();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

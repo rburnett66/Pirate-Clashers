@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leaderboard — Pirate Clashers</title>
+<style>
+  :root {
+    --ink:        #0A2438;
+    --ink-deep:   #061A29;
+    --ink-line:   #16405C;
+    --sea:        #0E3A57;
+    --sea-deep:   #07263B;
+    --land:       #3E5A3A;
+    --land-edge:  #263B24;
+    --parchment:  #E8D9B0;
+    --brass:      #E9A23B;
+    --brass-deep: #A86A18;
+    --foam:       #7FD8D0;
+    --flag:       #B8352C;
+    --bone:       #F3EDDF;
+    --muted:      #8FB7CE;
+    --topbar-h: 48px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--ink-deep); color: var(--bone);
+    font-family: "Avenir Next", Nunito, "Trebuchet MS", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app {
+    height: 100%; display: flex; flex-direction: column;
+    padding: max(0px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right))
+             max(0px, env(safe-area-inset-bottom)) max(0px, env(safe-area-inset-left));
+  }
+  .topbar {
+    height: var(--topbar-h); flex: 0 0 var(--topbar-h); display: flex; align-items: center;
+    gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--ink-line); background: rgba(6,26,41,0.85);
+  }
+  .topbar h1 { margin: 0; font-size: 17px; font-weight: 900; letter-spacing: -0.02em; color: var(--brass); }
+  .topbar .you { margin-left: auto; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .topbar .you span { color: var(--muted); font-weight: 700; }
+  .simnote { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+  .week { font-size: 11.5px; font-weight: 800; color: var(--foam); }
+
+  .body { flex: 1 1 auto; min-height: 0; display: flex; }
+
+  /* ---------- Chart ---------- */
+  /* Chart, port, board: 40 / 20 / 40. */
+  .chartside { flex: 0 0 40%; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--ink-line); }
+  .portside  { flex: 0 0 20%; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--ink-line); overflow-y: auto; }
+  .boardside { flex: 0 0 40%; min-width: 0; display: flex; flex-direction: column; }
+  .chartwrap {
+    flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; cursor: grab;
+    display: flex; align-items: center;
+  }
+  .chartwrap.drag { cursor: grabbing; }
+  .chartwrap::-webkit-scrollbar { height: 8px; }
+  .chartwrap::-webkit-scrollbar-thumb { background: var(--ink-line); border-radius: 4px; }
+  /* Width is set from the column: 1x fits the whole world, 2x is twice that and
+     scrolls. Pins are placed in percentages, so they follow the zoom for free. */
+  .chartinner { position: relative; flex: 0 0 auto; }
+  .chartinner svg { width: 100%; height: auto; display: block; }
+  .zoombtn {
+    position: absolute; right: 10px; top: 10px; z-index: 3;
+    font: inherit; font-weight: 900; font-size: 12px; padding: 6px 11px; border-radius: 9px;
+    border: 2px solid var(--brass-deep); background: rgba(6,26,41,0.88); color: var(--brass); cursor: pointer;
+  }
+  .zoomwrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+  .pin {
+    position: absolute; transform: translate(-50%, -100%); padding: 0; cursor: pointer;
+    background: none; border: none; font: inherit; color: inherit; text-align: center; line-height: 1;
+  }
+  .pin .dot {
+    width: 15px; height: 15px; border-radius: 50%; margin: 0 auto 3px;
+    background: var(--flag); border: 2.5px solid #F7E7C4; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  }
+  .pin .nm {
+    font-size: 11px; font-weight: 800; color: #16110A; background: rgba(232,217,176,0.94);
+    border-radius: 5px; padding: 1px 6px; white-space: nowrap;
+    border: 1px solid #A98F58;
+  }
+  .pin.locked .dot { background: #4A5C68; border-color: #8FA3AE; }
+  .pin.locked .nm { opacity: 0.6; }
+  .pin[aria-pressed="true"] .dot { background: var(--foam); border-color: #fff; transform: scale(1.25); }
+  .pin[aria-pressed="true"] .nm { background: var(--foam); border-color: #2C6F69; }
+  .pin:focus-visible { outline: 3px solid var(--foam); outline-offset: 3px; border-radius: 6px; }
+  .charthint {
+    padding: 5px 14px; font-size: 11.5px; font-weight: 700; color: var(--muted);
+    border-top: 1px solid var(--ink-line); background: rgba(6,26,41,0.6);
+  }
+
+  /* ---------- Board ---------- */
+  .portcard { padding: 10px 12px; background: rgba(12,42,64,0.5); }
+  .portcard .top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .portcard h2 { margin: 0; font-size: 17px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
+  .portcard .clones { display: flex; gap: 4px; flex-wrap: wrap; }
+  .portcard .clones button {
+    font: inherit; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 7px;
+    border: 2px solid var(--ink-line); background: rgba(6,26,41,0.6); color: var(--muted); cursor: pointer;
+  }
+  .portcard .clones button[aria-pressed="true"] { border-color: var(--foam); color: var(--bone); }
+  /* The middle column is narrow, so the facts stack rather than tile. */
+  .facts { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+  .fact dt { font-size: 10.5px; font-weight: 800; color: var(--muted); }
+  .fact dd { margin: 1px 0 0; font-size: 13.5px; font-weight: 800; line-height: 1.25; }
+  .fact dd.small { font-size: 12px; font-weight: 700; line-height: 1.3; }
+  .diff { display: inline-flex; gap: 2px; vertical-align: -1px; }
+  .diff i { width: 7px; height: 12px; border-radius: 2px; background: #24506C; display: block; }
+  .diff i.on { background: var(--brass); }
+
+  .list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .rowhead, .row {
+    display: grid; grid-template-columns: 34px 1fr 32px 44px 56px 56px; gap: 8px; align-items: center;
+    padding: 5px 12px; font-variant-numeric: tabular-nums;
+  }
+  .rowhead span:nth-child(n+3), .row .lv, .row .won, .row .tro, .row .ago { text-align: right; }
+  .rowhead { position: sticky; top: 0; background: rgba(6,26,41,0.95); font-size: 10.5px; font-weight: 800; color: var(--muted); border-bottom: 1px solid var(--ink-line); }
+  .row { border-bottom: 1px solid rgba(22,64,92,0.45); font-size: 13px; font-weight: 700; }
+  .row .rank { font-weight: 900; color: var(--muted); }
+  .row.top1 .rank, .row.top2 .rank, .row.top3 .rank { color: var(--brass); }
+  .row .who { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .row .cap { font-size: 17px; line-height: 1; }
+  .row .nm { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .temp { font-size: 10.5px; font-weight: 800; color: var(--muted); }
+  .row .lv { color: var(--muted); font-size: 12px; }
+  .row .won { font-weight: 900; color: var(--foam); }
+  .row .tro { font-weight: 800; color: var(--brass); font-size: 12px; }
+  .row .ago { font-weight: 700; color: var(--muted); font-size: 11px; }
+  .row { cursor: pointer; }
+  .row:focus-visible { outline: 3px solid var(--foam); outline-offset: -3px; }
+  @media (hover: hover) and (pointer: fine) { .row:hover { background: rgba(22,64,92,0.55); } }
+  /* The two cuts that matter at the end of the week. */
+  .row.promote { background: linear-gradient(90deg, rgba(127,216,208,0.16), transparent 70%); }
+  .row.demote  { background: linear-gradient(90deg, rgba(184,53,44,0.18), transparent 70%); }
+  .cut {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+    padding: 3px 12px; font-size: 10px; font-weight: 900; letter-spacing: 0.06em; color: var(--muted);
+  }
+  .cut::before, .cut::after { content: ''; height: 1px; background: var(--ink-line); }
+  .cut.up { color: var(--foam); } .cut.down { color: #E08A82; }
+  .row.me { background: rgba(233,162,59,0.14); border-left: 3px solid var(--brass); }
+  .row.me .nm { color: var(--brass); }
+
+  /* Below this the board cannot hold the temperament label as well as a name. */
+  @media (max-width: 1180px) { .row .temp { display: none; } }
+  /* ---------- Captain sheet ---------- */
+  .sheet { position: fixed; inset: 0; background: rgba(4,14,23,0.82); display: none; z-index: 30;
+           align-items: center; justify-content: center; padding: 14px; }
+  .sheet.open { display: flex; }
+  .sheet .panel {
+    width: min(760px, 100%); max-height: 100%; overflow-y: auto; position: relative;
+    background: linear-gradient(180deg, #123650, #0A2438);
+    border: 2px solid var(--ink-line); border-radius: 16px; padding: 14px;
+  }
+  .sheet .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-right: 40px; }
+  .sheet .head .cap { font-size: 30px; line-height: 1; }
+  .sheet .head h2 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+  .sheet .head .sub { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .sheet .cols { display: flex; gap: 14px; }
+  .sheet .shipcol { flex: 1 1 52%; min-width: 0; }
+  .sheet .crewcol { flex: 1 1 48%; min-width: 0; }
+  .sheet .shipwrap { position: relative; }
+  .sheet .shipwrap svg { width: 100%; height: auto; display: block; }
+  .sheet .slot {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 12%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+    border: 2px solid var(--brass-deep); background: linear-gradient(180deg, #6B3E22, #4A2A17);
+    font-size: clamp(11px, 2.2vw, 19px);
+  }
+  .sheet .slot.deck { border-color: var(--foam); }
+  .sheet .slot.empty { border-style: dashed; border-color: var(--ink-line); background: rgba(6,26,41,0.5); opacity: 0.5; }
+  .sheet .caption { margin: 6px 0 0; font-size: 11.5px; font-weight: 700; color: var(--muted); text-align: center; }
+  .crewlist { display: flex; flex-direction: column; gap: 5px; }
+  .crewrow {
+    display: grid; grid-template-columns: 26px 1fr auto auto; gap: 8px; align-items: center;
+    padding: 5px 8px; border-radius: 9px; border: 2px solid var(--ink-line); background: rgba(12,42,64,0.55);
+    font-size: 12.5px; font-weight: 700;
+  }
+  .crewrow .g { font-size: 17px; line-height: 1; text-align: center; }
+  .crewrow .r { font-size: 10px; font-weight: 900; }
+  .crewrow .l { font-weight: 900; color: var(--brass); font-variant-numeric: tabular-nums; }
+  .crewrow.onship { border-color: var(--brass-deep); }
+  .crewrow.bench { opacity: 0.5; }
+  .r-common { color: #9BB2C2; } .r-rare { color: #4FA3E3; }
+  .r-epic { color: #B072E8; } .r-legendary { color: #F0A733; }
+  .sheet .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 0; }
+  .sheet .stats div { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .sheet .stats b { display: block; font-size: 15px; font-weight: 900; color: var(--bone); font-variant-numeric: tabular-nums; }
+  .sheet .close {
+    position: absolute; right: 12px; top: 12px; width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 17px; font-weight: 900; padding: 0; cursor: pointer;
+    border: 2px solid var(--ink-line); background: rgba(6,26,41,0.85); color: var(--bone);
+  }
+  @media (max-width: 720px) { .sheet .cols { flex-direction: column; } }
+
+  @media (max-width: 1180px) {
+    .rowhead, .row { grid-template-columns: 30px 1fr 28px 40px 52px 48px; gap: 6px; padding: 5px 10px; }
+  }
+  @media (max-width: 900px) {
+    .rowhead, .row { grid-template-columns: 26px 1fr 24px 34px 44px 42px; gap: 5px; padding: 5px 8px; }
+    .row .tro, .row .ago { font-size: 10.5px; }
+  }
+  @media (max-width: 760px) {
+    .body { flex-direction: column; }
+    .chartside { flex: 0 0 40%; border-right: none; border-bottom: 1px solid var(--ink-line); }
+    .portside  { flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--ink-line); }
+    .boardside { flex: 1 1 auto; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>Leaderboards</h1>
+    <span class="simnote" id="simnote">Simulating…</span>
+    <span class="week" id="week"></span>
+    <span class="you" id="you"></span>
+  </div>
+  <div class="body">
+    <div class="chartside">
+      <div class="zoomwrap">
+        <div class="chartwrap" id="chartwrap"><div class="chartinner" id="chartinner"></div></div>
+        <button class="zoombtn" id="zoom" aria-pressed="false">2×</button>
+      </div>
+      <div class="charthint">Drag the chart, or tap a port. Grey pins are ports you have not reached.</div>
+    </div>
+    <div class="portside">
+      <div class="portcard">
+        <div class="top">
+          <h2 id="portName">—</h2>
+        </div>
+        <span class="clones" id="clones"></span>
+        <div class="facts" id="portFacts"></div>
+      </div>
+    </div>
+    <div class="boardside">
+      <div class="rowhead"><span>#</span><span>Captain</span><span>Lv</span><span>Won</span><span>Trophies</span><span>Last win</span></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetName">
+  <div class="panel">
+    <button class="close" id="sheetClose" aria-label="Close">✕</button>
+    <div class="head">
+      <span class="cap" id="sheetCap"></span>
+      <div>
+        <h2 id="sheetName"></h2>
+        <div class="sub" id="sheetSub"></div>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="shipcol">
+        <div class="shipwrap" id="sheetShip"></div>
+        <p class="caption">Deck positions ringed in green, gun ports in gold.</p>
+      </div>
+      <div class="crewcol">
+        <div class="crewlist" id="sheetCrew"></div>
+      </div>
+    </div>
+    <div class="stats" id="sheetStats"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ===========================================================================
+  // Headless opponent simulation. No rendering, no frames: a match is arithmetic,
+  // so a thousand captains can be seeded and rated before the screen paints.
+  // The stat model is the one the crew screen uses, so a simulated captain is
+  // built out of the same numbers a real one is.
+  // ===========================================================================
+  function rng(seed) {                       // deterministic, so a run reproduces
+    let s = seed >>> 0;
+    return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  }
+
+  const BASE = { hull:  { damage: 46, rate: 0.72 },
+                 sails: { damage: 30, rate: 0.92 },
+                 crew:  { damage: 22, rate: 1.15 } };
+  const RARITY_MULT = { common: 1.00, rare: 1.12, epic: 1.26, legendary: 1.44 };
+  const LADDER = { 1:[1,0], 2:[2,0], 3:[2,1], 4:[2,2], 5:[3,2], 6:[3,3], 7:[4,3], 8:[4,4] };
+
+  const TEMPERAMENTS = ['fun','playful','silly','angry','rager','supportive','competitive'];
+  // How often each temperament reacts to a moment. Ordinary moments are scaled down
+  // and put on a cooldown, so a captain has a personality without talking every turn.
+  const REACT = {
+    fun:         { hit:.35, miss:.25, bigHit:.7, taken:.30, mastDown:.8, win:.90, lose:.60, finisher:.90 },
+    playful:     { hit:.40, miss:.35, bigHit:.7, taken:.35, mastDown:.7, win:.85, lose:.50, finisher:.85 },
+    silly:       { hit:.50, miss:.50, bigHit:.8, taken:.50, mastDown:.8, win:.90, lose:.80, finisher:.90 },
+    angry:       { hit:.20, miss:.45, bigHit:.5, taken:.70, mastDown:.4, win:.50, lose:.85, finisher:.40 },
+    rager:       { hit:.25, miss:.70, bigHit:.6, taken:.90, mastDown:.5, win:.60, lose:.95, finisher:.50 },
+    supportive:  { hit:.30, miss:.15, bigHit:.5, taken:.20, mastDown:.4, win:.70, lose:.70, finisher:.60 },
+    competitive: { hit:.45, miss:.30, bigHit:.8, taken:.40, mastDown:.75, win:.95, lose:.60, finisher:.90 },
+  };
+  const ORDINARY_SCALE = 0.25, EMOTE_COOLDOWN = 3;
+
+  const ROSTER = (() => {
+    const primaries = ['hull','crew','crew','crew','sails','crew','hull','sails','crew','sails','hull','crew',
+      'hull','crew','hull','crew','sails','crew','crew','crew','crew','crew','sails','crew','hull','crew',
+      'crew','crew','crew','sails','hull','hull','sails','sails','crew','hull'];
+    const guns = ['💣','🔫','🔫','🎯','🔥','💥','🚀','❄️','⚡','⛓️','🧨','🕸️','🧪','🪃','🔴','🏹','🔥','🫧',
+      '🎵','🤡','🪙','⭐','🔮','👻','⚙️','🪓','🤠','⚔️','🦴','💧','🔵','🪨','🌿','🔥','⛄','🐚'];
+    return primaries.map((primary, k) => {
+      const id = k + 1, statusy = id % 3 === 0 || id % 5 === 0;
+      const rarity = id % 12 === 0 ? 'legendary' : (statusy && id % 3 === 0) ? 'epic'
+                   : (statusy || id % 4 === 0) ? 'rare' : 'common';
+      return { id, primary, rarity, gun: guns[k] };
+    });
+  })();
+
+  const NAMES_A = ['Black','Salt','Iron','Red','Grim','Bone','Storm','Gold','Dead','Mad','One-Eyed','Long',
+    'Cutlass','Rum','Kraken','Bloody','Silver','Wicked','Old','Young','Ragged','Brass','Coral','Thunder'];
+  const NAMES_B = ['Bart','Meg','Kidd','Nan','Flint','Roberts','Hook','Anne','Teach','Vane','Rackham','Bonny',
+    'Read','Morgan','Drake','Every','Lowther','Gibbs','Quelch','Bellamy','Cofresi','Zheng','Ching','Haddock'];
+
+  function makePlayer(i, rand) {
+    const account = 1 + Math.floor(Math.pow(rand(), 0.8) * 40);
+    const shipLevel = Math.max(1, Math.min(8, Math.round(1 + account / 5.5 + (rand() - 0.5) * 1.6)));
+    // Skill is mostly independent of how long someone has played. Tying the two
+    // together would bake the answer into the question and make the ladder look
+    // fair when it is only measuring gear.
+    const skill = Math.max(0.05, Math.min(0.97, 0.18 + rand() * 0.62 + account * 0.004));
+    const owned = [];
+    for (const g of ROSTER) {
+      const chance = { common:0.85, rare:0.55, epic:0.30, legendary:0.14 }[g.rarity] * (0.35 + account / 46);
+      if (rand() < chance) {
+        owned.push({
+          id: g.id,
+          level: Math.max(1, Math.min(12, Math.round(1 + account / 4 + (rand() - 0.5) * 3))),
+          accuracy: Math.max(0.05, Math.min(0.97, skill + (rand() - 0.5) * 0.22)),  // per gunner
+          preference: rand(),                                                       // how often reached for
+          aim: rand(),                                                              // where it is aimed
+        });
+      }
+    }
+    if (!owned.length) owned.push({ id: 1, level: 1, accuracy: skill, preference: 1, aim: 0.5 });
+    owned.sort((a, b) => b.preference - a.preference);
+    return {
+      i, account, shipLevel, skill, owned,
+      name: NAMES_A[Math.floor(rand() * NAMES_A.length)] + ' ' + NAMES_B[Math.floor(rand() * NAMES_B.length)],
+      captain: owned[0].id,
+      temperament: TEMPERAMENTS[Math.floor(rand() * TEMPERAMENTS.length)],
+      rating: 1200, played: 0, won: 0,
+      // How much they play in a week: most are casual, a few grind hard.
+      appetite: Math.round(8 + Math.pow(rand(), 2.2) * 92),
+      trophies: Math.round(account * 40 + rand() * 400),   // career total, carried across weeks
+      wins: 0,                                             // this week only, reset every Monday
+      lastWin: -1,                                         // when they last won, for the third tiebreak
+    };
+  }
+
+  const gunStats = (g, level) => {
+    const b = BASE[g.primary], m = RARITY_MULT[g.rarity], k = 1 + (level - 1) * 0.09;
+    return { damage: b.damage * m * k, rate: b.rate, primary: g.primary };
+  };
+  const loadout = (p) => {
+    const [deck, hull] = LADDER[p.shipLevel];
+    return p.owned.slice(0, deck + hull).map((o) => ({ o, s: gunStats(ROSTER[o.id - 1], o.level) }));
+  };
+
+  // One match as arithmetic: three damage pools matching the combat prototypes.
+  function playMatch(a, b, rand, ROUNDS = 24) {
+    const side = (p) => {
+      const guns = loadout(p);
+      return { guns, hull: 300 + p.shipLevel * 55, sails: 100, crew: guns.length * 34, turn: 0 };
+    };
+    const A = side(a), B = side(b);
+    const beaten = (s) => s.hull <= 0 || s.crew <= 0;
+    for (let round = 0; round < ROUNDS; round++) {
+      for (const [att, def] of [[A, B], [B, A]]) {
+        if (beaten(A) || beaten(B)) break;
+        const working = Math.max(1, Math.round(att.guns.length * Math.max(0, att.crew) / (att.guns.length * 34)));
+        for (let g = 0; g < working; g++) {
+          const pick = att.guns[(att.turn + g) % att.guns.length];
+          const steadiness = 0.72 + 0.28 * Math.max(0, att.sails) / 100;   // torn sails cost accuracy
+          if (rand() > pick.o.accuracy * steadiness) continue;
+          const onTarget = rand() < 0.45 + pick.o.aim * 0.5;
+          const kind = onTarget ? pick.s.primary : (rand() < 0.5 ? 'hull' : rand() < 0.5 ? 'sails' : 'crew');
+          const dmg = pick.s.damage * pick.s.rate * (onTarget ? 1 : 0.45);
+          if (kind === 'hull') def.hull -= dmg;
+          else if (kind === 'sails') def.sails -= dmg * 0.55;
+          else def.crew -= dmg * 0.5;
+        }
+        att.turn++;
+      }
+      if (beaten(A) || beaten(B)) break;
+    }
+    if (beaten(A) && beaten(B)) return A.hull >= B.hull ? 1 : 0;
+    if (beaten(B)) return 1;
+    if (beaten(A)) return 0;
+    return A.hull === B.hull ? 0.5 : (A.hull > B.hull ? 1 : 0);
+  }
+
+  function elo(a, b, scoreA, K) {
+    const exp = 1 / (1 + Math.pow(10, (b.rating - a.rating) / 400));
+    a.rating += K * (scoreA - exp);
+    b.rating += K * ((1 - scoreA) - (1 - exp));
+    a.played++; b.played++; a.won += scoreA; b.won += 1 - scoreA;
+  }
+
+  // How many times a captain of this temperament would speak in one match.
+  function emotesPerMatch(temp) {
+    const MOMENTS = { hit:14, miss:10, bigHit:3, taken:12, mastDown:1, win:0.5, lose:0.5, finisher:0.4 };
+    const BIG = new Set(['bigHit','mastDown','win','lose','finisher']);
+    let ordinary = 0, big = 0;
+    for (const [k, n] of Object.entries(MOMENTS)) {
+      const v = n * REACT[temp][k] * (BIG.has(k) ? 1 : ORDINARY_SCALE);
+      BIG.has(k) ? big += v : ordinary += v;
+    }
+    return Math.min(ordinary, 24 / EMOTE_COOLDOWN) + big;
+  }
+
+  // ===========================================================================
+  // The world. Ports in the order a captain works around it: difficulty rises
+  // along the route and each port is a band of levels.
+  // ===========================================================================
+  const PORTS = [
+    ['London', 51.51, -0.13], ['Calais', 50.95, 1.86], ['Lisbon', 38.72, -9.14],
+    ['Bermuda', 32.31, -64.78], ['Puerto Rico', 18.22, -66.59], ['Caracas', 10.49, -66.88],
+    ['Seattle', 47.61, -122.33], ['Hawaii', 21.31, -157.86], ['Manila', 14.60, 120.98],
+    ['Singapore', 1.35, 103.82], ['Hong Kong', 22.32, 114.17], ['Shanghai', 31.23, 121.47],
+    ['Mumbai', 19.08, 72.88], ['Mombasa', -4.04, 39.67], ['Madagascar', -18.88, 47.51],
+  ].map(([name, lat, lon], i) => ({
+    // A port is a rung on the ladder. Level is not a gate: the level range shown on
+    // a port is a statistic about whoever happens to be there this week.
+    name, lat, lon, order: i,
+    difficulty: Math.min(5, 1 + Math.floor(i / 3)),
+    loot: [
+      ['Gold, timber', 'Gold, gunner cards', 'Gold, gems', 'Gems, epic cards', 'Gems, legendary cards'][Math.min(4, Math.floor(i / 3))],
+      `${120 + i * 90}–${260 + i * 170} gold a win`,
+    ],
+  }));
+
+  // ===========================================================================
+  // Run it. 1,000 captains, rated by simulated play, then posted to their port.
+  // ===========================================================================
+  const t0 = performance.now();
+  const rand = rng(20260912);
+  const players = Array.from({ length: 1000 }, (_, i) => makePlayer(i, rand));
+  const ROUNDS = 80;
+  let matches = 0;
+  for (let r = 0; r < ROUNDS; r++) {
+    const K = 40 - 28 * (r / ROUNDS);            // settle as the ladder firms up
+    players.sort((x, y) => y.rating - x.rating); // pair by rating, as matchmaking would
+    for (let i = 0; i + 1 < players.length; i += 2) {
+      elo(players[i], players[i + 1], playMatch(players[i], players[i + 1], rand), K);
+      matches++;
+    }
+  }
+  // The player's own captain, dropped into the population.
+  const me = makePlayer(-1, rand);
+  me.name = 'You';
+  me.account = 22; me.shipLevel = 6; me.rating = 1263;
+  me.trophies = 1840;
+  players.push(me);
+
+  const simMs = performance.now() - t0;
+
+  // A captain posts to the furthest port their level has opened. Boards hold 100,
+  // and a port that fills clones: London I, London II, and so on.
+  const BOARD_SIZE = 100, PROMOTE = 10, DEMOTE = 10;
+  const CLONE_NUMERALS = ['I','II','III','IV','V','VI','VII','VIII'];
+
+  // Where a captain sits is earned, not granted: ports are rungs and nothing caps
+  // how far up anyone can go. A live game reaches this by promotion over many
+  // weeks; here the population is seeded to where a settled ladder would put it,
+  // using the rating pass as the stand-in for that history.
+  {
+    const byRating = [...players].sort((a, b) => a.rating - b.rating);
+    byRating.forEach((p, i) => {
+      p.port = Math.min(PORTS.length - 1, Math.floor(i / byRating.length * PORTS.length));
+    });
+  }
+
+  // One week of play inside each port, which is what the board actually ranks.
+  let clock = 0;
+  const byPort = new Map();
+  for (const p of players) {
+    if (!byPort.has(p.port)) byPort.set(p.port, []);
+    byPort.get(p.port).push(p);
+  }
+  for (const [, list] of byPort) {
+    if (list.length < 2) continue;
+    for (const p of list) {
+      for (let m = 0; m < p.appetite; m++) {
+        const o = list[Math.floor(rand() * list.length)];
+        if (o === p) continue;
+        const r = playMatch(p, o, rand);
+        // clock ticks with every match, so a bigger number is a more recent win
+        clock++;
+        if (r === 1) { p.wins++; p.trophies++; p.lastWin = clock; }
+        else if (r === 0) { o.wins++; o.trophies++; o.lastWin = clock; }
+        matches++;
+      }
+    }
+  }
+
+  const boards = new Map();
+  for (const port of PORTS) boards.set(port.name, { list: [], clones: 1 });
+  for (const p of players) boards.get(PORTS[p.port].name).list.push(p);
+  for (const [name, b] of boards) {
+    // Position is games won this week. A tie goes to the bigger career trophy
+    // count, and a tie on that goes to whoever won most recently, so a board
+    // rewards still being out there rather than having stopped early.
+    b.list.sort((a, x) => x.wins - a.wins || x.trophies - a.trophies || x.lastWin - a.lastWin);
+    b.clones = Math.max(1, Math.ceil(b.list.length / BOARD_SIZE));
+    b.list.forEach((p, i) => { p.board = b.clones > 1 ? i % b.clones : 0; });
+  }
+
+  const reachedThrough = me.port;
+
+  // ===========================================================================
+  // The chart. Coarse coastlines on an equirectangular projection: enough for a
+  // captain to know where a port is, not an atlas.
+  // ===========================================================================
+  const W = 1800, H = 900;
+  const px = (lon) => (lon + 180) / 360 * W;
+  const py = (lat) => (90 - lat) / 180 * H;
+  const LAND = [
+    [[-168,66],[-140,70],[-95,70],[-80,62],[-64,60],[-52,47],[-66,45],[-75,35],[-81,25],[-97,26],[-105,20],[-115,30],[-125,40],[-130,55],[-150,60]],
+    [[-81,8],[-60,10],[-50,0],[-35,-5],[-38,-22],[-48,-25],[-58,-35],[-62,-42],[-70,-52],[-75,-45],[-72,-30],[-70,-18],[-78,-5]],
+    [[-10,36],[0,45],[-2,49],[2,51],[8,54],[10,58],[20,60],[30,60],[40,45],[36,36],[33,31],[43,12],[51,12],[40,-5],[40,-25],[25,-34],[18,-34],[12,-18],[9,4],[-5,5],[-17,15],[-16,28]],
+    [[30,60],[60,70],[100,75],[140,72],[160,60],[140,50],[130,42],[122,30],[110,20],[105,10],[100,5],[95,15],[88,22],[80,10],[72,20],[60,25],[50,28],[43,12],[40,45]],
+    [[113,-22],[130,-12],[142,-11],[150,-25],[153,-28],[147,-38],[135,-35],[125,-33],[115,-34]],
+  ];
+  const path = (pts) => 'M' + pts.map(([lon, lat]) => `${px(lon).toFixed(1)} ${py(lat).toFixed(1)}`).join('L') + 'Z';
+
+  let zoom = 1;                       // 1 fits the whole world, 2 is the close look
+
+  function drawChart() {
+    const route = PORTS.map((p) => `${px(p.lon).toFixed(1)} ${py(p.lat).toFixed(1)}`).join('L');
+    const svg = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <defs>
+          <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0E3A57"/><stop offset="1" stop-color="#07263B"/>
+          </linearGradient>
+        </defs>
+        <rect width="${W}" height="${H}" fill="url(#seaG)"/>
+        <g stroke="#17455F" stroke-width="1" opacity="0.65">
+          ${[-60,-30,0,30,60].map((lat) => `<line x1="0" y1="${py(lat)}" x2="${W}" y2="${py(lat)}"/>`).join('')}
+          ${[-150,-120,-90,-60,-30,0,30,60,90,120,150].map((lon) => `<line x1="${px(lon)}" y1="0" x2="${px(lon)}" y2="${H}"/>`).join('')}
+        </g>
+        <line x1="0" y1="${py(0)}" x2="${W}" y2="${py(0)}" stroke="#2B6A86" stroke-width="2" stroke-dasharray="14 9"/>
+        <g fill="${'#3E5A3A'}" stroke="#263B24" stroke-width="3" stroke-linejoin="round">
+          ${LAND.map((p) => `<path d="${path(p)}"/>`).join('')}
+        </g>
+        <path d="M${route}" fill="none" stroke="#E9A23B" stroke-width="2.5" stroke-dasharray="9 8" opacity="0.75"/>
+        <g fill="#2B6A86" opacity="0.55" font-family="sans-serif" font-size="26" font-weight="700">
+          <text x="${px(-40)}" y="${py(-30)}">🐙</text>
+          <text x="${px(150)}" y="${py(-45)}">🐋</text>
+          <text x="${px(-140)}" y="${py(10)}">🦈</text>
+        </g>
+      </svg>`;
+    const inner = document.getElementById('chartinner');
+    inner.replaceChildren();
+    inner.insertAdjacentHTML('beforeend', svg);
+    sizeChart();
+    for (const port of PORTS) {
+      const b = document.createElement('button');
+      const locked = port.order > reachedThrough;
+      b.className = 'pin' + (locked ? ' locked' : '');
+      b.style.left = (px(port.lon) / W * 100) + '%';
+      b.style.top = (py(port.lat) / H * 100) + '%';
+      b.setAttribute('aria-pressed', String(port.name === selected));
+      b.innerHTML = `<span class="dot"></span><span class="nm">${port.name}</span>`;
+      b.setAttribute('aria-label',
+        `${port.name}${locked ? ', you have not sailed this far yet' : ''}`);
+      b.addEventListener('click', () => {
+        selected = port.name; cloneIdx = 0; renderBoard(); refreshPins();
+        if (zoom > 1) requestAnimationFrame(centreOnPort);
+      });
+      inner.appendChild(b);
+    }
+  }
+  // The chart is as wide as its column at 1x and twice that at 2x; the drawing
+  // keeps its shape, so pins placed in percentages need no adjusting.
+  function sizeChart() {
+    const wrap = document.getElementById('chartwrap');
+    const inner = document.getElementById('chartinner');
+    inner.style.width = Math.round((wrap.clientWidth || 400) * zoom) + 'px';
+  }
+  // Put the selected port in the middle of the view.
+  function centreOnPort() {
+    const wrap = document.getElementById('chartwrap');
+    const inner = document.getElementById('chartinner');
+    const port = PORTS.find((p) => p.name === selected) || PORTS[0];
+    const w = inner.clientWidth || wrap.clientWidth;
+    const h = inner.clientHeight || wrap.clientHeight;
+    wrap.scrollLeft = (px(port.lon) / W) * w - wrap.clientWidth / 2;
+    wrap.scrollTop = (py(port.lat) / H) * h - wrap.clientHeight / 2;
+  }
+  function setZoom(z) {
+    zoom = z;
+    const btn = document.getElementById('zoom');
+    btn.textContent = zoom === 1 ? '2×' : 'Fit';
+    btn.setAttribute('aria-pressed', String(zoom === 2));
+    btn.setAttribute('aria-label', zoom === 1 ? 'Zoom in on the selected port' : 'Fit the whole chart');
+    sizeChart();
+    requestAnimationFrame(centreOnPort);
+  }
+
+  function refreshPins() {
+    for (const b of document.querySelectorAll('.pin')) {
+      b.setAttribute('aria-pressed', String(b.querySelector('.nm').textContent === selected));
+    }
+  }
+
+  // ===========================================================================
+  // Captain sheet: what a rival is actually sailing. Their ship level decides how
+  // many positions they have, the deck-then-hull ladder decides where those sit,
+  // and their loadout is the gunners they reach for first.
+  // ===========================================================================
+  const RARITIES = ['common','rare','epic','legendary'];
+  const SHIP_SVG = `
+    <svg viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="hullg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#6B3E22"/><stop offset="1" stop-color="#3A2012"/>
+        </linearGradient>
+        <linearGradient id="innerg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2A1B12"/><stop offset="1" stop-color="#150D08"/>
+        </linearGradient>
+      </defs>
+      <path d="M20 26 H180 L188 34 L176 96 Q100 116 24 96 L12 34 Z" fill="url(#hullg)" stroke="#22120A" stroke-width="2.5"/>
+      <path d="M26 32 H174 L164 90 Q100 106 36 90 Z" fill="url(#innerg)"/>
+      <rect x="26" y="44" width="148" height="3" fill="#4A2E19"/>
+      <rect x="32" y="72" width="136" height="3" fill="#4A2E19"/>
+      <g stroke="#3A2414" stroke-width="1.6" opacity="0.75">
+        <line x1="50" y1="32" x2="50" y2="95"/><line x1="80" y1="32" x2="80" y2="99"/>
+        <line x1="120" y1="32" x2="120" y2="99"/><line x1="150" y1="32" x2="150" y2="95"/>
+      </g>
+      <rect x="14" y="22" width="172" height="5" rx="2.5" fill="#C9953F"/>
+      <path d="M186 30 L196 36 L188 44 Z" fill="#C9953F"/>
+    </svg>`;
+  const DECK_X = [26, 42, 58, 74], HULL_X = [28, 44, 60, 76], DECK_Y = 30, HULL_Y = 62;
+
+  const sheet = document.getElementById('sheet');
+  let sheetFocus = null;
+
+  function openCaptain(p) {
+    const [deck, hull] = LADDER[p.shipLevel];
+    const crew = loadout(p).map((g) => g.o);          // the gunners they actually bring
+
+    document.getElementById('sheetCap').textContent = ROSTER[p.captain - 1].gun;
+    document.getElementById('sheetName').textContent = p.name;
+    document.getElementById('sheetSub').textContent =
+      `Level ${p.account} · ship level ${p.shipLevel} · ${p.temperament}`;
+
+    // Their ship, with every position they have and who is standing in it.
+    const wrap = document.getElementById('sheetShip');
+    wrap.replaceChildren();
+    wrap.insertAdjacentHTML('beforeend', SHIP_SVG);
+    let n = 0;
+    for (let i = 0; i < 4; i++) {
+      for (const [kind, x, y, open_] of [['deck', DECK_X[i], DECK_Y, i < deck], ['hull', HULL_X[i], HULL_Y, i < hull]]) {
+        if (!open_) continue;
+        const who = crew[n++];
+        const el = document.createElement('span');
+        el.className = 'slot ' + kind + (who ? '' : ' empty');
+        el.style.left = x + '%';
+        el.style.top = y + '%';
+        el.textContent = who ? ROSTER[who.id - 1].gun : '';
+        el.title = who ? `${ROSTER[who.id - 1].primary} gunner, level ${who.level}` : 'empty';
+        wrap.appendChild(el);
+      }
+    }
+
+    // Their crew, the posted ones first.
+    const list = document.getElementById('sheetCrew');
+    list.replaceChildren();
+    const posted = new Set(crew.map((c) => c.id));
+    const shown = [...crew, ...p.owned.filter((o) => !posted.has(o.id)).slice(0, 4)];
+    for (const o of shown) {
+      const g = ROSTER[o.id - 1];
+      const row = document.createElement('div');
+      row.className = 'crewrow ' + (posted.has(o.id) ? 'onship' : 'bench');
+      row.innerHTML =
+        `<span class="g">${g.gun}</span>` +
+        `<span>${g.primary} gunner${o.id === p.captain ? ' · captain' : ''}</span>` +
+        `<span class="r r-${g.rarity}">${g.rarity[0].toUpperCase() + g.rarity.slice(1)}</span>` +
+        `<span class="l">${o.level}</span>`;
+      list.appendChild(row);
+    }
+
+    const stats = document.getElementById('sheetStats');
+    stats.replaceChildren();
+    const facts = [
+      ['Won this week', p.wins],
+      ['Career trophies', p.trophies.toLocaleString()],
+      ['Last win', lastWinLabel(p)],
+      ['Guns', `${deck + hull}`],
+      ['Collected', `${p.owned.length} of ${ROSTER.length}`],
+    ];
+    for (const [k, v] of facts) {
+      const d = document.createElement('div');
+      d.innerHTML = `<b>${v}</b>${k}`;
+      stats.appendChild(d);
+    }
+
+    sheetFocus = document.activeElement;
+    sheet.classList.add('open');
+    document.getElementById('sheetClose').focus();
+  }
+  function closeCaptain() {
+    sheet.classList.remove('open');
+    if (sheetFocus && sheetFocus.focus) sheetFocus.focus();
+  }
+  document.getElementById('sheetClose').addEventListener('click', closeCaptain);
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) closeCaptain(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sheet.classList.contains('open')) closeCaptain();
+  });
+
+  // ===========================================================================
+  // The board
+  // ===========================================================================
+  let selected = PORTS[me.port].name;
+  let cloneIdx = 0;
+
+  // The clock counts matches, not minutes. Spreading it across the week lets the
+  // board say how long ago a captain last won, which is what the third tiebreak reads.
+  const WEEK_HOURS = 168;
+  function lastWinLabel(p) {
+    if (p.lastWin < 0) return '—';
+    const hoursAgo = (1 - p.lastWin / Math.max(clock, 1)) * WEEK_HOURS;
+    if (hoursAgo < 1) return 'just now';
+    if (hoursAgo < 24) return `${Math.round(hoursAgo)}h ago`;
+    return `${Math.floor(hoursAgo / 24)}d ago`;
+  }
+
+  function renderBoard() {
+    const port = PORTS.find((p) => p.name === selected);
+    const { list, clones } = boards.get(port.name);
+    if (cloneIdx >= clones) cloneIdx = 0;
+    const shown = list.filter((p) => (clones > 1 ? p.board === cloneIdx : true)).slice(0, BOARD_SIZE);
+    const locked = port.order > reachedThrough;
+
+    document.getElementById('portName').textContent =
+      port.name + (clones > 1 ? ` ${CLONE_NUMERALS[cloneIdx]}` : '');
+
+    const cl = document.getElementById('clones');
+    cl.replaceChildren();
+    if (clones > 1) {
+      for (let i = 0; i < clones; i++) {
+        const b = document.createElement('button');
+        b.textContent = CLONE_NUMERALS[i];
+        b.setAttribute('aria-pressed', String(i === cloneIdx));
+        b.addEventListener('click', () => { cloneIdx = i; renderBoard(); });
+        cl.appendChild(b);
+      }
+    }
+
+    const top = shown[0];
+    const levels = shown.length
+      ? `${Math.min(...shown.map((p) => p.account))}–${Math.max(...shown.map((p) => p.account))}`
+      : '—';
+    const facts = [
+      ['Top captain', top ? `${ROSTER[top.captain - 1].gun} ${top.name}` : '—', ''],
+      ['Typical loot', port.loot[0], 'small'],
+      ['Per win', port.loot[1], 'small'],
+      ['Difficulty', `<span class="diff">${Array.from({ length: 5 }, (_, i) =>
+        `<i class="${i < port.difficulty ? 'on' : ''}"></i>`).join('')}</span>`, ''],
+      ['Levels here', levels, ''],
+      ['Captains here', `${list.length}${clones > 1 ? ` across ${clones} boards` : ''}`, 'small'],
+      ['Reached by', locked ? 'Winning your way up' : 'You have sailed here', 'small'],
+      ['End of week', port.order === PORTS.length - 1 ? `Bottom ${DEMOTE} fall back`
+        : port.order === 0 ? `Top ${PROMOTE} sail on`
+        : `Top ${PROMOTE} up, bottom ${DEMOTE} down`, 'small'],
+      ['Ties break on', 'Trophies, then the most recent win', 'small'],
+    ];
+    const fw = document.getElementById('portFacts');
+    fw.replaceChildren();
+    for (const [k, v, cls] of facts) {
+      const d = document.createElement('div');
+      d.className = 'fact';
+      d.innerHTML = `<dt>${k}</dt><dd class="${cls}">${v}</dd>`;
+      fw.appendChild(d);
+    }
+
+    const listEl = document.getElementById('list');
+    listEl.replaceChildren();
+    const cut = (cls, text) => {
+      const d = document.createElement('div');
+      d.className = 'cut ' + cls;
+      d.innerHTML = `<span>${text}</span>`;
+      listEl.appendChild(d);
+    };
+    shown.forEach((p, i) => {
+      // The week ends with the top ten sailing on and the bottom ten falling back.
+      const promoting = i < PROMOTE && port.order < PORTS.length - 1;
+      const demoting = i >= shown.length - DEMOTE && port.order > 0;
+      if (i === PROMOTE && promoting === false && shown.length > PROMOTE) cut('up', 'promotion line');
+      const row = document.createElement('div');
+      row.className = 'row' + (i < 3 ? ` top${i + 1}` : '')
+        + (promoting ? ' promote' : '') + (demoting ? ' demote' : '') + (p === me ? ' me' : '');
+      row.innerHTML =
+        `<span class="rank">${i + 1}</span>` +
+        `<span class="who"><span class="cap">${ROSTER[p.captain - 1].gun}</span>` +
+          `<span class="nm">${p.name}</span><span class="temp">${p.temperament}</span></span>` +
+        `<span class="lv">${p.account}</span>` +
+        `<span class="won">${p.wins}</span>` +
+        `<span class="tro">${p.trophies.toLocaleString()}</span>` +
+        `<span class="ago">${lastWinLabel(p)}</span>`;
+      row.tabIndex = 0;
+      row.setAttribute('role', 'button');
+      row.setAttribute('aria-label',
+        `${p.name}, rank ${i + 1}, ${p.wins} won, ${p.trophies} trophies. Open their ship.`);
+      row.addEventListener('click', () => openCaptain(p));
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCaptain(p); }
+      });
+      listEl.appendChild(row);
+      if (i === PROMOTE - 1 && shown.length > PROMOTE) cut('up', `▲ top ${PROMOTE} sail on to ${PORTS[Math.min(port.order + 1, PORTS.length - 1)].name}`);
+      if (i === shown.length - DEMOTE - 1 && shown.length > PROMOTE + DEMOTE && port.order > 0) {
+        cut('down', `▼ bottom ${DEMOTE} fall back to ${PORTS[port.order - 1].name}`);
+      }
+    });
+    listEl.scrollTop = 0;
+  }
+
+  // Drag the chart, as well as scrolling it.
+  const wrap = document.getElementById('chartwrap');
+  let dragging = false, startX = 0, startY = 0, startL = 0, startT = 0;
+  wrap.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.pin')) return;
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    startL = wrap.scrollLeft; startT = wrap.scrollTop;
+    wrap.classList.add('drag'); wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    wrap.scrollLeft = startL - (e.clientX - startX);
+    wrap.scrollTop = startT - (e.clientY - startY);
+  });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    wrap.addEventListener(ev, () => { dragging = false; wrap.classList.remove('drag'); });
+  }
+  wrap.addEventListener('wheel', (e) => {
+    if (!e.deltaX && !e.deltaY) return;
+    e.preventDefault();
+    wrap.scrollLeft += e.deltaX || e.deltaY;   // a plain wheel pans the chart sideways
+    if (e.deltaX) wrap.scrollTop += e.deltaY;
+  }, { passive: false });
+
+  document.getElementById('zoom').addEventListener('click', () => setZoom(zoom === 1 ? 2 : 1));
+  window.addEventListener('resize', () => { sizeChart(); centreOnPort(); });
+
+  drawChart();
+  renderBoard();
+  // Open zoomed in on the player's own waters, which is the port they care about.
+  requestAnimationFrame(() => setZoom(2));
+
+  const chatty = TEMPERAMENTS.map((t) => `${t} ${emotesPerMatch(t).toFixed(1)}`).join(', ');
+  document.getElementById('simnote').textContent =
+    `${players.length - 1} captains · ${matches.toLocaleString()} matches simulated in ${simMs.toFixed(0)} ms`;
+  document.getElementById('simnote').title = `Emotes per match — ${chatty}`;
+  document.getElementById('you').innerHTML =
+    `<span>won</span> ${me.wins} &nbsp;<span>trophies</span> ${me.trophies.toLocaleString()}`
+    + ` &nbsp;<span>level</span> ${me.account}`;
+  document.getElementById('week').textContent = 'Week resets in 2d 14h';
+})();
+</script>
+</body>
+</html>

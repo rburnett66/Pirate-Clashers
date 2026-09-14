@@ -1,0 +1,25 @@
+
+  const gameSide=new URLSearchParams(location.search).get('side');
+  const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
+  function syncCrew(rows){let d=0,h=0;stations.forEach(st=>{const key=(st.port?'h'+h++:'d'+d++),g=rows?.find(g=>g.slot===key);st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});uploadStations();updateScopeLabels();}
+  window.addEventListener('message',e=>{
+    if(e.origin!==location.origin||e.source!==parent||!e.data||e.data.type!=='pirate-render')return;
+    const d=e.data;
+    if(d.action==='configure'){
+      const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
+      [P.deckStations,P.hullStations]=ladder[d.level]||ladder[3];P.gunners=d.count??3;P.shake=d.motion===false?0:1;repair();syncCrew(d.crew);
+      mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
+    }
+    if(d.action==='sync')syncCrew(d.crew);
+    if(d.action==='hit'){archetype=ARCHETYPES.find(a=>a.id===d.weapon)||ARCHETYPES[0];fire(d.x||0,d.y||0);}
+    if(d.action==='fire')stations.filter(st=>d.gunner==null||st.gunner===d.gunner).forEach(st=>fireStation(st));
+    if(d.action==='scope'){scopeOn=!!d.on;updateScopeLabels();}
+    if(d.action==='finisher'){
+      if(d.id===3){const m=masts.find(m=>m.breakTime<0);if(m)breakMast(m);}
+      else if([1,4].includes(d.id)){sails.forEach(sl=>sl.damage=Math.min(1,sl.damage+.6));uploadRig();}
+      else if([0,5].includes(d.id)){const a=stations.filter(st=>!st.port&&!st.out);(d.id===0?a.slice(0,1):a).forEach(st=>st.out=true);}
+      else {archetype=ARCHETYPES[3];fire(0,0);}
+    }
+  });
+  setInterval(()=>{const rect=canvas.getBoundingClientRect(),p=[rect.left+((.02-cam.x)*cam.ppu/canvas.width+.5)*rect.width,rect.top+(.5-(1.13-cam.y)*cam.ppu/canvas.height)*rect.height];mark.style.left=p[0]+'px';mark.style.top=p[1]+'px';mark.style.fontSize=Math.max(14,cam.ppu*.22)+'px';},100);
+  parent.postMessage({type:'pirate-ready',side:gameSide},location.origin);

@@ -1,0 +1,375 @@
+{
+  "project_id": 1002,
+  "estimate_type": "relative_complexity",
+  "stories": [
+    {
+      "ep": "E01",
+      "key": "K01",
+      "title": "Reconcile prototype interfaces and shared rules",
+      "points": 2,
+      "deps": [],
+      "dod": "Record source precedence and missing GDD assumptions; map actual reusable functions and data. Keep local playable scope distinct from later service integration.",
+      "followup": false
+    },
+    {
+      "ep": "E02",
+      "key": "K02",
+      "title": "Create local app shell and persistent shared state",
+      "points": 5,
+      "deps": [
+        "K01"
+      ],
+      "dod": "One landscape shell with shared wallet, navigation and versioned local saves; reload retains progress; local Git/build commands documented.",
+      "followup": false
+    },
+    {
+      "ep": "E04",
+      "key": "K03",
+      "title": "Reuse roster and wire crew placement",
+      "points": 3,
+      "deps": [
+        "K02"
+      ],
+      "dod": "Import all 36 actual roster rows and stats; eight-level station ladder; no duplicate or locked placements; collection/details and loadout persist.",
+      "followup": false
+    },
+    {
+      "ep": "E03",
+      "key": "K04",
+      "title": "Embed supplied water and ship rendering",
+      "points": 5,
+      "deps": [
+        "K02"
+      ],
+      "dod": "Reuse water and hull shaders, expose lifecycle API, render two ships over water and handle resize/WebGL failure without rebuilding effects.",
+      "followup": false
+    },
+    {
+      "ep": "E03",
+      "key": "K05",
+      "title": "Connect attacks to damage, crew and rig effects",
+      "points": 5,
+      "deps": [
+        "K03",
+        "K04"
+      ],
+      "dod": "Player aims at enemy; shared weapon/target rules drive hull, sail and crew state; supplied scatter, mask, burn and mast effects respond to hits.",
+      "followup": false
+    },
+    {
+      "ep": "E03",
+      "key": "K06",
+      "title": "Complete playable battle turns and outcomes",
+      "points": 5,
+      "deps": [
+        "K05"
+      ],
+      "dod": "Two shots per turn baseline, enemy turns, damage/accuracy, victory/loss and round cap; controls lock during resolution; saved match can recover.",
+      "followup": false
+    },
+    {
+      "ep": "E05",
+      "key": "K07",
+      "title": "Reuse opponent simulation and temperament",
+      "points": 3,
+      "deps": [
+        "K03",
+        "K06"
+      ],
+      "dod": "Use supplied seeded captain/rating/loadout logic as reference for real roster opponents; enemy actions and emotes reflect temperament and current crew.",
+      "followup": false
+    },
+    {
+      "ep": "E05",
+      "key": "K08",
+      "title": "Build result, learning and rematch flow",
+      "points": 3,
+      "deps": [
+        "K07"
+      ],
+      "dod": "Loss-only one rematch, simulated 65% acceptance and -20% accuracy; refusal grants nothing; results explain damage/rewards and no defeat sales pitch.",
+      "followup": false
+    },
+    {
+      "ep": "E06",
+      "key": "K09",
+      "title": "Wire rewards, chest contents and daily capacity",
+      "points": 3,
+      "deps": [
+        "K08",
+        "K02"
+      ],
+      "dod": "Full win gold/one chest, one-third loss gold; four tiers and specific-pirate cards; five slots, daily reset without discarded contents; once-only claims and fifth-chest gems.",
+      "followup": false
+    },
+    {
+      "ep": "E06",
+      "key": "K10",
+      "title": "Wire gunsmith timers and ship progression",
+      "points": 3,
+      "deps": [
+        "K09",
+        "K03"
+      ],
+      "dod": "Cards/gold upgrades, persisted bench timer and gem skip; approved materials ship ladder; no negative wallets or duplicate completion.",
+      "followup": false
+    },
+    {
+      "ep": "E06",
+      "key": "K11",
+      "title": "Wire port hauls and Trade Shop exchange",
+      "points": 3,
+      "deps": [
+        "K10"
+      ],
+      "dod": "Trade material surplus with fee/stock limits; smaller stay haul and travel haul; first-visit gem award once.",
+      "followup": false
+    },
+    {
+      "ep": "E07",
+      "key": "K12",
+      "title": "Reuse Ports chart and board presentation",
+      "points": 3,
+      "deps": [
+        "K07",
+        "K02"
+      ],
+      "dod": "Use supplied port list/chart and ranking behavior; 100-seat boards, own row and captain scouting; no progression level gates.",
+      "followup": false
+    },
+    {
+      "ep": "E07",
+      "key": "K13",
+      "title": "Persist weekly standings and promotion",
+      "points": 3,
+      "deps": [
+        "K12",
+        "K11"
+      ],
+      "dod": "Monday reset with deterministic tie ordering; top/bottom ten movement with bounds; one settlement/haul per week; local clock limitations documented.",
+      "followup": false
+    },
+    {
+      "ep": "E08",
+      "key": "K14",
+      "title": "Wire equipment, canvas and repairs",
+      "points": 3,
+      "deps": [
+        "K11",
+        "K05"
+      ],
+      "dod": "Supplied plating/canvas protection, wear and material repairs; worn equipment never blocks battle; costs shown and state saved.",
+      "followup": false
+    },
+    {
+      "ep": "E08",
+      "key": "K15",
+      "title": "Wire enhancements, figureheads and cosmetic loadout",
+      "points": 3,
+      "deps": [
+        "K14"
+      ],
+      "dod": "Reuse supplied four-system and six-figurehead tables; one equipped figurehead, permanent upgrades and gold-only sail cosmetics influence/display correctly.",
+      "followup": false
+    },
+    {
+      "ep": "E09",
+      "key": "K16",
+      "title": "Wire all six finishing moves into battle",
+      "points": 5,
+      "deps": [
+        "K06"
+      ],
+      "dod": "Four consecutive dual-hit turns charge selected owned move once per match; each move affects its specified target; poster/animation/cheer and timer pause/short repeat mode.",
+      "followup": false
+    },
+    {
+      "ep": "E09",
+      "key": "K17",
+      "title": "Reuse Booty track and persistent claims",
+      "points": 3,
+      "deps": [
+        "K09",
+        "K16"
+      ],
+      "dod": "50-level free/paid track with aligned wide cells, current-level focus and single/bulk claim; progress/claims persist; local premium demonstration clearly separate from real purchase.",
+      "followup": false
+    },
+    {
+      "ep": "E09",
+      "key": "K18",
+      "title": "Wire quests and season lifecycle",
+      "points": 3,
+      "deps": [
+        "K17",
+        "K13"
+      ],
+      "dod": "Match/daily/weekly progress grants XP once; season clock and rollover/catch-up policy explicit; unlocked moves survive rollover.",
+      "followup": false
+    },
+    {
+      "ep": "E10",
+      "key": "K19",
+      "title": "Build Store from supplied catalog and offers",
+      "points": 3,
+      "deps": [
+        "K11",
+        "K15",
+        "K17"
+      ],
+      "dod": "Six gem packs/four bundles, item/offer layouts, max three offers, real expiry/cooldown, no loss trigger; no fake charge or misleading real purchase success.",
+      "followup": false
+    },
+    {
+      "ep": "E11",
+      "key": "K20",
+      "title": "Reuse existing pirate art and unify presentation",
+      "points": 3,
+      "deps": [
+        "K03",
+        "K04"
+      ],
+      "dod": "Inspect supplied segmented images; use suitable art in crew/battle/UI, preserve source attribution, shared palette/type and readable landscape layouts.",
+      "followup": false
+    },
+    {
+      "ep": "E11",
+      "key": "K21",
+      "title": "Add onboarding, sound and accessibility settings",
+      "points": 3,
+      "deps": [
+        "K08",
+        "K20"
+      ],
+      "dod": "First-run explains placement/aim/finisher/rewards; mute and reduced-motion controls, keyboard/focus, Escape sheets, minimum tap targets and usable error states.",
+      "followup": false
+    },
+    {
+      "ep": "E12",
+      "key": "K22",
+      "title": "Verify battle and progression invariants",
+      "points": 5,
+      "deps": [
+        "K13",
+        "K15",
+        "K18",
+        "K19",
+        "K21"
+      ],
+      "dod": "Meaningful tests cover placement, battle outcomes/rematch, wallet/claims/timers, weekly/season rollover and restart; all pass and source-model discrepancies recorded.",
+      "followup": false
+    },
+    {
+      "ep": "E12",
+      "key": "K23",
+      "title": "Run browser QA and deliver local game",
+      "points": 3,
+      "deps": [
+        "K22"
+      ],
+      "dod": "Play through shell→crew→battle→result→rewards→upgrade; inspect landscape/PC views, console and WebGL; fix defects; provide local URL/start command and truthful limitations.",
+      "followup": false
+    },
+    {
+      "ep": "E02",
+      "key": "K24",
+      "title": "Add remote authority and account synchronization",
+      "points": 8,
+      "deps": [
+        "K23"
+      ],
+      "dod": "Follow-up beyond local target: configured account/service saves, conflict/retry and cross-device sync with authoritative economy/time; requires chosen service and credentials.",
+      "followup": true
+    },
+    {
+      "ep": "E07",
+      "key": "K25",
+      "title": "Connect shared player boards and ghost population",
+      "points": 5,
+      "deps": [
+        "K24"
+      ],
+      "dod": "Follow-up: submit verified scores, replace seeds with real profiles and server-side settlement; no claim that local seeded opponents are network players.",
+      "followup": true
+    },
+    {
+      "ep": "E10",
+      "key": "K26",
+      "title": "Connect real storefront purchases and restore",
+      "points": 8,
+      "deps": [
+        "K24",
+        "K19"
+      ],
+      "dod": "Follow-up: selected provider sandbox receipts, restore/cancel/pending/duplicate callback coverage; live enablement separate. Local build must not simulate real payment success.",
+      "followup": true
+    },
+    {
+      "ep": "E11",
+      "key": "K27",
+      "title": "Complete missing production art and audio",
+      "points": 5,
+      "deps": [
+        "K23",
+        "K20"
+      ],
+      "dod": "Follow-up: inspect remaining asset gaps against all 36 pirates/six finishers; replace only missing placeholders and obtain owner art acceptance; no blanket recreation of supplied art.",
+      "followup": true
+    },
+    {
+      "ep": "E12",
+      "key": "K28",
+      "title": "Validate live release readiness",
+      "points": 5,
+      "deps": [
+        "K25",
+        "K26",
+        "K27"
+      ],
+      "dod": "Follow-up: real target-phone performance, network/purchase recovery and owner acceptance; platform distribution/GitHub connection separate from local build.",
+      "followup": true
+    }
+  ],
+  "ticketIds": {
+    "E01": "epic_mu08xbsf_1",
+    "E02": "epic_mu08xlds_2",
+    "E03": "epic_mu08xleb_3",
+    "E04": "epic_mu08xley_4",
+    "E05": "epic_mu08xlfg_5",
+    "E06": "epic_mu08xlfx_6",
+    "E07": "epic_mu08xlgf_7",
+    "E08": "epic_mu08xlgw_8",
+    "E09": "epic_mu08xlhd_9",
+    "E10": "epic_mu08xlhv_a",
+    "E11": "epic_mu08xlix_b",
+    "E12": "epic_mu08xljl_c",
+    "K01": "story_mu091slt_d",
+    "K02": "story_mu091snw_e",
+    "K03": "story_mu091soe_f",
+    "K04": "story_mu091sow_g",
+    "K05": "story_mu091spe_h",
+    "K06": "story_mu091spw_i",
+    "K07": "story_mu091sqg_j",
+    "K08": "story_mu091sr0_k",
+    "K09": "story_mu091sri_l",
+    "K10": "story_mu091ss2_m",
+    "K11": "story_mu091ssm_n",
+    "K12": "story_mu091st4_o",
+    "K13": "story_mu091stl_p",
+    "K14": "story_mu091su5_q",
+    "K15": "story_mu091suq_r",
+    "K16": "story_mu091sva_s",
+    "K17": "story_mu091svs_t",
+    "K18": "story_mu091swa_u",
+    "K19": "story_mu091swt_v",
+    "K20": "story_mu091sxb_w",
+    "K21": "story_mu091sxu_x",
+    "K22": "story_mu091sye_y",
+    "K23": "story_mu091syx_z",
+    "K24": "story_mu091sze_10",
+    "K25": "story_mu091szw_11",
+    "K26": "story_mu091t0f_12",
+    "K27": "story_mu091t0z_13",
+    "K28": "story_mu091t1j_14"
+  }
+}

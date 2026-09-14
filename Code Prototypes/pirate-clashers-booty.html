@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pirate's Booty — Pirate Clashers</title>
+<style>
+  :root {
+    /* Sea chart at night: ink water, parchment for the crew's share,
+       lacquered wood and brass for the captain's. */
+    --ink:        #0A2438;
+    --ink-deep:   #061A29;
+    --ink-line:   #16405C;
+    --parchment:  #E8D9B0;
+    --parchment-d:#C8B486;
+    --wood:       #4A2A17;
+    --wood-lit:   #6B3E22;
+    --brass:      #E9A23B;
+    --brass-deep: #A86A18;
+    --foam:       #7FD8D0;
+    --bone:       #F3EDDF;
+
+    --card-r: 14px;
+    --gap: 10px;
+    --rail-w: 240px;
+
+    /* One driver for the whole grid: the height left after the tier labels, the
+       course line and padding, which is 94px. Everything else is derived from it,
+       so the three lanes cannot fall out of step and there is no second set of
+       sizes to keep in agreement. */
+    --cell-h: clamp(96px, calc((100dvh - 94px) / 2), 240px);
+    --cell-w: calc(var(--cell-h) * 0.72);
+    --cell-wide: calc(var(--cell-w) * 2 + var(--gap));
+    --art: calc(var(--cell-h) * 0.62);
+    --art-wide: calc(var(--cell-h) * 0.70);
+  }
+  @supports not (height: 100dvh) {
+    :root { --cell-h: clamp(96px, calc((100vh - 94px) / 2), 240px); }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(120% 90% at 30% -10%, #12405E 0%, var(--ink) 45%, var(--ink-deep) 100%);
+    color: var(--bone);
+    font-family: "Avenir Next", Nunito, "Trebuchet MS", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    /* Faint chart grid, so the screen reads as a map and not a settings page. */
+    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.30;
+    background-image: linear-gradient(var(--ink-line) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--ink-line) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(120% 90% at 40% 40%, #000 30%, transparent 85%);
+  }
+
+  /* Landscape is the target shape, so the chrome lives in a rail down the side and
+     the whole height goes to the two tiers. */
+  .screen { height: 100%; display: flex; align-items: stretch; }
+
+  /* ---------- Rail ---------- */
+  .rail {
+    width: var(--rail-w); flex: 0 0 var(--rail-w);
+    display: flex; flex-direction: column; gap: 10px;
+    padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom))
+             max(14px, env(safe-area-inset-left));
+    border-right: 1px solid var(--ink-line);
+    background: linear-gradient(180deg, rgba(9,36,56,0.9), rgba(6,26,41,0.9));
+  }
+  .rail-head { display: flex; flex-direction: column; gap: 6px; }
+  h1 {
+    margin: 0; font-size: clamp(21px, 2.4vw, 32px); font-weight: 900;
+    letter-spacing: -0.025em; line-height: 0.92; color: var(--brass);
+    text-shadow: 0 2px 0 var(--brass-deep), 0 3px 0 rgba(0,0,0,0.45);
+  }
+  .season { margin: 0; font-size: 12.5px; font-weight: 700; color: #8FB7CE; line-height: 1.35; }
+  .levelbar .meta {
+    display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700;
+    color: #A9CADD; margin-bottom: 5px; font-variant-numeric: tabular-nums;
+  }
+  .levelbar .rail-track {
+    height: 12px; border-radius: 99px; background: var(--ink-deep);
+    border: 1.5px solid var(--ink-line); overflow: hidden;
+  }
+  .levelbar .rail-track i { display: block; height: 100%; background: linear-gradient(90deg, var(--brass-deep), var(--brass)); }
+  .purse { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+  .purse b { font-size: 19px; font-weight: 900; color: var(--brass); }
+  .purse span { font-size: 11.5px; font-weight: 700; color: #8FB7CE; }
+  .rail-fill { flex: 1 1 auto; min-height: 0; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .hint { margin: 0; font-size: 11px; color: #6E93AB; font-weight: 700; line-height: 1.35; }
+
+  /* ---------- Track ---------- */
+  .track {
+    flex: 1 1 auto; min-width: 0; height: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+  .tierhead {
+    display: flex; align-items: baseline; gap: 8px; padding: 0 16px 4px; height: 22px;
+    font-size: 13px; font-weight: 800; letter-spacing: -0.01em;
+  }
+  .tierhead .who { color: var(--bone); }
+  .tierhead .what { color: #8FB7CE; font-weight: 700; font-size: 12px; }
+  .tierhead.captain .who { color: var(--brass); }
+
+  .lane { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .lane::-webkit-scrollbar { display: none; }
+  .lane .row { display: flex; gap: var(--gap); padding: 0 16px; width: max-content; }
+
+  /* The course line between the tiers: where you are, and what is ahead. */
+  .course { position: relative; height: 34px; }
+  .course .line {
+    position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%);
+    background: repeating-linear-gradient(90deg, var(--ink-line) 0 9px, transparent 9px 17px);
+  }
+  .course .row { position: relative; }
+  .stop { width: var(--cell-w); flex: 0 0 var(--cell-w); height: 34px; display: grid; place-items: center; }
+  .stop.wide { width: var(--cell-wide); flex-basis: var(--cell-wide); }
+  .stop b {
+    font-size: 12.5px; font-weight: 900; font-variant-numeric: tabular-nums;
+    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--ink-deep); border: 2px solid var(--ink-line); color: #7FA3BA;
+  }
+  .stop.past b { border-color: var(--brass-deep); color: var(--brass); }
+  .stop.here b {
+    border-color: var(--foam); color: var(--ink); background: var(--foam);
+    box-shadow: 0 0 0 4px rgba(127,216,208,0.18);
+  }
+
+  /* ---------- Reward cards ---------- */
+  .cell {
+    width: var(--cell-w); flex: 0 0 var(--cell-w); height: var(--cell-h); border-radius: var(--card-r);
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    padding: 10px 8px 9px; cursor: pointer; border: 2px solid transparent;
+    font: inherit; color: inherit; text-align: center;
+  }
+  .cell.wide { width: var(--cell-wide); flex: 0 0 var(--cell-wide); }
+  .cell:focus-visible { outline: 3px solid var(--foam); outline-offset: 3px; }
+
+  .cell.crew { background: linear-gradient(180deg, var(--parchment), var(--parchment-d)); color: #3A2A12; border-color: #9C8452; }
+  .cell.captain { background: linear-gradient(180deg, var(--wood-lit), var(--wood)); color: var(--bone); border-color: var(--brass-deep); }
+  .cell.captain.move { background: linear-gradient(170deg, #7A2A1E, #3E1410); border-color: var(--brass); }
+
+  .cell .art {
+    font-size: var(--art); line-height: 1; flex: 1; display: grid; place-items: center;
+    filter: drop-shadow(0 3px 3px rgba(0,0,0,0.38));
+  }
+  .cell.wide .art { font-size: var(--art-wide); }
+  .cell .name { font-size: clamp(10px, calc(var(--cell-h) * 0.075), 15px); font-weight: 800; line-height: 1.15; }
+  .cell .qty { font-size: clamp(11px, calc(var(--cell-h) * 0.082), 16px); font-weight: 900; font-variant-numeric: tabular-nums; }
+  .cell .kicker { font-size: 10.5px; font-weight: 800; color: var(--brass); letter-spacing: 0.04em; }
+
+  .cell[data-state="locked"] { filter: saturate(0.32) brightness(0.62); }
+  .cell[data-state="ready"] { box-shadow: 0 0 0 2px var(--foam), 0 6px 18px rgba(127,216,208,0.28); }
+  .cell[data-state="claimed"] { opacity: 0.55; }
+  .cell[data-state="claimed"]::after {
+    content: '✓'; position: absolute; inset: auto 8px 8px auto;
+    width: 26px; height: 26px; border-radius: 50%; background: var(--foam); color: var(--ink);
+    font-size: 16px; font-weight: 900; display: grid; place-items: center;
+  }
+  /* A pointer can hover, a finger cannot: only lift where it means something. */
+  @media (hover: hover) and (pointer: fine) {
+    .cell { transition: transform 0.12s ease; }
+    .cell:hover { transform: translateY(-3px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
+
+  .lockveil {
+    position: absolute; inset: 0; border-radius: calc(var(--card-r) - 1px);
+    background: repeating-linear-gradient(135deg, rgba(6,26,41,0.80) 0 8px, rgba(6,26,41,0.62) 8px 16px);
+    display: grid; place-items: center; font-size: calc(var(--cell-h) * 0.18);
+  }
+
+  /* ---------- Buttons ---------- */
+  button {
+    font: inherit; font-weight: 800; border-radius: 11px; cursor: pointer; border: 2px solid;
+    padding: 11px 14px; font-size: 14px; text-align: left;
+  }
+  button:focus-visible { outline: 3px solid var(--foam); outline-offset: 2px; }
+  .rail button { width: 100%; }
+  .buy {
+    background: linear-gradient(180deg, var(--brass), var(--brass-deep));
+    border-color: #6E4409; color: #2A1704; text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .buy small { display: block; font-size: 11px; font-weight: 700; opacity: 0.82; margin-top: 2px; }
+  .ghost { background: rgba(12,42,64,0.75); border-color: var(--ink-line); color: var(--bone); text-align: center; }
+  .ghost[disabled] { opacity: 0.4; cursor: default; }
+
+  /* ---------- Narrow windows and portrait phones ---------- */
+  @media (max-width: 760px) {
+    :root { --cell-h: clamp(110px, calc((100dvh - 260px) / 2), 220px); }
+    .screen { flex-direction: column; }
+    .rail {
+      width: auto; flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--ink-line);
+      display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: end;
+      padding: max(12px, env(safe-area-inset-top)) 14px 10px;
+    }
+    .rail-head { grid-column: 1; }
+    .purse { grid-column: 2; justify-self: end; }
+    .levelbar, .stack { grid-column: 1 / -1; }
+    .stack { flex-direction: row; }
+    .rail button { width: auto; flex: 1; }
+    .rail-fill, .hint { display: none; }
+    .track { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  }
+
+  /* ---------- Detail sheet ---------- */
+  .sheet {
+    position: fixed; inset: 0; background: rgba(4,14,23,0.74);
+    display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10;
+  }
+  .sheet.open { display: flex; }
+  .sheet .panel {
+    width: min(520px, 100%); max-height: 100%; overflow-y: auto;
+    background: linear-gradient(180deg, #123650, #0A2438);
+    border: 2px solid var(--ink-line); border-radius: 18px; padding: 16px;
+  }
+  .sheet h2 { margin: 0 0 2px; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+  .sheet p { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: #C7DCE8; max-width: 62ch; }
+  .sheet .tag { font-size: 11.5px; font-weight: 800; color: var(--brass); }
+
+  /* The poster a finishing move opens with, framed like a screen in a theatre. */
+  .poster {
+    position: relative; margin: 12px 0 4px; border-radius: 8px; overflow: hidden;
+    background: radial-gradient(120% 120% at 50% 20%, #E6C463, #B8352C 60%, #5C1410 100%);
+    border: 3px solid #2A0E0B; aspect-ratio: 16 / 9; max-height: 46dvh;
+    display: grid; place-items: center;
+  }
+  .poster::before, .poster::after { content: ''; position: absolute; left: 0; right: 0; height: 11%; background: #08090B; }
+  .poster::before { top: 0; } .poster::after { bottom: 0; }
+  .poster .beast { font-size: clamp(40px, 9vw, 80px); filter: drop-shadow(0 4px 0 rgba(0,0,0,0.4)); }
+  .poster .shout {
+    position: absolute; bottom: 13%; font-size: clamp(15px, 3.2vw, 24px); font-weight: 900;
+    letter-spacing: -0.02em; color: #FFF3D0; text-shadow: 0 2px 0 #7A1E16, 0 4px 6px rgba(0,0,0,0.5);
+    transform: rotate(-2.5deg);
+  }
+  .sheet .close { width: 100%; margin-top: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <aside class="rail">
+    <div class="rail-head">
+      <h1>Pirate's Booty</h1>
+      <p class="season">Season 3 · Off the Leash<br>18 days left</p>
+    </div>
+    <div class="levelbar">
+      <div class="meta"><span id="lvlText">Level 14</span><span id="xpText">1,240 / 2,000</span></div>
+      <div class="rail-track"><i id="xpFill" style="width:62%"></i></div>
+    </div>
+    <div class="purse"><b id="gold">4,820</b><span>gold</span></div>
+    <div class="rail-fill"></div>
+    <div class="stack">
+      <button class="buy" id="buy">Unlock Captain's share<small>$9.99 · keeps everything you have already passed</small></button>
+      <button class="ghost" id="claimAll">Claim all</button>
+    </div>
+    <p class="hint">Scroll the track with the wheel or the arrow keys.</p>
+  </aside>
+
+  <main class="track">
+    <div class="tierhead captain">
+      <span class="who">Captain's share</span>
+      <span class="what" id="capState">Locked · premium pirates and finishing moves</span>
+    </div>
+    <div class="lane" id="laneTop"><div class="row" id="rowTop"></div></div>
+
+    <div class="course">
+      <div class="line"></div>
+      <div class="lane" id="laneMid"><div class="row" id="rowMid"></div></div>
+    </div>
+
+    <div class="lane" id="laneBot"><div class="row" id="rowBot"></div></div>
+    <div class="tierhead"><span class="who">Crew's share</span><span class="what">Free for everyone</span></div>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="panel">
+    <span class="tag" id="sheetTag"></span>
+    <h2 id="sheetTitle"></h2>
+    <div id="sheetPoster"></div>
+    <p id="sheetBody"></p>
+    <button class="ghost close" id="sheetClose">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Season content. Levels are the spine; each level has a crew reward (free) and
+  // a captain reward (premium). Finishing moves are the headline premium drops.
+  // ---------------------------------------------------------------------------
+  const LEVELS = 50;
+
+  // Which system each finishing move attacks. Every one already has damage
+  // plumbing in the combat prototypes: crew knockouts, the sail burn mask, the
+  // hull damage mask, and the mast break.
+  const MOVES = [
+    { at: 6,  name: 'Shark Strike',  art: '🦈', target: 'One gunner',   shout: 'FROM BELOW!',
+      body: 'A shark breaches alongside and takes a single gunner off the deck. Picks off the man you have identified through the telescope.' },
+    { at: 14, name: 'Kraken Haul',   art: '🐙', target: 'Sails',        shout: 'ALL HANDS!',
+      body: 'Tentacles come over the rail and drag the canvas down. Tears every sail on the nearest mast and cuts the enemy\u2019s speed.' },
+    { at: 22, name: 'Whale Breach',  art: '🐋', target: 'Hull',         shout: 'BRACE!',
+      body: 'A whale comes up under the waterline. The heaviest hull damage in the game, straight through the planking.' },
+    { at: 30, name: 'Storm Bolt',    art: '⚡', target: 'A mast',       shout: 'THUNDER!',
+      body: 'Lightning finds the tallest mast and snaps it. The mast falls, its sails burn away, and that speed is gone for the match.' },
+    { at: 38, name: 'Swordfish Run', art: '🗡️', target: 'Sails',        shout: 'CUT THEM!',
+      body: 'A shoal of swordfish rips through the rigging. Wide sail damage across every mast rather than deep damage to one.' },
+    { at: 46, name: 'Gull Swarm',    art: '🕊️', target: 'Deck gunners', shout: 'SCATTER!',
+      body: 'Gulls mob the open deck. Hits every gunner standing above the rail, and leaves the ones below decks untouched.' },
+  ];
+
+  const CREW_POOL = [
+    { art: '🪙', name: 'Gold',        qty: (n) => `${200 + n * 30}` },
+    { art: '🪵', name: 'Timber',      qty: (n) => `${80 + n * 12}` },
+    { art: '😀', name: 'Emote',       qty: () => '' },
+    { art: '🖼️', name: 'Avatar',      qty: () => '' },
+    { art: '🎴', name: 'Gunner card', qty: (n) => `${2 + (n % 4)}` },
+    { art: '💎', name: 'Gems',        qty: (n) => `${15 + n * 2}` },
+  ];
+  const CAPTAIN_POOL = [
+    { art: '🏴‍☠️', name: 'Premium pirate', kicker: 'EARLY ACCESS', qty: () => '' },
+    { art: '🪙', name: 'Gold',            qty: (n) => `${700 + n * 90}` },
+    { art: '🏳️', name: 'Banner',          qty: () => '' },
+    { art: '💎', name: 'Gems',            qty: (n) => `${60 + n * 6}` },
+    { art: '🦜', name: 'Parrot skin',     qty: () => '' },
+  ];
+
+  function buildSeason() {
+    const rows = [];
+    for (let lvl = 1; lvl <= LEVELS; lvl++) {
+      const crew = CREW_POOL[(lvl * 3 + 1) % CREW_POOL.length];
+      const move = MOVES.find((m) => m.at === lvl);
+      const cap = move
+        ? { art: move.art, name: move.name, kicker: 'FINISHING MOVE', qty: () => '', move }
+        : CAPTAIN_POOL[(lvl * 2) % CAPTAIN_POOL.length];
+      rows.push({
+        lvl,
+        crew: { ...crew, qty: crew.qty(lvl), claimed: false },
+        cap: { ...cap, qty: cap.qty(lvl), claimed: false },
+      });
+    }
+    return rows;
+  }
+
+  const season = buildSeason();
+  const state = { level: 14, xp: 1240, xpNeed: 2000, gold: 4820, premium: false };
+
+  // ---------------------------------------------------------------------------
+  // Three lanes sharing one level axis, scrolled together, so a reward always sits
+  // directly above or below the level that pays it.
+  // ---------------------------------------------------------------------------
+  const rowTop = document.getElementById('rowTop');
+  const rowMid = document.getElementById('rowMid');
+  const rowBot = document.getElementById('rowBot');
+
+  function cellState(row, tier) {
+    const reward = tier === 'cap' ? row.cap : row.crew;
+    if (reward.claimed) return 'claimed';
+    if (row.lvl > state.level) return 'locked';
+    if (tier === 'cap' && !state.premium) return 'locked';
+    return 'ready';
+  }
+
+  function makeCell(row, tier) {
+    const reward = tier === 'cap' ? row.cap : row.crew;
+    const el = document.createElement('button');
+    el.className = 'cell ' + (tier === 'cap' ? 'captain' : 'crew') + (reward.move ? ' move wide' : '');
+    el.dataset.lvl = row.lvl;
+    el.dataset.tier = tier;
+    el.innerHTML =
+      (reward.kicker ? `<span class="kicker">${reward.kicker}</span>` : '') +
+      `<span class="art">${reward.art}</span>` +
+      `<span class="name">${reward.name}</span>` +
+      (reward.qty ? `<span class="qty">${reward.qty}</span>` : '');
+    el.addEventListener('click', () => onCell(row, tier));
+    return el;
+  }
+
+  function render() {
+    rowTop.replaceChildren();
+    rowMid.replaceChildren();
+    rowBot.replaceChildren();
+    for (const row of season) {
+      const top = makeCell(row, 'cap');
+      const veil = document.createElement('span');
+      veil.className = 'lockveil';
+      veil.textContent = '🔒';
+      top.appendChild(veil);
+      rowTop.appendChild(top);
+
+      const stop = document.createElement('div');
+      stop.className = 'stop' + (row.lvl < state.level ? ' past' : row.lvl === state.level ? ' here' : '');
+      if (row.cap.move) stop.classList.add('wide');
+      stop.innerHTML = `<b>${row.lvl}</b>`;
+      rowMid.appendChild(stop);
+
+      const bot = makeCell(row, 'crew');
+      // The free reward under a finishing move widens to match, so the columns stay
+      // in step. Width itself comes from the CSS variables, never from here.
+      if (row.cap.move) bot.classList.add('wide');
+      rowBot.appendChild(bot);
+    }
+    refreshStates();
+  }
+
+  function refreshStates() {
+    for (const el of document.querySelectorAll('.cell')) {
+      const row = season[Number(el.dataset.lvl) - 1];
+      const st = cellState(row, el.dataset.tier);
+      el.dataset.state = st;
+      const reward = el.dataset.tier === 'cap' ? row.cap : row.crew;
+      el.setAttribute('aria-label',
+        `Level ${row.lvl}, ${el.dataset.tier === 'cap' ? "captain's share" : "crew's share"}: ` +
+        `${reward.name} ${reward.qty}. ${st === 'ready' ? 'Ready to claim' : st === 'claimed' ? 'Claimed' : 'Locked'}.`);
+      const veil = el.querySelector('.lockveil');
+      if (veil) veil.style.display = state.premium ? 'none' : 'grid';
+    }
+    document.getElementById('lvlText').textContent = `Level ${state.level}`;
+    document.getElementById('xpText').textContent = `${state.xp.toLocaleString()} / ${state.xpNeed.toLocaleString()}`;
+    document.getElementById('xpFill').style.width = (state.xp / state.xpNeed * 100).toFixed(1) + '%';
+    document.getElementById('gold').textContent = state.gold.toLocaleString();
+    document.getElementById('capState').textContent = state.premium
+      ? 'Unlocked · premium pirates and finishing moves'
+      : 'Locked · premium pirates and finishing moves';
+    const waiting = season.filter((r) => cellState(r, 'crew') === 'ready' || cellState(r, 'cap') === 'ready').length;
+    const claimBtn = document.getElementById('claimAll');
+    claimBtn.disabled = waiting === 0;
+    claimBtn.textContent = waiting ? `Claim ${waiting}` : 'Nothing to claim';
+    document.getElementById('buy').innerHTML = state.premium
+      ? 'Captain\u2019s share is yours<small>Every level you pass now pays both tiers</small>'
+      : 'Unlock Captain\u2019s share<small>$9.99 · keeps everything you have already passed</small>';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Claiming, and the detail sheet
+  // ---------------------------------------------------------------------------
+  function claim(row, tier) {
+    const reward = tier === 'cap' ? row.cap : row.crew;
+    reward.claimed = true;
+    if (reward.name === 'Gold') state.gold += Number(reward.qty) || 0;
+  }
+  function onCell(row, tier) {
+    const st = cellState(row, tier);
+    if (st === 'ready') { claim(row, tier); refreshStates(); return; }
+    openSheet(row, tier, st);
+  }
+
+  const sheet = document.getElementById('sheet');
+  let lastFocus = null;
+  function openSheet(row, tier, st) {
+    const reward = tier === 'cap' ? row.cap : row.crew;
+    document.getElementById('sheetTag').textContent =
+      reward.move ? 'Finishing move' : `Level ${row.lvl} · ${tier === 'cap' ? "Captain's share" : "Crew's share"}`;
+    document.getElementById('sheetTitle').textContent = reward.name + (reward.qty ? ` ×${reward.qty}` : '');
+    const poster = document.getElementById('sheetPoster');
+    poster.replaceChildren();
+    if (reward.move) {
+      const p = document.createElement('div');
+      p.className = 'poster';
+      p.innerHTML = `<span class="beast">${reward.move.art}</span><span class="shout">${reward.move.shout}</span>`;
+      poster.appendChild(p);
+    }
+    let body;
+    if (reward.move) body = `Hits: ${reward.move.target}. ${reward.move.body}`;
+    else if (st === 'claimed') body = 'Already claimed.';
+    else if (tier === 'cap' && !state.premium) body = 'Part of the Captain\u2019s share. Unlock it and every level you have already passed pays out at once.';
+    else body = `Reach level ${row.lvl} to claim this.`;
+    if (reward.move && tier === 'cap' && !state.premium) {
+      body += ' Unlocking gets it now; it reaches everyone else at the end of the season.';
+    }
+    document.getElementById('sheetBody').textContent = body;
+    lastFocus = document.activeElement;
+    sheet.classList.add('open');
+    document.getElementById('sheetClose').focus();
+  }
+  function closeSheet() {
+    sheet.classList.remove('open');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.getElementById('sheetClose').addEventListener('click', closeSheet);
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+
+  document.getElementById('claimAll').addEventListener('click', () => {
+    for (const row of season) {
+      if (cellState(row, 'crew') === 'ready') claim(row, 'crew');
+      if (cellState(row, 'cap') === 'ready') claim(row, 'cap');
+    }
+    refreshStates();
+  });
+  document.getElementById('buy').addEventListener('click', () => {
+    state.premium = !state.premium;
+    refreshStates();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Scrolling. The lanes move as one. On a PC the track has to answer the wheel and
+  // the arrow keys: a vertical wheel over a horizontal list does nothing by default,
+  // and the page itself has nowhere to scroll.
+  // ---------------------------------------------------------------------------
+  const lanes = ['laneTop', 'laneMid', 'laneBot'].map((id) => document.getElementById(id));
+  let syncing = false;
+  function scrollTo(x) {
+    const max = lanes[0].scrollWidth - lanes[0].clientWidth;
+    const target = Math.max(0, Math.min(max, x));
+    syncing = true;
+    for (const lane of lanes) lane.scrollLeft = target;
+    requestAnimationFrame(() => { syncing = false; });
+  }
+  for (const lane of lanes) {
+    lane.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      for (const other of lanes) if (other !== lane) other.scrollLeft = lane.scrollLeft;
+      requestAnimationFrame(() => { syncing = false; });
+    }, { passive: true });
+  }
+  document.querySelector('.track').addEventListener('wheel', (e) => {
+    // Either axis moves the track, so a plain wheel and a trackpad swipe both work.
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (!d) return;
+    e.preventDefault();
+    scrollTo(lanes[0].scrollLeft + d);
+  }, { passive: false });
+
+  document.addEventListener('keydown', (e) => {
+    if (sheet.classList.contains('open')) { if (e.key === 'Escape') closeSheet(); return; }
+    const page = lanes[0].clientWidth * 0.8;
+    const step = { ArrowLeft: -160, ArrowRight: 160, PageUp: -page, PageDown: page }[e.key];
+    if (step !== undefined) { e.preventDefault(); scrollTo(lanes[0].scrollLeft + step); return; }
+    if (e.key === 'Home') { e.preventDefault(); scrollTo(0); }
+    if (e.key === 'End') { e.preventDefault(); scrollTo(lanes[0].scrollWidth); }
+  });
+
+  function centreOnLevel() {
+    const here = rowMid.children[state.level - 1];
+    if (!here) return;
+    scrollTo(here.offsetLeft - lanes[0].clientWidth / 2 + here.offsetWidth / 2);
+  }
+
+  render();
+  // Open on where the player actually is, not at level 1.
+  requestAnimationFrame(centreOnLevel);
+  // Cell size follows the window height, so a resize moves every column.
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(centreOnLevel, 120);
+  });
+})();
+</script>
+</body>
+</html>
