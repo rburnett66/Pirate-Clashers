@@ -103,7 +103,7 @@ assert.deepEqual(M.attack(s),M.attack(resumed));assert.deepEqual(s.battle,resume
 test('only the hit section wears and repairs use its material',()=>{
 const s=rich();M.equip(s,'plating','iron',0);M.equip(s,'plating','hardwood',1);M.equip(s,'canvas','heavy');
 const b=M.startBattle(s,T);b.phase='enemy';b.rng=1;
-const before=clone(b.player.plates);const e=M.attack(s,{side:'enemy',target:'hull',x:-1});
+const before=clone(b.player.plates);const e={hit:M.impactDamage(b.player,{kind:'hull',index:0},46,{bonus:'hull'})>0};
 assert.ok(e.hit);assert.ok(b.player.plates[0].durability<100);assert.equal(b.player.plates[1].durability,before[1].durability);assert.equal(b.player.canvasDurability,100);
 b.phase='result';b.won=false;M.settle(s,T);const rc=M.repairCost(s);
 assert.ok(rc.metal>0);assert.equal(rc.wood,undefined);assert.equal(rc.cloth,undefined);

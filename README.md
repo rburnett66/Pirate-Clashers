@@ -11,11 +11,11 @@ The server binds only to this computer. Opening index.html directly does not sup
 
 ## Play
 1. Crew → Ship: select a recruited pirate, then a station. Select an occupied station with no pirate selected to remove its gunner.
-2. Battle → Set sail: choose a gunner and target, then Fire, or click the enemy ship. Two shots per turn; the local turn clock is 30 seconds and pauses during shot resolution, cinematics, dialogs and while the tab is hidden.
+2. Battle → Set sail: move ahead/back, choose a gunner, adjust the displayed angle, then Fire. Dragging across the battle also changes the angle. Weapon power is fixed; the selected gunner shows projectile, range and damage specialty. Two shots per turn; the local turn clock is 30 seconds and pauses during shot resolution, cinematics, dialogs and while the tab is hidden.
 3. Land both shots four turns running to charge your selected finishing move. Finishing moves have skip controls and shorter repeat presentations.
 4. Wins earn a chest and gold; losses earn one-third gold and may offer one rematch. Open chests, collect specific crew cards, and upgrade at the gunsmith.
 5. Ship upgrades use materials. Equipment includes individual hull sections, canvas, repairs, permanent enhancements, figureheads and sail emblems.
-6. Ports show local seeded boards. Booty contains free/preview reward tracks. Settings provides sound, reduced motion and save export/import.
+6. Leaders shows local seeded boards, grouped Europe → Americas → Africa / India → Asia → Pacific. Booty contains free/preview reward tracks. Settings provides sound, reduced motion and save export/import.
 
 ## Validation
 ```
@@ -23,7 +23,7 @@ npm ci
 npm run build
 npm run check
 npm test
-node scripts/browser-qa.cjs
+node scripts/browser-combat.cjs
 node scripts/browser-acceptance.cjs
 ```
 Browser scripts require the local server and Microsoft Edge at its standard Windows installation path. They use isolated browser profiles and explicit test fixtures; they do not alter the player's existing browser save. Tested with Node 22 and Edge on Windows 11. Generated screenshots and detailed test output go to test-results/.

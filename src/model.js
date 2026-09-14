@@ -1,6 +1,9 @@
+import {ensureGeometry,trajectory,projectileFor,rigLayout} from './ballistics.js';
+export {projectileFor} from './ballistics.js';
 import {ROSTER,ECON as E} from './catalog.js';
 export {E};
-export const PORTS=['London','Calais','Lisbon','Bermuda','Puerto Rico','Caracas','Seattle','Hawaii','Manila','Singapore','Hong Kong','Shanghai','Mumbai','Mombasa','Madagascar'];
+export const PORT_REGIONS=[{name:'Europe',towns:['London','Calais','Lisbon']},{name:'Americas',towns:['Bermuda','Puerto Rico','Caracas','Seattle']},{name:'Africa / India',towns:['Mombasa','Madagascar','Mumbai']},{name:'Asia',towns:['Singapore','Manila','Hong Kong','Shanghai']},{name:'Pacific',towns:['Hawaii']}];
+export const PORTS=PORT_REGIONS.flatMap(r=>r.towns);
 export const LADDER={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
 export const BASE={hull:{hp:120,range:62,damage:46},sails:{hp:100,range:74,damage:30},crew:{hp:90,range:86,damage:22}};
 export const PIRATES=ROSTER.map(([id,name,icon,projectile,tags])=>({id,name,icon,projectile,tags,primary:tags[0],rarity:id%12===0?'legendary':tags.length>1&&id%3===0?'epic':tags.length>1||id%4===0?'rare':'common'}));
@@ -9,7 +12,7 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 export function weekKey(t){const d=new Date(t);d.setUTCHours(0,0,0,0);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
 export const dayKey=t=>new Date(t).toISOString().slice(0,10);
 export const seasonKey=t=>Math.floor(t/(28*86400000));
-export function fresh(t=Date.now()){return migrate({version:1,name:'Captain',gold:1800,gems:40,mats:{wood:160,metal:80,cloth:100},shipLevel:3,levels:Object.fromEntries(PIRATES.map(p=>[p.id,[1,2,5,10].includes(p.id)?1:0])),cards:Object.fromEntries(PIRATES.map(p=>[p.id,0])),slots:{d0:1,d1:2,h0:5},moves:[0],move:0,xp:0,claims:[],premium:false,season:seasonKey(t),history:[],chests:[],chestRun:0,dailyChests:0,day:dayKey(t),week:weekKey(t),weeklyWins:0,trophies:0,lastWin:0,port:0,visited:[0],stock:{...E.SHOP_STOCK},settlements:[],bench:null,plating:'bare',canvas:'plain',durability:100,enh:{},figureheads:{},figurehead:null,cosmetics:[],cosmetic:null,quests:{matches:0,wins:0,dailyClaim:false,weeklyClaim:false},settings:{sound:true,motion:true},onboarded:false,battle:null,lastResult:null,deals:{},declined:{}},t);}
+export function fresh(t=Date.now()){return migrate({version:1,portLayout:2,name:'Captain',gold:1800,gems:40,mats:{wood:160,metal:80,cloth:100},shipLevel:3,levels:Object.fromEntries(PIRATES.map(p=>[p.id,[1,2,5,10].includes(p.id)?1:0])),cards:Object.fromEntries(PIRATES.map(p=>[p.id,0])),slots:{d0:1,d1:2,h0:5},moves:[0],move:0,xp:0,claims:[],premium:false,season:seasonKey(t),history:[],chests:[],chestRun:0,dailyChests:0,day:dayKey(t),week:weekKey(t),weeklyWins:0,trophies:0,lastWin:0,port:0,visited:[0],stock:{...E.SHOP_STOCK},settlements:[],bench:null,plating:'bare',canvas:'plain',durability:100,enh:{},figureheads:{},figurehead:null,cosmetics:[],cosmetic:null,quests:{matches:0,wins:0,dailyClaim:false,weeklyClaim:false},settings:{sound:true,motion:true},onboarded:false,battle:null,lastResult:null,deals:{},declined:{}},t);}
 export function validate(s){
 const bad=()=>{throw Error('Save is invalid')},obj=x=>x&&typeof x==='object'&&!Array.isArray(x),num=(x,max=Number.MAX_SAFE_INTEGER)=>Number.isFinite(x)&&x>=0&&x<=max,int=(x,max=Number.MAX_SAFE_INTEGER)=>Number.isSafeInteger(x)&&num(x,max),bool=x=>typeof x==='boolean';
 if(!obj(s)||s.version!==1||typeof s.name!=='string'||s.name.length>24||!LADDER[s.shipLevel]||!obj(s.mats)||!obj(s.stock)||!obj(s.levels)||!obj(s.cards)||!obj(s.slots))bad();
@@ -26,8 +29,10 @@ if(!['bare','hardwood','iron'].includes(s.plating)||!['plain','heavy','storm'].i
 if(Object.entries(s.enh).some(([k,v])=>!E.ENHANCEMENTS[k]||!int(v,5))||Object.entries(s.figureheads).some(([k,v])=>!E.FIGUREHEADS[k]||!int(v,4))||(s.figurehead!==null&&!s.figureheads[s.figurehead]))bad();
 for(const k of ['week','day'])if(typeof s[k]!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s[k]))bad();
 if(s.bench!==null&&(!obj(s.bench)||!s.levels[s.bench.id]||s.levels[s.bench.id]>=12||!int(s.bench.ends)))bad();
-const fighterOK=f=>obj(f)&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
-if(s.battle!==null){const b=s.battle;if(!obj(b)||!['player','enemy','result'].includes(b.phase)||!fighterOK(b.player)||!fighterOK(b.enemy)||!int(b.rng,4294967295)||!int(b.turn,25)||!int(b.shots,2)||!Array.isArray(b.events)||!Array.isArray(b.log)||!bool(b.rewarded)||!bool(b.charged)||!bool(b.used))bad();}
+const partsOK=(parts,n)=>Array.isArray(parts)&&parts.length===n&&parts.every(p=>obj(p)&&num(p.hp)&&num(p.maxHp)&&p.maxHp>0&&p.hp<=p.maxHp);
+const fighterOK=f=>obj(f)&&(!f.hullParts||(num(f.x,12)&&LADDER[f.shipLevel]&&partsOK(f.hullParts,f.shipLevel)&&partsOK(f.mastParts,3)&&partsOK(f.sailParts,8)))&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
+if(s.battle!==null){const b=s.battle;if(!obj(b)||!['player','enemy','flight','result'].includes(b.phase)||!fighterOK(b.player)||!fighterOK(b.enemy)||!int(b.rng,4294967295)||!int(b.turn,25)||!int(b.shots,2)||!Array.isArray(b.events)||!Array.isArray(b.log)||!bool(b.rewarded)||!bool(b.charged)||!bool(b.used))bad();}
+if(s.battle?.phase==='flight'&&(!s.battle.pending||!['player','enemy'].includes(s.battle.pending.side)||!num(s.battle.pending.angle,75)||s.battle.pending.angle<5||!s.battle[s.battle.pending.side]?.crew.some(g=>g.id===s.battle.pending.gunner&&g.hp>0)))bad();
 if(s.lastResult!==null&&(!obj(s.lastResult)||typeof s.lastResult.enemyName!=='string'||!bool(s.lastResult.won)||!Array.isArray(s.lastResult.log)||(s.lastResult.opponent&&!fighterOK(s.lastResult.opponent))))bad();
 if(!Array.isArray(s.plates)||s.plates.length!==8||s.plates.some(p=>!obj(p)||!['bare','hardwood','iron'].includes(p.kind)||!num(p.durability,100))||!num(s.canvasDurability,100)||!Array.isArray(s.offerQueue)||!Array.isArray(s.offerEvents)||!int(s.created))bad();return s;
 }
@@ -60,20 +65,105 @@ function figureBonus(f,kind){const bias=E.FIGUREHEADS[f.figure]?.bias;return bia
 export function cosmetic(s,i){if(!Number.isInteger(i)||i<0||i>=E.SAILS.length)return false;if(!s.cosmetics.includes(i)){if(!pay(s,{gold:E.SAILS[i]}))return false;s.cosmetics.push(i);}s.cosmetic=i;return true;}
 export function board(s,port=s.port){const r=seeded(871+port*937),rows=Array.from({length:port===s.port?99:100},(_,i)=>({id:i,name:['Black','Salty','Crimson','Lucky','Old','Mad','Silver','Dread'][i%8]+' '+['Morgan','Bonny','Flint','Hook','Marrow','Reed','Drake','Tide'][Math.floor(i/8)%8]+' '+(i+1),wins:Math.floor(r()*19),trophies:Math.floor(r()*900),lastWin:Math.floor(r()*1e6),level:1+Math.floor(r()*Math.min(8,3+port)),self:false}));if(port===s.port)rows.push({id:'self',name:s.name,wins:s.weeklyWins,trophies:s.trophies,lastWin:s.lastWin,level:s.shipLevel,self:true});return rows.sort((a,b)=>b.wins-a.wins||b.trophies-a.trophies||b.lastWin-a.lastWin||String(a.id).localeCompare(String(b.id)));}
 function fighter(s,enemy,r){let roster=positions(s).filter(k=>s.slots[k]).map(k=>({id:s.slots[k],slot:k,hp:stats(PIRATES.find(p=>p.id===s.slots[k]),s.levels[s.slots[k]]).hp,level:s.levels[s.slots[k]]}));if(enemy){const pool=[...PIRATES];roster=roster.map((g,i)=>{const p=pool.splice(Math.floor(r()*pool.length),1)[0];return {...g,id:p.id,hp:stats(p,g.level).hp};});}return {hull:420+s.shipLevel*40,maxHull:420+s.shipLevel*40,sails:100,crew:roster,plating:enemy?'bare':s.plating,canvas:enemy?'plain':s.canvas,durability:enemy?100:s.durability,enh:enemy?{}:clone(s.enh),figure:enemy?null:s.figurehead,figureGrade:enemy?0:(s.figureheads[s.figurehead]||0),plates:enemy?Array.from({length:s.shipLevel},()=>({kind:'bare',durability:100})):clone(s.plates.slice(0,s.shipLevel)),canvasDurability:enemy?100:s.canvasDurability};}
-export function startBattle(s,t=Date.now(),rematch=false){if(!Object.values(s.slots).length)return false;const old=s.lastResult;if(rematch&&(!old||old.won||old.rematch||old.rematchAsked))return false;const seed=rematch?old.seed:Math.floor(t)%2147483647,r=seeded(seed);const b={id:String(t),seed,rng:seed,turn:1,shots:2,seconds:30,dualHits:0,streak:0,charged:false,used:false,phase:'player',log:[],events:[],rematch,enemyName:rematch?old.enemyName:board(s).filter(p=>!p.self)[Math.floor(r()*99)].name,temperament:['supportive','angry','fun','playful','competitive','rager','silly'][Math.floor(r()*7)],player:fighter(s,false,r),enemy:fighter(s,true,r),started:t,rewarded:false};if(rematch&&old.opponent){b.enemy=clone(old.opponent);b.temperament=old.temperament;}b.opponent=clone(b.enemy);s.battle=b;return b;}
+export function startBattle(s,t=Date.now(),rematch=false){if(!Object.values(s.slots).length)return false;const old=s.lastResult;if(rematch&&(!old||old.won||old.rematch||old.rematchAsked))return false;const seed=rematch?old.seed:Math.floor(t)%2147483647,r=seeded(seed);const b={id:String(t),seed,rng:seed,turn:1,shots:2,seconds:30,dualHits:0,streak:0,charged:false,used:false,phase:'player',log:[],events:[],rematch,enemyName:rematch?old.enemyName:board(s).filter(p=>!p.self)[Math.floor(r()*99)].name,temperament:['supportive','angry','fun','playful','competitive','rager','silly'][Math.floor(r()*7)],player:fighter(s,false,r),enemy:fighter(s,true,r),started:t,rewarded:false};if(rematch&&old.opponent){b.enemy=clone(old.opponent);b.temperament=old.temperament;}prepareBattle(b);b.opponent=clone(b.enemy);s.battle=b;return b;}
 function random(b){b.rng=(Math.imul(b.rng,1664525)+1013904223)>>>0;return b.rng/4294967296;}
 export function active(f){return f.crew.filter(g=>g.hp>0);}
 export function outcome(b){if(b.enemy.hull<=0||!active(b.enemy).length)return true;if(b.player.hull<=0||!active(b.player).length)return false;if(b.turn>24)return b.player.hull/b.player.maxHull>=b.enemy.hull/b.enemy.maxHull;return null;}
-export function attack(s,{side='player',target='hull',gunner=null,x=0,y=0}={}){const b=s.battle;if(!b||!['player','enemy'].includes(side)||b.phase!==side||b.phase==='result'||!['hull','sails','crew'].includes(target))return null;if(side==='player'&&(b.phase!=='player'||b.shots<=0))return null;const own=b[side],foe=b[side==='player'?'enemy':'player'],g=active(own).find(g=>g.id===gunner)||active(own)[0];if(!g)return null;const p=PIRATES.find(p=>p.id===g.id);const accuracy=Math.min(.98,(side==='player'?.94:.78)*(1-(100-own.sails)*.002)+(own.enh.Rigging||0)*.008+figureBonus(own,'movement'))*(side==='enemy'&&b.rematch?.8:1);const hit=random(b)<accuracy;let damage=0;if(hit){const matching=p.primary===target?1:.7;const enh=(own.enh['Gun mounts']||0)+(own.enh['Powder store']||0);damage=Math.round(stats(p,g.level).damage*matching*(1+enh*.035+figureBonus(own,'attack')));if(target==='hull'){const plate=foe.plates?.[Math.max(0,Math.min(foe.plates.length-1,Math.floor((x+1.3)/2.6*foe.plates.length)))];const armor=({bare:0,hardwood:.2,iron:.3}[plate?.kind||foe.plating]||0)*(plate?.durability??foe.durability)/100;damage=Math.round(damage*(1-armor)*(1-(foe.enh['Hull plating']||0)*.025-figureBonus(foe,'defence')));foe.hull=Math.max(0,foe.hull-damage);if(plate&&plate.kind!=='bare')plate.durability=Math.max(0,plate.durability-damage*.12);}if(target==='sails'){damage=Math.round(damage*.7*(1-({plain:0,heavy:.2,storm:.3}[foe.canvas]||0)*(foe.canvasDurability??foe.durability)/100));if(foe.canvas!=='plain')foe.canvasDurability=Math.max(0,(foe.canvasDurability??100)-damage*.3);foe.sails=Math.max(0,foe.sails-damage);}if(target==='crew'){const exposed=active(foe).filter(g=>g.slot.startsWith('d')),victim=exposed[0]||active(foe)[0];if(victim){if(!victim.slot.startsWith('d'))damage=Math.round(damage*.35);victim.hp=Math.max(0,victim.hp-damage);}}foe.durability=Math.min(foe.canvasDurability??100,...(foe.plates||[]).map(p=>p.durability));}
-const e={side,gunnerId:g.id,target,hit,damage,x,y,pirate:p.name,weapon:p.primary==='sails'?'chain':p.primary==='crew'?'grape':'roundshot',n:b.events.length};b.events.push(e);b.log.push((side==='player'?p.name:b.enemyName)+(hit?' hits '+target+' for '+damage:' misses'));if(side==='player'){b.shots--;if(hit)b.dualHits++;if(b.shots===0){b.streak=b.dualHits===2?b.streak+1:0;if(b.streak>=4&&!b.used)b.charged=true;b.phase='enemy';}}const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}return e;}
+
+export function prepareBattle(b){
+ if(!b)return b;
+ ensureGeometry(b.player,'player');ensureGeometry(b.enemy,'enemy');
+ b.movesLeft??=2;b.enemyShots??=2;b.enemyMoves??=1;b.pending??=null;
+ if(b.opponent)ensureGeometry(b.opponent,'enemy');
+ return b;
+}
+export function moveShip(s,direction,side='player'){
+ const b=prepareBattle(s.battle);if(!b||b.phase!==side||b.pending||![-1,1].includes(direction))return false;
+ const key=side==='player'?'movesLeft':'enemyMoves';if(b[key]<=0)return false;
+ const f=b[side],next=Math.max(side==='player'?1.9:7.5,Math.min(side==='player'?3.7:9.3,f.x+direction*.3*(side==='player'?1:-1)));
+ if(Math.abs(next-f.x)<.001)return false;f.x=next;b[key]--;return true;
+}
+export function previewShot(s,{side='player',gunner=null,angle=35}={}){
+ const b=prepareBattle(s.battle);if(!b||!['player','enemy'].includes(side)||!Number.isFinite(angle)||angle<5||angle>75)return null;
+ const g=active(b[side]).find(g=>g.id===gunner)||(!gunner?active(b[side])[0]:null);if(!g)return null;
+ const p=PIRATES.find(p=>p.id===g.id),spec={...projectileFor(p),speed:Math.sqrt(stats(p,g.level).range/10*3.2)};return trajectory(b,side,g,spec,angle);
+}
+export function launchShot(s,{side='player',gunner=null,angle=35}={}){
+ const b=prepareBattle(s.battle);if(!b||b.phase!==side||b.pending||(side==='player'?b.shots:b.enemyShots)<=0)return null;
+ const flight=previewShot(s,{side,gunner,angle});if(!flight)return null;
+ b.pending={side,gunner:flight.gunnerId,angle};b.phase='flight';return flight;
+}
+export function pendingFlight(s){return s.battle?.pending?previewShot(s,s.battle.pending):null;}
+function totalDamage(f){
+ f.hull=Math.min(f.maxHull,f.hullParts.reduce((a,p)=>a+p.hp,0));
+ f.sails=100*f.sailParts.reduce((a,p)=>a+p.hp,0)/f.sailParts.reduce((a,p)=>a+p.maxHp,0);
+ f.durability=Math.min(f.canvasDurability??100,...(f.plates||[]).map(p=>p.durability));
+}
+export function impactDamage(f,impact,base,spec,fraction=1){
+ if(!impact)return 0;const matched=impact.kind===spec.bonus;
+ let damage=base*(matched?1.6:.65)*fraction,part;
+ if(impact.kind==='hull'){
+  part=f.hullParts[impact.index];const plate=f.plates?.[impact.index],armor=({hardwood:.2,iron:.3}[plate?.kind]||0)*(plate?.durability??100)/100;
+  damage*= (1-armor)*(1-(f.enh['Hull plating']||0)*.025-figureBonus(f,'defence'));
+  if(plate&&plate.kind!=='bare')plate.durability=Math.max(0,plate.durability-damage*.12);
+ }else if(impact.kind==='sails'){
+  part=f.sailParts[impact.index];damage*=1-({heavy:.2,storm:.3}[f.canvas]||0)*(f.canvasDurability??100)/100;
+  if(f.canvas!=='plain')f.canvasDurability=Math.max(0,f.canvasDurability-damage*.3);
+ }else if(impact.kind==='masts')part=f.mastParts[impact.index];
+ else part=f.crew.find(g=>g.id===impact.id&&g.slot===impact.slot);
+ if(!part||part.hp<=0)return 0;damage=Math.min(part.hp,Math.max(1,Math.round(damage)));part.hp=Math.max(0,part.hp-damage);
+ if(impact.kind==='masts'&&part.hp===0)rigLayout().sails.forEach((s,i)=>{if(s.mast===impact.index)f.sailParts[i].hp=0;});
+ totalDamage(f);return damage;
+}
+export function resolveShot(s){
+ const b=prepareBattle(s.battle);if(!b||b.phase!=='flight'||!b.pending)return null;
+ const flight=pendingFlight(s),side=b.pending.side,own=b[side],foe=b[side==='player'?'enemy':'player'];
+ if(!flight)return null;const g=own.crew.find(g=>g.id===flight.gunnerId),p=PIRATES.find(p=>p.id===g.id),enh=(own.enh['Gun mounts']||0)+(own.enh['Powder store']||0);
+ const base=stats(p,g.level).damage*(1+enh*.035+figureBonus(own,'attack')),impacts=[];
+ for(const shot of flight.shots)if(shot.impact){const damage=impactDamage(foe,shot.impact,base,flight.spec,1/flight.spec.count);impacts.push({...shot.impact,damage,bonus:shot.impact.kind===flight.spec.bonus});}
+ const damage=impacts.reduce((a,i)=>a+i.damage,0),first=impacts[0],hit=impacts.length>0;
+ const e={side,gunnerId:g.id,angle:flight.angle,target:first?.kind||'sea',hit,damage,x:first?.x||0,y:first?.y||0,impacts,pirate:p.name,weapon:flight.spec.effect,projectile:flight.spec.name,bonus:flight.spec.bonus,n:b.events.length};
+ b.events.push(e);b.log.push(p.name+(hit?' hits '+[...new Set(impacts.map(i=>i.kind))].join(' / ')+' for '+damage+(impacts.some(i=>i.bonus)?' · specialty bonus!':''):' splashes into the sea.'));
+ b.pending=null;b.phase=side;
+ if(side==='player'){
+  b.shots--;if(hit)b.dualHits++;
+  if(b.shots===0){b.streak=b.dualHits===2?b.streak+1:0;if(b.streak>=4&&!b.used)b.charged=true;b.phase='enemy';b.enemyShots=2;b.enemyMoves=1;}
+ }else{
+  b.enemyShots--;
+  if(b.enemyShots<=0){b.turn++;b.phase='player';b.shots=2;b.seconds=30;b.dualHits=0;b.movesLeft=2;b.log.push(b.enemyName+': '+EMOTES[b.temperament]);}
+ }
+ const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}
+ return e;
+}
+// Synchronous helper for simulation/tests; the browser uses launch/animate/resolve.
+export function attack(s,options={}){return launchShot(s,options)?resolveShot(s):null;}
 export const EMOTES={supportive:'Good shot, captain!',angry:'You will pay for that!',fun:'Now this is a party!',playful:'Catch this broadside!',competitive:'Keep up, captain.',rager:'All guns! Fire!',silly:'Mind the seagulls!'};
-export function enemyTurn(s){const b=s.battle;if(!b||b.phase!=='enemy')return[];const events=[];for(let i=0;i<2;i++){const g=active(b.enemy)[i%Math.max(1,active(b.enemy).length)];if(!g)break;const p=PIRATES.find(p=>p.id===g.id);events.push(attack(s,{side:'enemy',gunner:g.id,target:random(b)<({supportive:.62,angry:.74,fun:.64,playful:.67,competitive:.85,rager:.75,silly:.55}[b.temperament]??.7)?p.primary:['hull','sails','crew'][Math.floor(random(b)*3)],x:random(b)*1.2-.6,y:0}));if(b.phase==='result')break;}b.log.push(b.enemyName+': '+EMOTES[b.temperament]);if(b.phase!=='result'){b.turn++;b.phase='player';b.shots=2;b.seconds=30;b.dualHits=0;const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}}return events.filter(Boolean);}
-export function finishMove(s){const b=s.battle,m=FINISHERS[s.move];if(!b||!b.charged||b.used||!m||!s.moves.includes(s.move)||b.phase!=='player')return false;b.used=true;b.charged=false;const f=b.enemy;if(m.id===0){const g=active(f).find(g=>g.slot.startsWith('d'))||active(f)[0];if(g)g.hp=0;}if(m.id===5)f.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);if(m.id===2)f.hull=Math.max(0,f.hull-220);if([1,3,4].includes(m.id))f.sails=Math.max(0,f.sails-([1,3].includes(m.id)?65:45));b.log.push(m.name+' unleashed');const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}return m;}
+export function planEnemyShot(s){
+ const b=prepareBattle(s.battle);if(!b||b.phase!=='enemy')return null;
+ const guns=active(b.enemy),g=guns[(2-b.enemyShots)%guns.length];if(!g)return null;
+ let best=35,bestScore=-1;
+ for(let a=8;a<=70;a+=2){
+  const t=previewShot(s,{side:'enemy',gunner:g.id,angle:a});
+  const score=t.shots.reduce((sum,x)=>sum+(x.impact?(x.impact.kind===t.spec.bonus?2:1)+(x.impact.kind==='hull'?.15:0):0),0);
+  if(score>bestScore){best=a;bestScore=score;}
+ }
+ const accuracy=({competitive:.9,angry:.75,supportive:.8,fun:.7,playful:.75,rager:.65,silly:.6}[b.temperament]??.75)*(b.rematch?.8:1);
+ const spread=(1-accuracy)*10+(100-b.enemy.sails)*.015;
+ return {side:'enemy',gunner:g.id,angle:Math.max(5,Math.min(75,best+(random(b)-.5)*2*spread))};
+}
+export function enemyTurn(s){
+ const b=prepareBattle(s.battle);if(!b||b.phase!=='enemy')return [];
+ const events=[];if(b.enemyMoves)moveShip(s,random(b)<.5?1:-1,'enemy');
+ for(let i=0;i<2&&b.phase==='enemy';i++){const plan=planEnemyShot(s);if(!plan)break;events.push(attack(s,plan));}
+ return events.filter(Boolean);
+}
+
+export function finishMove(s){const b=s.battle,m=FINISHERS[s.move];if(!b||!b.charged||b.used||!m||!s.moves.includes(s.move)||b.phase!=='player')return false;b.used=true;b.charged=false;const f=ensureGeometry(b.enemy,'enemy');if(m.id===0){const g=active(f).find(g=>g.slot.startsWith('d'))||active(f)[0];if(g)g.hp=0;}if(m.id===5)f.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);if(m.id===2){let left=220;for(const p of [...f.hullParts].reverse()){const n=Math.min(left,p.hp);p.hp-=n;left-=n;}}if(m.id===3){const i=f.mastParts.findIndex(p=>p.hp>0);if(i>=0){f.mastParts[i].hp=0;rigLayout().sails.forEach((r,j)=>{if(r.mast===i)f.sailParts[j].hp=0;});}}if([1,4].includes(m.id))f.sailParts.forEach(p=>p.hp=Math.max(0,p.hp-p.maxHp*(m.id===1?.65:.45)));totalDamage(f);b.log.push(m.name+' unleashed');const won=outcome(b);if(won!==null){b.phase='result';b.won=won;}return m;}
 export function settle(s,t=Date.now()){const b=s.battle;if(!b||b.phase!=='result'||b.rewarded)return null;b.rewarded=true;const gold=Math.floor(E.MATCH.gold*(b.won?1:E.MATCH.lossShare));s.gold+=gold;s.xp+=b.won?50:20;s.quests.matches++;if(b.won){s.weeklyWins++;s.trophies++;s.lastWin=t;s.quests.wins++;}let chest=null;if(b.won&&s.chests.length<5&&s.dailyChests<5){chest={id:b.id,kind:roll(()=>random(b),E.BONUS_ODDS),seed:b.rng};s.chests.push(chest);s.dailyChests++;s.chestRun++;if(s.chestRun%5===0){s.gems+=E.GEMS.fifthChest;queueOffer(s,'chests-'+s.chestRun,1,t);}}s.durability=b.player.durability;if(b.player.plates)b.player.plates.forEach((p,i)=>s.plates[i]=clone(p));s.canvasDurability=b.player.canvasDurability??100;const result={id:b.id,won:b.won,gold,chest,seed:b.seed,enemyName:b.enemyName,rematch:b.rematch,rematchAsked:false,opponent:clone(b.opponent||b.enemy),temperament:b.temperament,log:b.log.slice(-8),turns:b.turn};s.lastResult=result;return result;}
 export function requestRematch(s,r=Math.random){const q=s.lastResult;if(!q||q.won||q.rematch||q.rematchAsked)return null;const accept=r()<.65;if(accept){const b=startBattle(s,Date.now(),true);q.rematchAsked=true;return !!b;}q.rematchAsked=true;return false;}
 
 export function migrate(s,t){
-if(!s||s.version!==1)return s;if(s.battle)s.battle.seconds??=30;
+if(!s||s.version!==1)return s;if(s.battle){s.battle.seconds??=30;prepareBattle(s.battle);}if(s.portLayout!==2){const old=['London','Calais','Lisbon','Bermuda','Puerto Rico','Caracas','Seattle','Hawaii','Manila','Singapore','Hong Kong','Shanghai','Mumbai','Mombasa','Madagascar'];s.port=PORTS.indexOf(old[s.port]);if(Array.isArray(s.visited))s.visited=s.visited.map(i=>PORTS.indexOf(old[i]));s.portLayout=2;}
 s.plates??=Array.from({length:8},()=>({kind:s.plating||'bare',durability:s.durability??100}));
 s.canvasDurability??=s.durability??100;s.created??=t;s.offerQueue??=[];s.offerEvents??=[];
 return s;
@@ -95,4 +185,4 @@ if(Math.abs(x)<=.99&&y>=.62&&y<=2.38)return 'sails';
 return null;
 }
 
-export function elapse(s,seconds=1){const b=s.battle;if(!b||b.phase!=='player'||!Number.isFinite(seconds)||seconds<=0)return false;b.seconds=Math.max(0,(b.seconds??30)-seconds);if(b.seconds>0)return false;b.shots=0;b.streak=0;b.dualHits=0;b.phase='enemy';b.log.push('Time is up. The rival takes their turn.');return true;}
+export function elapse(s,seconds=1){const b=s.battle;if(!b||b.phase!=='player'||!Number.isFinite(seconds)||seconds<=0)return false;b.seconds=Math.max(0,(b.seconds??30)-seconds);if(b.seconds>0)return false;b.shots=0;b.streak=0;b.dualHits=0;b.phase='enemy';b.enemyShots=2;b.enemyMoves=1;b.log.push('Time is up. The rival takes their turn.');return true;}

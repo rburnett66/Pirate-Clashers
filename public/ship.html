@@ -75,7 +75,7 @@
   }
   .scope-label[data-port="1"] { color: #FFD9A8; border-color: rgba(255, 200, 130, 0.7); }
 </style>
-<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
+<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark):not(#gameCrew){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
 <body>
 <canvas id="ship" aria-label="A pirate ship in cross section. Tap the hull to fire the selected projectile at it."></canvas>
 <div class="scope-labels" id="scopeLabels" aria-live="polite"></div>
@@ -303,8 +303,12 @@ out vec4 outColor;
 float band(float v, float a, float b, float aa) {
   return smoothstep(a - aa, a + aa, v) * (1.0 - smoothstep(b - aa, b + aa, v));
 }
+uniform float uGamePartHP[8];
+uniform int uGamePartCount;
+float gameHP(vec2 p){if(uGamePartCount==0)return 1.0;int i=clamp(int(floor((p.x+1.08)/2.44*float(uGamePartCount))),0,uGamePartCount-1);return uGamePartHP[i];}
 void main() {
   vec2 p = vShip;
+  if(gameHP(p)<=0.0)discard;
   float aa = uUnit * 1.5;
   float inside = hullField(p, uHullShape.x, uHullShape.y);
   if (inside < -0.02) discard;                    // nothing inside the hull here
@@ -347,7 +351,7 @@ void main() {
 
     // The gunner at their post below decks. This layer sits behind the hull, so
     // they are only ever seen through a hole shot in the planking.
-    if (st.w >= 0.0 && uCrew[i].z < 0.5) {
+    if (false) {
       float g = st.w;
       vec3 skin = vec3(0.78, 0.58, 0.42);
       vec3 shirt = 0.32 + 0.48 * vec3(hash12(vec2(g, 1.7)), hash12(vec2(g, 5.1)), hash12(vec2(g, 9.3)));
@@ -382,8 +386,12 @@ uniform float uUnit, uTime, uReveal, uCharTime;
 uniform vec3 uPlank, uPlankDark, uTrim, uOutline, uChar;
 out vec4 outColor;
 
+uniform float uGamePartHP[8];
+uniform int uGamePartCount;
+float gameHP(vec2 p){if(uGamePartCount==0)return 1.0;int i=clamp(int(floor((p.x+1.08)/2.44*float(uGamePartCount))),0,uGamePartCount-1);return uGamePartHP[i];}
 void main() {
   vec2 p = vShip;
+  if(gameHP(p)<=0.0)discard;
   float aa = uUnit * 1.5;
   float inside = hullField(p, uHullShape.x, uHullShape.y);
   if (inside < -0.03) discard;
@@ -438,10 +446,30 @@ void main() {
   // Shade the inside of the hull just behind the hole.
   col = mix(col, col * 0.45, smoothstep(0.55, 0.9, dRel));
 
-  float gone = smoothstep(0.62, 0.72, dRel);
+  float gone = min(0.25, smoothstep(0.62, 0.72, dRel));
+  col *= mix(0.45,1.0,gameHP(p));
   // Reach full opacity slightly INSIDE the silhouette, so undamaged hull always
   // covers the inner structure completely and no interior shows at the edge.
   float a = (1.0 - gone) * smoothstep(-0.035, -0.005, inside);
+
+  // Climbing foam / wet wood adapted from the supplied ocean prototype.
+  float x=p.x, ax=abs(x);
+  float waterY=-0.29+0.025*sin(x*8.0+uTime*1.4);
+  float dy=(p.y-waterY)/uUnit;
+  float foamHere=0.3+0.2*sin(x*12.0-uTime*1.7);
+  float climb=smoothstep(0.35,1.0,ax)*(x>0.0?1.4:0.6);
+  float torn=0.65+0.7*fbm(vec2(x*17.0,uTime*1.4));
+  float foamH=(3.0+(5.0+16.0*foamHere)*(0.6+1.6*climb))*torn*0.36;
+  float band=clamp(foamH-dy+0.5,0.0,1.0)*clamp(dy+1.5,0.0,1.0);
+  float foamA=band*smoothstep(-aa,aa,inside);
+  vec3 foamCol=mix(vec3(0.87,0.97,0.95),vec3(0.40,0.70,0.73),clamp(1.0-dy/max(foamH,1.0),0.0,1.0)*0.45);
+  float bubble=step(0.76,fbm(vec2(x*180.0,dy*2.0+uTime)));
+  foamCol=mix(foamCol,vec3(0.32,0.63,0.67),bubble*0.7);
+  float wet=clamp(foamH+3.0-dy,0.0,1.0)*step(0.0,dy);
+  col=mix(col,col*0.72,wet*0.8);
+  col=mix(col,foamCol,foamA);
+  col=mix(col,vec3(0.07,0.37,0.43),smoothstep(0.0,0.12,waterY-p.y)*0.65);
+
   outColor = vec4(col * a, a);
 }
 </script>
@@ -1072,6 +1100,7 @@ void main() {
   }
   if (!gl) { fatal('This prototype needs WebGL2. Open it in a current Chrome, Safari, Firefox or Edge.'); return; }
 
+  let gamePartCount=0;const gamePartHP=new Float32Array(8).fill(1);
   const COMMON_GLSL = document.getElementById('common').textContent.trim();
   function compile(type, id) {
     const sh = gl.createShader(type);
@@ -1327,8 +1356,8 @@ void main() {
     // run of the same removal maths: hull removed is about 70x the summed r².
     // Only the scatter points that landed on the hull do damage. A shell that goes
     // off in the air still flashes and smokes, but costs the ship nothing.
-    applyRigDamage(pts, a);
-    applyCrewDamage(pts);
+    // Rig health comes from game model.
+    // Crew health comes from game model.
     const onHull = pts.filter((p) => hullFieldJS(p[0], p[1]) > 0);
     const area = onHull.reduce((s, p) => s + p[2] * p[2], 0);
     power = Math.min(1.5, area / 0.05);           // round shot ~0.5, shell ~1.5
@@ -1495,6 +1524,7 @@ void main() {
       const L = innerProg.loc;
       gl.useProgram(innerProg.p);
       setCam(L, QUAD_HULL);
+      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform4fv(L.uCrew, crewBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1508,6 +1538,7 @@ void main() {
       const L = hullProg.loc;
       gl.useProgram(hullProg.p);
       setCam(L, QUAD_HULL);
+      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
       gl.uniform1i(L.uMask, 0);
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1526,19 +1557,7 @@ void main() {
 
     // Crew the enemy can actually see: deck gunners above the rail, and port
     // gunners in the moment they lean out. Drawn after the hull, before effects.
-    {
-      const L = crewProg.loc;
-      gl.useProgram(crewProg.p);
-      setCam(L, QUAD_HULL);
-      gl.uniform1i(L.uMask, 0);
-      gl.uniform4fv(L.uStations, stationBuf);
-      gl.uniform4fv(L.uCrew, crewBuf);
-      gl.uniform1i(L.uStationCount, stations.length);
-      gl.uniform2f(L.uHullShape, HULL.deck, HULL.keel);
-      gl.uniform1f(L.uUnit, cam.unit);
-      gl.uniform1f(L.uTime, now);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
+    // Crew use supplied sprites through the combat adapter.
 
     if (showRig) drawRig(1);
 
@@ -1546,6 +1565,7 @@ void main() {
       const L = fxProg.loc;
       gl.useProgram(fxProg.p);
       setCam(L, QUAD_HULL);
+      if(L.uGamePartCount){gl.uniform1i(L.uGamePartCount,gamePartCount);gl.uniform1fv(L.uGamePartHP,gamePartHP);}
       if (fxDirty) {
         gl.uniform4fv(L.uHits, hitBuf);
         gl.uniform4fv(L.uHitPts, hitPtBuf);
@@ -1775,30 +1795,44 @@ void main() {
   repair();
   requestAnimationFrame(frame);
 
-  const gameSide=new URLSearchParams(location.search).get('side');
-  const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
-  function syncCrew(rows){let d=0,h=0;stations.forEach(st=>{const key=(st.port?'h'+h++:'d'+d++),g=rows?.find(g=>g.slot===key);st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});uploadStations();updateScopeLabels();}
-  window.addEventListener('message',e=>{
-    if(e.origin!==location.origin||e.source!==parent||!e.data||e.data.type!=='pirate-render')return;
-    const d=e.data;
-    if(d.action==='configure'){
-      const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-      [P.deckStations,P.hullStations]=ladder[d.level]||ladder[3];P.gunners=d.count??3;P.shake=d.motion===false?0:1;repair();syncCrew(d.crew);
-      mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
-    }
-    if(d.action==='sync')syncCrew(d.crew);
-    if(d.action==='hit'){archetype=ARCHETYPES.find(a=>a.id===d.weapon)||ARCHETYPES[0];fire(d.x||0,d.y||0);}
-    if(d.action==='fire')stations.filter(st=>d.gunner==null||st.gunner===d.gunner).forEach(st=>fireStation(st));
-    if(d.action==='scope'){scopeOn=!!d.on;updateScopeLabels();}
-    if(d.action==='finisher'){
-      if(d.id===3){const m=masts.find(m=>m.breakTime<0);if(m)breakMast(m);}
-      else if([1,4].includes(d.id)){sails.forEach(sl=>sl.damage=Math.min(1,sl.damage+.6));uploadRig();}
-      else if([0,5].includes(d.id)){const a=stations.filter(st=>!st.port&&!st.out);(d.id===0?a.slice(0,1):a).forEach(st=>st.out=true);}
-      else {archetype=ARCHETYPES[3];fire(0,0);}
-    }
-  });
-  setInterval(()=>{const rect=canvas.getBoundingClientRect(),p=[rect.left+((.02-cam.x)*cam.ppu/canvas.width+.5)*rect.width,rect.top+(.5-(1.13-cam.y)*cam.ppu/canvas.height)*rect.height];mark.style.left=p[0]+'px';mark.style.top=p[1]+'px';mark.style.fontSize=Math.max(14,cam.ppu*.22)+'px';},100);
-  parent.postMessage({type:'pirate-ready',side:gameSide},location.origin);
+ const gameSide=new URLSearchParams(location.search).get('side');
+ const mark=document.createElement('div');mark.id='pirateMark';mark.style.cssText='position:fixed;pointer-events:none;z-index:8;color:#152d36;font:bold 38px serif;transform:translate(-50%,-50%)';document.body.append(mark);
+ const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
+ let gameRows=[],gameSelected=null;
+ function syncCrew(rows){
+  gameRows=rows||[];let d=0,h=0;
+  stations.forEach(st=>{const key=st.port?'h'+h++:'d'+d++,g=gameRows.find(g=>g.slot===key);st.slot=key;st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});
+  uploadStations();updateScopeLabels();drawPortraits();
+ }
+ function syncParts(f){
+  if(!f)return;gamePartCount=f.hullParts?.length||0;
+  gamePartHP.fill(1);f.hullParts?.forEach((p,i)=>gamePartHP[i]=p.hp/p.maxHp);
+  f.sailParts?.forEach((p,i)=>{if(sails[i])sails[i].damage=1-p.hp/p.maxHp;});
+  f.mastParts?.forEach((p,i)=>{if(p.hp<=0&&masts[i]?.breakTime<0)breakMast(masts[i]);});uploadRig();
+ }
+ function drawPortraits(){
+  const rect=canvas.getBoundingClientRect(),ratio=rect.width/canvas.width,ppu=cam.ppu*ratio;
+  portraits.innerHTML=stations.filter(st=>st.gunner>=1).map(st=>{
+   const foot=st.port?-.065:st.y-.055,w=(st.port?.22:.32)*ppu,h=(st.port?.22:.44)*ppu;
+   const x=rect.width/2+(st.x-cam.x)*ppu,y=rect.height/2-(foot-cam.y)*ppu;
+   return '<img data-gunner="'+st.gunner+'" alt="'+(st.name||'Gunner')+'" src="/Pirate%20Art/pirate_segments/zombie-pirate/zombie-pirate-'+st.gunner+'.png" style="position:absolute;object-fit:contain;left:'+(x-w/2)+'px;top:'+(y-h)+'px;width:'+w+'px;height:'+h+'px;opacity:'+(st.out?.18:1)+';filter:'+(st.out?'grayscale(1)':st.gunner===gameSelected?'drop-shadow(0 0 3px #fff29a)':'none')+'">';
+  }).join('');
+  mark.style.left=rect.width/2+(.02-cam.x)*ppu+'px';mark.style.top=rect.height/2-(1.13-cam.y)*ppu+'px';mark.style.fontSize=Math.max(14,ppu*.22)+'px';
+ }
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
+  if(d.action==='configure'){
+   const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
+   [P.deckStations,P.hullStations]=ladder[d.level]||ladder[3];P.shake=0;repair();
+   gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent=d.cosmetic==null?'':['☠','⚓','⚔','✦','☽','♛'][d.cosmetic];
+  }
+  if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}
+  if(d.action==='hit'){archetype=ARCHETYPES.find(a=>a.id===d.weapon)||ARCHETYPES[0];fire(d.x??0,d.y??0);}
+  if(d.action==='fire')stations.filter(st=>st.gunner===d.gunner).forEach(st=>fireStation(st));
+  if(d.action==='scope'){scopeOn=!!d.on;updateScopeLabels();}
+ });
+ setInterval(drawPortraits,100);
+ parent.postMessage({type:'pirate-ready',side:gameSide},location.origin);
 
 })();
 </script>
