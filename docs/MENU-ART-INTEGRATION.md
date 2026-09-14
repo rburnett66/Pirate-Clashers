@@ -1,4 +1,4 @@
-# Supplied-art screen refresh
+# PIRATE BASH — supplied-art screen refresh
 
 Implemented in the local game for MetaMax project 1002, E11 / K20 (`story_mu091sxb_w`).
 
@@ -56,3 +56,17 @@ The app respects safe-area insets around notches and the home indicator. Short l
 `node scripts/browser-fullscreen.cjs http://<computer-wifi-address>:4174` verifies real Chromium fullscreen enter/exit over LAN HTTP, retained renderer/aim, rejected and unavailable API fallbacks, simulated iPhone/standalone modes, manifest/icon delivery, and landscape sizes 844×390, 844×320 and 667×375 including simulated safe areas. Screenshots are in `test-results/fullscreen/`. The menu, scaling and phone browser suites, all 55 model tests and `npm run check` pass. Automated Safari and physical-device fullscreen/install behavior have not been verified here; the owner’s next phone playtest covers that.
 
 Platform references: [Fullscreen request API](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen), [Apple Home Screen web-app instructions](https://support.apple.com/en-nz/guide/iphone/iphea86e5236/ios).
+
+## Compact menu and city-map revision
+
+The visible game name is now **PIRATE BASH**, including the shared header, browser/embedded-renderer titles, Home Screen manifest and fullscreen help. Existing local save keys and ocean interchange format identifiers remain compatible with saved captains and presets. Prototype originals remain intact; generated runtime titles also use the new name when rebuilt.
+
+Battle, Crew, Leaders, Booty Pass, Store, Settings and Water Workshop now place the screen name and tagline in the shared header. Supplied carved title banners appear there at desktop size, with live headings on small screens. Primary navigation uses larger consistently aligned artwork and one label size per layout. The desktop composition still scales uniformly from 1792×1008; the header is 112 logical pixels high and Battle uses two content rows instead of reserving another row for its title.
+
+Leaders uses the owner's [map.JPG from Google Drive](https://drive.google.com/file/d/19YmQ7McEmoKHuZlF6_HGe7QGICJeyCW-/view), downloaded unchanged to `public/menu-art/world-map.jpg` (1,212,207 bytes, 1792×1008). `src/port-map.js` contains explicit pixel anchors for the stylized illustration. A clipped, proportionally zoomed window eases to each selected city in 750ms. The supplied map title/footer stay outside the city window; the continent label overlays the top. Previous/next buttons flank Port # / # above the city name. Arrow keys and horizontal swipes also cycle all fifteen existing game ports, wrapping at either end. Reduced motion removes the pan animation. The standings update without rebuilding the map, and all 100 captains remain available in their own scrolling panel. Decorative cities on the illustration do not add progression destinations; Mombasa and Singapore receive live labels because they are not lettered in the artwork.
+
+Battle's scenery picker opens from Scenery on the harbor. Booty Pass's weekly quest opens from Weekly Orders above the reward track. These dialogs retain scenery persistence and claim behavior while removing stacked content. Battle, Leaders and Booty Pass fit 844×390 landscape without main-panel scrolling. Desktop Settings also fits; Crew, Store and smaller Settings layouts retain scrolling for their longer content. Portrait layouts remain stacked and scroll naturally.
+
+Find Match now selects `public/menu-art/find-match-shadow-v2.png`, an AI-assisted transparent extraction revision with outer shadow and dark interior shading. This is a regenerated variant, not a pixel-identical extraction. The original JPG and prior PNG are preserved for review. See [the exact edit prompt and provenance](FIND-MATCH-SHADOW-REVISION.md).
+
+Validation: `npm test` (55/55), `npm run check`, and browser menu-art, UI-scale, phone and fullscreen suites pass. `node scripts/browser-menu-refresh.cjs` checks every screen at 1792×1008, 844×390 and 390×844, header placement/name, required no-scroll layouts, map cycling/wrap, swipe/keyboard controls, reduced motion, standings/scouting, persistent scenery and one-time weekly claiming. Screenshots are in `test-results/menu-refresh/`. Automated checks use isolated Chromium/Edge; physical iPhone Safari visual acceptance remains with the owner. Reality graph was unavailable for project 1002, so implementation was grounded in the checkout and supplied assets.

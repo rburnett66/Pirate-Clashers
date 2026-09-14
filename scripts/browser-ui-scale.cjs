@@ -6,7 +6,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  fs.mkdirSync('test-results/ui-scale',{recursive:true});
  await page.goto('http://127.0.0.1:4173');
  await page.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});await page.reload();
- const selectors=['#rail','#topbar','.page-title','.harbor-scene','.crew-overview','.orders-card','.hold-panel','.nav-art','.title-art','.wallet-plaque'];
+ const selectors=['#rail','#topbar','.screen-heading','.harbor-scene','.crew-overview','.orders-card','.hold-panel','.nav-art','.screen-title-art','.wallet-plaque'];
  let baseline;
  for(const [width,height] of [[1792,1008],[1920,1080],[2560,1440],[3840,2160],[1280,720],[2560,1080],[1600,1200]]){
   await page.setViewportSize({width,height});

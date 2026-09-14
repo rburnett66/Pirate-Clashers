@@ -5,11 +5,11 @@ const interfaces=Object.entries(os.networkInterfaces()).sort(([a],[b])=>Number(/
 const addresses=interfaces.flatMap(([,rows])=>rows.filter(r=>r.family==='IPv4'&&!r.internal&&privateIP(r.address)).map(r=>r.address));
 const hostIndex=process.argv.indexOf('--host'),host=hostIndex<0?addresses[0]:process.argv[hostIndex+1];
 if(!host||!addresses.includes(host)){console.error('Connect this computer to Wi-Fi, then run npm run start:phone. --host must be a private IPv4 address assigned to this computer.');process.exit(1);}
-const types={'.webmanifest':'application/manifest+json','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml'};
+const types={'.jpg':'image/jpeg','.webmanifest':'application/manifest+json','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.svg':'image/svg+xml'};
 function allowed(relative){
  if(relative==='index.html')return true;
  if(relative.startsWith('src/'))return /\.(js|css)$/.test(relative);
- if(relative.startsWith('public/'))return /\.(html|js|css|png|svg|webmanifest)$/.test(relative);
+ if(relative.startsWith('public/'))return /\.(html|js|css|png|jpg|svg|webmanifest)$/.test(relative);
  return relative.startsWith('Pirate Art/pirate_segments/')&&relative.endsWith('.png');
 }
 const server=http.createServer(async(req,res)=>{

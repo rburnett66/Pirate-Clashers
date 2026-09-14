@@ -16,7 +16,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  await page.locator('[data-action=tab][data-id=collection]').click();
  assert.equal(await page.locator('.pirate-card').count(),36);
  await page.locator('.pirate-card[data-id="1"]').click();await shot('crew-detail');await page.locator('[data-action=close]').click();
- await nav('battle');await page.locator('[data-action=harbor][data-id=locker]').click();await page.reload();
+ await nav('battle');await page.locator('[data-action=scenery]').click();await page.locator('[data-action=harbor][data-id=locker]').click();await page.reload();await page.locator('[data-action=scenery]').click();
  assert.equal(await page.locator('[data-action=harbor][data-id=locker]').getAttribute('aria-pressed'),'true');
  await page.locator('[data-action=harbor][data-id=hawaii]').click();
  await page.locator('.wallet-add').click();assert.equal(await page.locator('body').getAttribute('data-page'),'store');
@@ -26,7 +26,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  await page.locator('[data-action=retreat]').click();await page.locator('[data-action=confirm-retreat]').click();await shot('defeat');
  assert.ok(await page.locator('.result-illustration img').count());
  await page.locator('[data-action=return]').click();
- await nav('ports');await page.getByRole('button',{name:'Hawaii',exact:true}).click();assert.equal(await page.locator('.port-panorama img').count(),1);await shot('leaders-hawaii');
+ await nav('ports');await page.getByRole('button',{name:'Previous city',exact:true}).click();assert.equal(await page.locator('#portName').innerText(),'Hawaii');assert.equal(await page.locator('.world-map-art').count(),1);await shot('leaders-hawaii');
  await nav('battle');
  // A saved, settled victory exercises the actual result/reward UI without a long match.
  await page.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;s.settings.motion=false;M.startBattle(s);s.battle.phase='result';s.battle.won=true;M.settle(s);localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});await page.reload();

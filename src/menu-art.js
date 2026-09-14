@@ -3,7 +3,7 @@ export const ART = {
   battle:'battle__8f2f3bff', crew:'crew__c937254a', booty:'booty-pass__395cc0eb', store:'store__69204157',
   fight:'fight-icon__fa59e280', crewIcon:'crew-icon__4f92ad33', map:'map-icon__454c9d84',
   chest:'chest-icon__4d65463e', gift:'gift-icon__4186e173', settings:'options-icon__fb0e7125',
-  frame:'crew-frame__819ba7b5', header:'header__08e28e4c', find:'find-match__794c6851',
+  frame:'crew-frame__819ba7b5', header:'header__08e28e4c', find:'find-match-shadow-v2',
   open:'open-chest__5a0cb1a0', rematch:'rematch__e48b14f8', victory:'victory__1eedb918', lost:'lost__3d56a169',
   hawaii:'hawaii__85ab9143', bombay:'bombay__ab7b9def', madagascar:'madagascar__2221d2d6',
   locker:'davies-locker__253f7e6e', fog:'spooky-fog__03d8dedd'
