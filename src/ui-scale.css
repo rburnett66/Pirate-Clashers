@@ -139,3 +139,25 @@ body.scaled-ui{height:100dvh;min-height:0;display:grid;place-items:center;overfl
 .scaled-dialogs #sheet h2{font-size:34px}
 .scaled-dialogs #sheet .result-title{font-size:48px!important}
 .scaled-dialogs #toast{zoom:var(--ui-scale)}
+
+/* Browser fullscreen and Home Screen web apps share the same safe viewport. */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}
+.fullscreen-control{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;flex-shrink:0;white-space:nowrap}
+.fullscreen-control>span:first-child{font:28px/1 sans-serif}
+.screen-steps{padding-left:24px;line-height:1.6;margin-top:18px}.screen-steps li+li{margin-top:10px}
+.battle-top .fullscreen-control{position:absolute;left:50%;top:4px;transform:translateX(-50%);pointer-events:auto;width:44px;height:44px;padding:0}
+.battle-top .fullscreen-label{display:none}
+.combat-arena{padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)}
+body.scaled-ui{padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)}
+body:not(.scaled-ui):not(.battle-mode) #app{padding:var(--safe-top) var(--safe-right) 0 var(--safe-left)}
+body:not(.scaled-ui):not(.battle-mode) #rail{left:var(--safe-left);top:var(--safe-top);padding-bottom:max(4px,var(--safe-bottom))}
+@media(max-width:1000px){#topbar .fullscreen-label{display:none}#topbar .fullscreen-control{width:44px;height:44px;padding:0}}
+@media(max-width:600px){
+  #topbar .wallet-plaque{width:210px}#topbar .captain-mark{min-width:0;flex:1}#topbar .captain-mark small{display:none}
+  body:not(.scaled-ui):not(.battle-mode) #rail{top:auto;left:0;height:calc(76px + var(--safe-bottom))}
+  body:not(.battle-mode) #main{padding-bottom:calc(100px + var(--safe-bottom))}
+}
+@media(max-height:560px) and (min-width:650px){
+  .combat-arena{min-height:0;grid-template-rows:60px 32px minmax(60px,1fr) 22px 132px}
+  .combat-arena .health-card{width:calc(50% - 30px)}
+}

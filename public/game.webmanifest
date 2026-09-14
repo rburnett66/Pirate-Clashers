@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "Pirate Clashers",
+  "short_name": "Clashers",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#201309",
+  "theme_color": "#201309",
+  "icons": [{"src": "/public/menu-art/gift-icon__4186e173.png", "sizes": "1432x1432", "type": "image/png", "purpose": "any"}]
+}

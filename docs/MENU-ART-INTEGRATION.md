@@ -44,3 +44,15 @@ The phone server binds only the selected private interface and serves GET/HEAD r
 Phone progress is stored separately in that browser. To transfer a captain, use Settings → Export captain on the original browser and Import backup on the phone. Refresh to load UI updates. Water preset IDs have a `getRandomValues` fallback because `randomUUID` is not available on plain HTTP LAN origins.
 
 `node scripts/browser-phone.cjs http://<computer-wifi-address>:4174` checks allowed/excluded routes and an isolated mobile HTTP browser flow: touch navigation, water-preset saving, battle entry, aim control and retreat/results. This verifies the network server from the development computer, not physical-device connectivity. Haptics have not been implemented.
+
+## Fullscreen on Safari and Chrome
+
+Refresh the phone preview. The ⛶ button is in the menu header and between the two ship health panels during battle. Settings also offers Full screen and Phone setup. Supported browsers request fullscreen from that tap, with browser navigation hidden, and the same button exits. Display changes preserve the live battle renderer and aim; they do not reload the game. Browser denial or missing API opens setup instructions.
+
+On iPhone, open the preview in Safari → Share → Add to Home Screen → enable Open as Web App if shown → Add. Launch Pirate Clashers from the new icon and rotate to landscape. The manifest and Apple web-app metadata allow this launch without Safari’s browser bars. Chrome on iPhone has the same Safari setup fallback when fullscreen is unavailable. Export the captain from Settings first; if the Home Screen app starts with separate storage, import the backup there. This LAN preview still needs the computer and same Wi-Fi; no offline cache was added.
+
+The app respects safe-area insets around notches and the home indicator. Short landscape battles fit the dynamic viewport rather than retaining the former minimum battlefield height. Supplied art and desktop reference proportions are preserved.
+
+`node scripts/browser-fullscreen.cjs http://<computer-wifi-address>:4174` verifies real Chromium fullscreen enter/exit over LAN HTTP, retained renderer/aim, rejected and unavailable API fallbacks, simulated iPhone/standalone modes, manifest/icon delivery, and landscape sizes 844×390, 844×320 and 667×375 including simulated safe areas. Screenshots are in `test-results/fullscreen/`. The menu, scaling and phone browser suites, all 55 model tests and `npm run check` pass. Automated Safari and physical-device fullscreen/install behavior have not been verified here; the owner’s next phone playtest covers that.
+
+Platform references: [Fullscreen request API](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen), [Apple Home Screen web-app instructions](https://support.apple.com/en-nz/guide/iphone/iphea86e5236/ios).
