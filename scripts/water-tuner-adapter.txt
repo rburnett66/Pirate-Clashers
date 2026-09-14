@@ -1,0 +1,20 @@
+
+ function publishWater(){parent.postMessage({type:'pirate-water-draft',settings:{...P}},location.origin);}
+ function loadWater(values){
+  Object.assign(P,waterValues(values));for(const k in inputs){inputs[k].inp.value=P[k];inputs[k].show();}
+  hullBox.checked=P.hullOn;simDirty=seaDirty=true;resetSea();publishWater();
+ }
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-water-load')return;
+  try{loadWater(e.data.settings);}catch(err){parent.postMessage({type:'pirate-water-error',message:err.message},location.origin);}
+ });
+ panel.addEventListener('input',publishWater);
+ panel.addEventListener('change',publishWater);
+ document.getElementById('defaults').addEventListener('click',publishWater);
+ for(const [key,{inp}] of Object.entries(inputs)){inp.dataset.control=key;}
+ panel.classList.add('open');toggle.setAttribute('aria-expanded','true');toggle.textContent='Close controls';
+ autoCannons=false;cannonBox.checked=false;
+ document.getElementById('formatNote').textContent='Tap the water to test a splash. Boat placement, ball size, wheels and random cannonballs are preview controls; battles place ships and use the selected gunner’s projectile.';
+ Object.assign(P,WATER_DEFAULTS);
+ for(const k in inputs){inputs[k].inp.value=P[k];inputs[k].show();}hullBox.checked=P.hullOn;
+ parent.postMessage({type:'pirate-water-tuner-ready'},location.origin);

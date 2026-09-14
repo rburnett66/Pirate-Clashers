@@ -1,0 +1,96 @@
+
+ // Battle adapter: retain the prototype GPU wheels, foam, spray and impact records.
+ const gameScale=5,gameOffset=4,gameRow=4,gameHulls=new Float32Array(8),gameDirections=new Float32Array([1,-1]);
+ let gameScene=null,gameLayoutKey='',gameSampleAt=0,gameSplashSlot=0,gameSplashCount=0,gameLastContacts=[],gameSettingsKey='';
+ const gameImpacts=[],gameSeenImpacts=new Set(),gameReadback=new Float32Array(COLS*STATE_ROWS*4);
+ const clampGame=(v,a,b)=>Math.max(a,Math.min(b,v));
+ function gameCamera(){
+  if(!gameScene)return false;
+  cam.ppu=gameScene.ppu*dpr/gameScale;cam.x=gameOffset+(canvas.width/2-gameScene.ox*dpr)/cam.ppu;
+  cam.y=(gameScene.oy*dpr-canvas.height/2)/cam.ppu;cam.unit=cam.ppu/VIEW.refPxPerCol;return true;
+ }
+ function gameRows(){
+  if(!gameScene)return;
+  for(let r=0;r<ROWS;r++){
+   const t=r/(ROWS-1),vert=P.vertNear+(P.vertFar-P.vertNear)*Math.pow(t,P.vertCurve),baseline=1.6+(.5-1.6)*t;
+   const spread=(P.horizon-P.front)/(.22+.62);
+   rowBase[r]=(r<=gameRow?-.95+r*.165:-.29+1.1*(1-Math.pow(.78,r-gameRow))/(1-Math.pow(.78,7)))*gameScale;
+   rowBase[r]=-.29*gameScale+(rowBase[r]+.29*gameScale)*spread;
+   rowAmp[r]=gameScale*(.34-.022*r)*vert/baseline;
+  }
+ }
+ function readGameWater(){
+  const old=gl.getParameter(gl.FRAMEBUFFER_BINDING);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,state.fbo[state.cur]);gl.readPixels(0,0,COLS,STATE_ROWS,gl.RGBA,gl.FLOAT,gameReadback);gl.bindFramebuffer(gl.FRAMEBUFFER,old);
+  return gameReadback;
+ }
+ function gameSample(data,x,row,k){
+  const c=clampGame(x,0,COLS-1),a=Math.floor(c),b=Math.min(COLS-1,a+1),r=c-a;
+  return data[(row*COLS+a)*4+k]*(1-r)+data[(row*COLS+b)*4+k]*r;
+ }
+ function gameHeight(h){
+  const a=Math.max(P.swellAmp,.3),u=h/a,t=clampGame((u-P.flatFrom)/.25,0,1),v=u*(P.flatten+(1-P.flatten)*t*t*(3-2*t)),top=clampGame(v,0,1);
+  return a*(v+P.pinch*top*top);
+ }
+ function sampleGameContacts(now){
+  if(!gameScene||now<gameSampleAt)return;gameSampleAt=now+100;
+  const data=readGameWater();
+  gameLastContacts=gameScene.ships.map((ship,index)=>{
+   const center=gameOffset+ship.x*gameScale,half=5.4,all=[0,0],bow=[0,0],stern=[0,0];
+   for(let c=Math.floor(center-half);c<=center+half;c++){
+    if(c<0||c>=COLS)continue;const xr=(c-center)/half,m=Math.sqrt(Math.max(0,1-xr*xr));if(!m)continue;
+    const h=gameSample(data,c,gameRow,0),target=gameSample(data,c,gameRow,2),level=target+.5*(h-target+P.hullDraft*m);
+    all[0]+=level;all[1]++;if(xr>.25){bow[0]+=level;bow[1]++;}if(xr<-.25){stern[0]+=level;stern[1]++;}
+   }
+   const amp=rowAmp[gameRow],mid=all[0]/Math.max(1,all[1]),rise=(bow[0]/Math.max(1,bow[1])-stern[0]/Math.max(1,stern[1]))*amp;
+   const angle=clampGame(Math.atan2(rise,1.3*half)*P.rock,-P.rockMax*Math.PI/180,P.rockMax*Math.PI/180)+Math.sin(simT*1.1+index*1.7)*P.rockMax*Math.PI/180*.2*Math.min(1,P.rock/.75);
+   const pose=gameScene.motion?{heave:clampGame(mid*amp/gameScale,-.2,.2),roll:clampGame(angle,-P.rockMax*Math.PI/180,P.rockMax*Math.PI/180)}:{heave:0,roll:0};
+   const samples=Array.from({length:32},(_,i)=>{
+    const lx=-1.35+i/31*2.7,worldX=ship.x+ship.dir*lx,c=gameOffset+worldX*gameScale;
+    return {x:worldX,y:(rowBase[gameRow]+gameHeight(gameSample(data,c,gameRow,0))*amp)/gameScale,foam:clampGame(gameSample(data,c,gameRow,3),0,1.5)};
+   });
+   return {side:ship.side,pose,samples,foamLook:P.hullFoamLook};
+  });
+  parent.postMessage({type:'pirate-ocean-frame',contacts:gameLastContacts},location.origin);
+ }
+ function applyGameImpacts(){
+  if(!gameImpacts.length)return;
+  const data=readGameWater().slice();
+  for(const hit of gameImpacts.splice(0)){
+   const x=gameOffset+hit.x*gameScale,y=hit.y*gameScale;
+   if(x<0||x>COLS-1)continue;
+   let row=0;for(let r=1;r<ROWS;r++)if(Math.abs(rowBase[r]-y)<Math.abs(rowBase[row]-y))row=r;
+   // Use the game's exact analytic landing point, then reuse the prototype's droplet draw.
+   data.set([x,y,0,row],(ROWS*COLS+gameSplashSlot)*4);gameSplashSlot=(gameSplashSlot+1)%8;
+   const kickR=rowRadiusFromFeet(P.impactFt),foamR=rowRadiusFromFeet(P.foamFt),radius=3*Math.max(P.impactWidth,P.foamZone);
+   for(let r=0;r<ROWS;r++)for(let c=Math.max(0,Math.floor(x-radius));c<=Math.min(COLS-1,Math.ceil(x+radius));c++){
+    const k=(r*COLS+c)*4,dx=c-x,dr=r-row,weight=Math.exp(-dx*dx/(P.impactWidth*P.impactWidth)-dr*dr/(kickR*kickR));
+    data[k+1]+=P.impact*weight*hit.energy;data[k+3]=Math.min(1.5,data[k+3]+Math.exp(-dx*dx/(P.foamZone*P.foamZone)-dr*dr/(foamR*foamR))*hit.energy);
+   }
+   gameSplashCount++;
+  }
+  const active=gl.getParameter(gl.ACTIVE_TEXTURE);gl.activeTexture(gl.TEXTURE0);
+  for(const tex of state.tex){gl.bindTexture(gl.TEXTURE_2D,tex);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,COLS,STATE_ROWS,gl.RGBA,gl.FLOAT,data);}
+  gl.activeTexture(active);
+ }
+ window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-ocean')return;
+  const d=e.data;
+  if(d.action==='scene'&&Number.isFinite(d.ppu)&&d.ppu>0&&Number.isFinite(d.ox)&&Number.isFinite(d.oy)&&Array.isArray(d.ships)&&d.ships.length===2&&d.ships.every(s=>Number.isFinite(s.x)&&s.x>=0&&s.x<=12)){
+   const settingsKey=JSON.stringify(d.settings);
+   if(d.settings&&settingsKey!==gameSettingsKey){try{Object.assign(P,waterValues(d.settings),{hullOn:false});gameSettingsKey=settingsKey;simDirty=seaDirty=true;}catch{return;}}
+   gameScene=d;
+   const key=[d.ppu,d.ox,d.oy,...d.ships.map(s=>s.x),d.motion].join(':');
+   if(key!==gameLayoutKey){
+    gameLayoutKey=key;gameHulls.fill(0);
+    d.ships.forEach((s,i)=>{gameHulls.set([1,gameRow,gameOffset+s.x*gameScale,5.4],i*4);gameDirections[i]=s.dir===-1?-1:1;});
+    simDirty=seaDirty=true;
+   }
+  }
+  if(d.action==='splash'&&typeof d.id==='string'&&!gameSeenImpacts.has(d.id)&&Number.isFinite(d.x)&&Number.isFinite(d.y)){
+   gameSeenImpacts.add(d.id);if(gameSeenImpacts.size>128)gameSeenImpacts.delete(gameSeenImpacts.values().next().value);
+   gameImpacts.push({x:d.x,y:d.y,energy:clampGame(d.energy||1,.2,1)});
+  }
+ });
+ window.pirateOceanSnapshot=()=>({splashes:gameSplashCount,contacts:gameLastContacts,settings:{...P},hulls:Array.from(gameHulls),records:Array.from(readGameWater().slice(ROWS*COLS*4,(ROWS*COLS+8)*4))});
+ parent.postMessage({type:'pirate-ocean-ready'},location.origin);

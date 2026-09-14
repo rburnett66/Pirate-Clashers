@@ -58,7 +58,7 @@
   .actions { display: flex; gap: 6px; margin-top: 10px; }
   .fatal { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font-size: 17px; font-weight: 700; }
 </style>
-<style>body>*:not(canvas):not(script):not(style){display:none!important}canvas{pointer-events:none}</style></head>
+<style>.panel{width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 85px);box-sizing:border-box}#formatNote{line-height:1.5}header{pointer-events:none}</style></head>
 <body>
 <canvas id="sea" aria-label="Animated water made of sixteen layered wave lines. Tap to drop a cannonball."></canvas>
 <div class="title">
@@ -171,8 +171,6 @@ uniform float uRowIso;        // 0..1: how much disturbances are kept from cross
 uniform float uHullRowSpread; // how much of the hull's push reaches the rows beside it
 // Hull test: a floating hull on one row pushes water down under its curved
 // bottom, lifts it at bow and stern, and makes foam where water meets it.
-uniform vec4 uCombatHulls[2];
-uniform float uCombatDirs[2];
 uniform vec4 uHull;       // on (0/1), row, center column, half length (columns)
 uniform vec3 uHullShape;  // draft (wave units), push stiffness, foam rate
 uniform vec4 uHullMotion; // rock amount, max rock angle (rad), damping at the hull base, bow wave strength
@@ -223,17 +221,17 @@ float targetAt(vec2 cell, float t) {
 // Hull levels: ride the swell plus half the local disturbance (so impacts nudge the
 // hull). The known draft dip is added back so the hull can't sink into its own
 // hollow. Measured over the whole hull, its bow half (+x) and its stern half.
-void hullLevels(vec4 hull, out float mid, out float bow, out float stern) {
-  int hr = int(hull.y + 0.5);
-  float halfS = hull.w;
-  int c0 = int(floor(hull.z - halfS));
+void hullLevels(out float mid, out float bow, out float stern) {
+  int hr = int(uHull.y + 0.5);
+  float halfS = uHull.w;
+  int c0 = int(floor(uHull.z - halfS));
   float draft = uHullShape.x;
   vec4 all4 = vec4(0.0), bow4 = vec4(0.0), stern4 = vec4(0.0); // sumT, sumH, sumM, n
   for (int i = 0; i < 40; i++) {
     int cc = c0 + i;
-    if (float(cc) > hull.z + halfS) break;
+    if (float(cc) > uHull.z + halfS) break;
     if (cc < 0 || cc >= COLS) continue;
-    float xx = (float(cc) - hull.z) / halfS;
+    float xx = (float(cc) - uHull.z) / halfS;
     float mm = sqrt(max(0.0, 1.0 - xx * xx));
     if (mm <= 0.0) continue;
     vec4 t4 = texelFetch(uState, ivec2(cc, hr), 0);
@@ -314,27 +312,26 @@ void main() {
   float foam = s.a * uFoamDecay;
 
   float targetVelEff = targetVel;
-  for(int boat=0;boat<2;boat++) { vec4 hull=uCombatHulls[boat];
-  if (hull.x > 0.5) {
-    int dr = abs(c.y - int(hull.y + 0.5));
+  if (uHull.x > 0.5) {
+    int dr = abs(c.y - int(uHull.y + 0.5));
     if (dr <= 1) {
       float rowW = dr == 0 ? 1.0 : uHullRowSpread;
       float fdr = float(dr);
-      float halfS = hull.w;
+      float halfS = uHull.w;
       float draft = uHullShape.x;
-      float xr = (cell.x - hull.z) / halfS;
+      float xr = (cell.x - uHull.z) / halfS;
       float m = sqrt(max(0.0, 1.0 - xr * xr));                  // curved hull bottom
       // Bow wave, as if the hull were moving toward +x: a crest just ahead of the bow,
       // a trough along the side behind it, both swept back on the rows either side.
-      float cb = ((cell.x - hull.z)*uCombatDirs[boat] - (halfS + 0.7) + 1.2 * fdr) / 1.2;
+      float cb = (cell.x - (uHull.z + halfS + 0.7) + 1.2 * fdr) / 1.2;
       float crest = exp(-cb * cb);
-      float tb = ((cell.x - hull.z)*uCombatDirs[boat] - (halfS * 0.45) + 1.0 * fdr) / 2.0;
+      float tb = (cell.x - (uHull.z + halfS * 0.45) + 1.0 * fdr) / 2.0;
       float trough = exp(-tb * tb);
-      float sb = ((cell.x - hull.z)*uCombatDirs[boat] + halfS + 1.0) / 1.3;
+      float sb = (cell.x - (uHull.z - halfS - 1.0)) / 1.3;
       float sternBump = exp(-sb * sb);
       if (m > 0.0 || crest > 0.01 || trough > 0.01 || sternBump > 0.01) {
         float mid, bow, stern;
-        hullLevels(hull, mid, bow, stern);
+        hullLevels(mid, bow, stern);
         // The bow wave grows when the bow dips below the hull's middle.
         float bowPower = uHullMotion.w * (1.0 + 1.5 * clamp((mid - bow) * 3.0, -0.6, 1.0));
         float level = mid + (bow - stern) * 0.5 * xr * uHullMotion.x;   // follows the drawn rock
@@ -352,7 +349,6 @@ void main() {
     }
   }
 
-  }
   // Implicit damping toward the swell's own velocity: only disturbances decay.
   v = (v + acc * uDt + damp * uDt * targetVelEff) / (1.0 + damp * uDt);
 
@@ -1047,7 +1043,7 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
     decouple: 0.95, // how much foam cuts sideways neighbor pull (keeps impacts vertical)
     impactDamp: 3,  // extra damping inside foam
     foamLife: 1.2,  // foam decay time (s)
-    hullOn: false,
+    hullOn: true,
     hullRow: 2,     // which row the hull floats on (0 = nearest)
     hullX: 30,      // hull center column
     hullHalf: 9,    // hull half length in columns
@@ -1096,7 +1092,6 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
   const REF_HALF_H = VIEW.cols / VIEW.refAspect / 2; // world units from screen center to edge on 16:9
   const cam = { x: VIEW.centerCol, y: 0, ppu: 1, unit: 1 };
   function updateCamera() {
-    if(gameCamera())return;
     cam.ppu = Math.min(canvas.width / VIEW.cols, canvas.height / (VIEW.cols / VIEW.maxAspect));
     const visibleH = canvas.height / cam.ppu;
     cam.x = VIEW.centerCol;
@@ -1237,7 +1232,6 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
       const vert = P.vertNear + (P.vertFar - P.vertNear) * Math.pow(t, P.vertCurve);
       rowAmp[r] = LAYOUT.amp * REF_HALF_H * rowScale[r] * vert;
     }
-    gameRows();
     const horizonNdc = ((P.horizon * REF_HALF_H) - cam.y) * cam.ppu / (0.5 * canvas.height);
     const pct = Math.min(Math.max(((1 - horizonNdc) / 2) * 100, 1), 99);
     document.body.style.background =
@@ -1337,7 +1331,6 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
     gl.uniform1f(L.uFoamDecay, Math.exp(-(STEP / SUBSTEPS) / P.foamLife));
     gl.uniform4f(L.uHull, P.hullOn ? 1 : 0, P.hullRow, P.hullX, P.hullHalf);
     gl.uniform3f(L.uHullShape, P.hullDraft, P.hullPush, P.hullFoam);
-    gl.uniform4fv(L.uCombatHulls,gameHulls);gl.uniform1fv(L.uCombatDirs,gameDirections);
     ballsDirtySim = true;
     simDirty = false;
   }
@@ -1551,7 +1544,7 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
   });
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let autoCannons = false;
+  let autoCannons = !reduceMotion;
   let nextCannon = 1.2;
 
   // ---------------------------------------------------------------------------
@@ -1571,7 +1564,6 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
       }
     }
 
-    applyGameImpacts();
     acc += dtF;
     if (acc >= STEP) {
       beginSim();
@@ -1589,7 +1581,6 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
     }
 
     render();
-    sampleGameContacts(now);
 
     statTimer -= dtF;
     if (statTimer <= 0) {
@@ -1677,6 +1668,7 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
     { h: 'The look' },
     { k: 'sub', label: 'Curve detail', min: 1, max: 6, step: 1, sea: true },
   ];
+  SLIDERS.push({h:'Advanced swell'},{k:'sponge',label:'Edge damping',min:0,max:20,step:.1,sim:true},{k:'spread',label:'Swell direction spread',min:0,max:1.6,step:.01,sim:true},{k:'zStretch',label:'Swell row spacing',min:.1,max:4,step:.01,sim:true});
   const slidersEl = document.getElementById('sliders');
   const inputs = {};
   for (const s of SLIDERS) {
@@ -1731,105 +1723,27 @@ import {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";
     resetSea();
   });
 
-  autoCannons=false; P.hullOn=false;
 
- // Battle adapter: retain the prototype GPU wheels, foam, spray and impact records.
- const gameScale=5,gameOffset=4,gameRow=4,gameHulls=new Float32Array(8),gameDirections=new Float32Array([1,-1]);
- let gameScene=null,gameLayoutKey='',gameSampleAt=0,gameSplashSlot=0,gameSplashCount=0,gameLastContacts=[],gameSettingsKey='';
- const gameImpacts=[],gameSeenImpacts=new Set(),gameReadback=new Float32Array(COLS*STATE_ROWS*4);
- const clampGame=(v,a,b)=>Math.max(a,Math.min(b,v));
- function gameCamera(){
-  if(!gameScene)return false;
-  cam.ppu=gameScene.ppu*dpr/gameScale;cam.x=gameOffset+(canvas.width/2-gameScene.ox*dpr)/cam.ppu;
-  cam.y=(gameScene.oy*dpr-canvas.height/2)/cam.ppu;cam.unit=cam.ppu/VIEW.refPxPerCol;return true;
- }
- function gameRows(){
-  if(!gameScene)return;
-  for(let r=0;r<ROWS;r++){
-   const t=r/(ROWS-1),vert=P.vertNear+(P.vertFar-P.vertNear)*Math.pow(t,P.vertCurve),baseline=1.6+(.5-1.6)*t;
-   const spread=(P.horizon-P.front)/(.22+.62);
-   rowBase[r]=(r<=gameRow?-.95+r*.165:-.29+1.1*(1-Math.pow(.78,r-gameRow))/(1-Math.pow(.78,7)))*gameScale;
-   rowBase[r]=-.29*gameScale+(rowBase[r]+.29*gameScale)*spread;
-   rowAmp[r]=gameScale*(.34-.022*r)*vert/baseline;
-  }
- }
- function readGameWater(){
-  const old=gl.getParameter(gl.FRAMEBUFFER_BINDING);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,state.fbo[state.cur]);gl.readPixels(0,0,COLS,STATE_ROWS,gl.RGBA,gl.FLOAT,gameReadback);gl.bindFramebuffer(gl.FRAMEBUFFER,old);
-  return gameReadback;
- }
- function gameSample(data,x,row,k){
-  const c=clampGame(x,0,COLS-1),a=Math.floor(c),b=Math.min(COLS-1,a+1),r=c-a;
-  return data[(row*COLS+a)*4+k]*(1-r)+data[(row*COLS+b)*4+k]*r;
- }
- function gameHeight(h){
-  const a=Math.max(P.swellAmp,.3),u=h/a,t=clampGame((u-P.flatFrom)/.25,0,1),v=u*(P.flatten+(1-P.flatten)*t*t*(3-2*t)),top=clampGame(v,0,1);
-  return a*(v+P.pinch*top*top);
- }
- function sampleGameContacts(now){
-  if(!gameScene||now<gameSampleAt)return;gameSampleAt=now+100;
-  const data=readGameWater();
-  gameLastContacts=gameScene.ships.map((ship,index)=>{
-   const center=gameOffset+ship.x*gameScale,half=5.4,all=[0,0],bow=[0,0],stern=[0,0];
-   for(let c=Math.floor(center-half);c<=center+half;c++){
-    if(c<0||c>=COLS)continue;const xr=(c-center)/half,m=Math.sqrt(Math.max(0,1-xr*xr));if(!m)continue;
-    const h=gameSample(data,c,gameRow,0),target=gameSample(data,c,gameRow,2),level=target+.5*(h-target+P.hullDraft*m);
-    all[0]+=level;all[1]++;if(xr>.25){bow[0]+=level;bow[1]++;}if(xr<-.25){stern[0]+=level;stern[1]++;}
-   }
-   const amp=rowAmp[gameRow],mid=all[0]/Math.max(1,all[1]),rise=(bow[0]/Math.max(1,bow[1])-stern[0]/Math.max(1,stern[1]))*amp;
-   const angle=clampGame(Math.atan2(rise,1.3*half)*P.rock,-P.rockMax*Math.PI/180,P.rockMax*Math.PI/180)+Math.sin(simT*1.1+index*1.7)*P.rockMax*Math.PI/180*.2*Math.min(1,P.rock/.75);
-   const pose=gameScene.motion?{heave:clampGame(mid*amp/gameScale,-.2,.2),roll:clampGame(angle,-P.rockMax*Math.PI/180,P.rockMax*Math.PI/180)}:{heave:0,roll:0};
-   const samples=Array.from({length:32},(_,i)=>{
-    const lx=-1.35+i/31*2.7,worldX=ship.x+ship.dir*lx,c=gameOffset+worldX*gameScale;
-    return {x:worldX,y:(rowBase[gameRow]+gameHeight(gameSample(data,c,gameRow,0))*amp)/gameScale,foam:clampGame(gameSample(data,c,gameRow,3),0,1.5)};
-   });
-   return {side:ship.side,pose,samples,foamLook:P.hullFoamLook};
-  });
-  parent.postMessage({type:'pirate-ocean-frame',contacts:gameLastContacts},location.origin);
- }
- function applyGameImpacts(){
-  if(!gameImpacts.length)return;
-  const data=readGameWater().slice();
-  for(const hit of gameImpacts.splice(0)){
-   const x=gameOffset+hit.x*gameScale,y=hit.y*gameScale;
-   if(x<0||x>COLS-1)continue;
-   let row=0;for(let r=1;r<ROWS;r++)if(Math.abs(rowBase[r]-y)<Math.abs(rowBase[row]-y))row=r;
-   // Use the game's exact analytic landing point, then reuse the prototype's droplet draw.
-   data.set([x,y,0,row],(ROWS*COLS+gameSplashSlot)*4);gameSplashSlot=(gameSplashSlot+1)%8;
-   const kickR=rowRadiusFromFeet(P.impactFt),foamR=rowRadiusFromFeet(P.foamFt),radius=3*Math.max(P.impactWidth,P.foamZone);
-   for(let r=0;r<ROWS;r++)for(let c=Math.max(0,Math.floor(x-radius));c<=Math.min(COLS-1,Math.ceil(x+radius));c++){
-    const k=(r*COLS+c)*4,dx=c-x,dr=r-row,weight=Math.exp(-dx*dx/(P.impactWidth*P.impactWidth)-dr*dr/(kickR*kickR));
-    data[k+1]+=P.impact*weight*hit.energy;data[k+3]=Math.min(1.5,data[k+3]+Math.exp(-dx*dx/(P.foamZone*P.foamZone)-dr*dr/(foamR*foamR))*hit.energy);
-   }
-   gameSplashCount++;
-  }
-  const active=gl.getParameter(gl.ACTIVE_TEXTURE);gl.activeTexture(gl.TEXTURE0);
-  for(const tex of state.tex){gl.bindTexture(gl.TEXTURE_2D,tex);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,COLS,STATE_ROWS,gl.RGBA,gl.FLOAT,data);}
-  gl.activeTexture(active);
+ function publishWater(){parent.postMessage({type:'pirate-water-draft',settings:{...P}},location.origin);}
+ function loadWater(values){
+  Object.assign(P,waterValues(values));for(const k in inputs){inputs[k].inp.value=P[k];inputs[k].show();}
+  hullBox.checked=P.hullOn;simDirty=seaDirty=true;resetSea();publishWater();
  }
  window.addEventListener('message',e=>{
-  if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-ocean')return;
-  const d=e.data;
-  if(d.action==='scene'&&Number.isFinite(d.ppu)&&d.ppu>0&&Number.isFinite(d.ox)&&Number.isFinite(d.oy)&&Array.isArray(d.ships)&&d.ships.length===2&&d.ships.every(s=>Number.isFinite(s.x)&&s.x>=0&&s.x<=12)){
-   const settingsKey=JSON.stringify(d.settings);
-   if(d.settings&&settingsKey!==gameSettingsKey){try{Object.assign(P,waterValues(d.settings),{hullOn:false});gameSettingsKey=settingsKey;simDirty=seaDirty=true;}catch{return;}}
-   gameScene=d;
-   const key=[d.ppu,d.ox,d.oy,...d.ships.map(s=>s.x),d.motion].join(':');
-   if(key!==gameLayoutKey){
-    gameLayoutKey=key;gameHulls.fill(0);
-    d.ships.forEach((s,i)=>{gameHulls.set([1,gameRow,gameOffset+s.x*gameScale,5.4],i*4);gameDirections[i]=s.dir===-1?-1:1;});
-    simDirty=seaDirty=true;
-   }
-  }
-  if(d.action==='splash'&&typeof d.id==='string'&&!gameSeenImpacts.has(d.id)&&Number.isFinite(d.x)&&Number.isFinite(d.y)){
-   gameSeenImpacts.add(d.id);if(gameSeenImpacts.size>128)gameSeenImpacts.delete(gameSeenImpacts.values().next().value);
-   gameImpacts.push({x:d.x,y:d.y,energy:clampGame(d.energy||1,.2,1)});
-  }
+  if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-water-load')return;
+  try{loadWater(e.data.settings);}catch(err){parent.postMessage({type:'pirate-water-error',message:err.message},location.origin);}
  });
- window.pirateOceanSnapshot=()=>({splashes:gameSplashCount,contacts:gameLastContacts,settings:{...P},hulls:Array.from(gameHulls),records:Array.from(readGameWater().slice(ROWS*COLS*4,(ROWS*COLS+8)*4))});
- parent.postMessage({type:'pirate-ocean-ready'},location.origin);
+ panel.addEventListener('input',publishWater);
+ panel.addEventListener('change',publishWater);
+ document.getElementById('defaults').addEventListener('click',publishWater);
+ for(const [key,{inp}] of Object.entries(inputs)){inp.dataset.control=key;}
+ panel.classList.add('open');toggle.setAttribute('aria-expanded','true');toggle.textContent='Close controls';
+ autoCannons=false;cannonBox.checked=false;
+ document.getElementById('formatNote').textContent='Tap the water to test a splash. Boat placement, ball size, wheels and random cannonballs are preview controls; battles place ships and use the selected gunner’s projectile.';
+ Object.assign(P,WATER_DEFAULTS);
+ for(const k in inputs){inputs[k].inp.value=P[k];inputs[k].show();}hullBox.checked=P.hullOn;
+ parent.postMessage({type:'pirate-water-tuner-ready'},location.origin);
 
-  Object.assign(P,WATER_DEFAULTS,{hullOn:false});
   resize();
   resetSea();
   requestAnimationFrame(frame);

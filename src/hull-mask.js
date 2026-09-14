@@ -1,3 +1,4 @@
+import {localParabola} from './ship-pose.js';
 
 // One material bit per texel. Rendering and ballistics consume this same saved mask.
 export const HULL_MASK=Object.freeze({width:512,height:320,left:-1.4,bottom:-.8,spanX:2.8,spanY:1.6,version:1});
@@ -91,16 +92,20 @@ export function chipHull(f,x,y,damage,effect='roundshot'){
  if(!removed)return 0;install(f,pixels);syncHullHealth(f);return before-f.hull;
 }
 // Exact parabola crossings of mask grid lines. Sampling every crossed cell prevents pixel tunnelling.
+
 export function maskSampleTimes(f,dir,origin,vx,vy,gravity,t0,t1){
- const p=t=>({x:(origin.x+vx*t-f.x)*dir,y:origin.y+vy*t-.5*gravity*t*t}),a=p(t0),b=p(t1);
- if(Math.max(a.x,b.x)<-1.1||Math.min(a.x,b.x)>1.4||Math.min(a.y,b.y)>.64||Math.max(a.y,b.y)<-.57)return [t1];
+ const q=localParabola(f,dir,origin,vx,vy,gravity),at=(v,t)=>v[0]+v[1]*t+v[2]*t*t;
+ const extent=v=>{const a=at(v,t0),b=at(v,t1),t=-v[1]/(2*v[2]);return t>t0&&t<t1?[Math.min(a,b,at(v,t)),Math.max(a,b,at(v,t))]:[Math.min(a,b),Math.max(a,b)];};
+ const [xmin,xmax]=extent(q.x),[ymin,ymax]=extent(q.y);
+ if(xmax<-1.1||xmin>1.4||ymin>.64||ymax<-.57)return [t1];
  const times=[t0,t1],add=t=>{if(t>t0+1e-12&&t<t1-1e-12)times.push(t);};
- if(Math.abs(vx)>1e-10){
-  const lo=Math.max(0,Math.ceil((Math.min(a.x,b.x)-C.left)/DX)),hi=Math.min(C.width,Math.floor((Math.max(a.x,b.x)-C.left)/DX));
-  for(let i=lo;i<=hi;i++)add((f.x+dir*(C.left+i*DX)-origin.x)/vx);
+ for(const [v,lo,hi,base,step,count] of [[q.x,xmin,xmax,C.left,DX,C.width],[q.y,ymin,ymax,C.bottom,DY,C.height]]){
+  for(let i=Math.max(0,Math.ceil((lo-base)/step));i<=Math.min(count,Math.floor((hi-base)/step));i++){
+   const z=v[0]-base-i*step;
+   if(Math.abs(v[2])<1e-12){if(Math.abs(v[1])>1e-12)add(-z/v[1]);}
+   else{const d=v[1]*v[1]-4*v[2]*z;if(d>=0){add((-v[1]-Math.sqrt(d))/(2*v[2]));add((-v[1]+Math.sqrt(d))/(2*v[2]));}}
+  }
  }
- const lo=Math.max(0,Math.ceil((Math.min(a.y,b.y)-C.bottom)/DY)),hi=Math.min(C.height,Math.floor((Math.max(a.y,b.y)-C.bottom)/DY));
- for(let i=lo;i<=hi;i++){const d=vy*vy+2*gravity*(origin.y-(C.bottom+i*DY));if(d>=0){add((vy-Math.sqrt(d))/gravity);add((vy+Math.sqrt(d))/gravity);}}
  times.sort((a,b)=>a-b);
  return times.slice(1).map((t,i)=>(times[i]+t)/2).concat(t1);
 }

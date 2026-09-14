@@ -1,0 +1,50 @@
+const {chromium,expect}=require('@playwright/test'),assert=require('node:assert/strict'),fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  await page.goto('http://127.0.0.1:4173');
+  await page.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});
+  await page.reload();
+  const settings=async()=>page.locator('[data-action=nav][data-id=settings]').first().click();
+  await settings();await page.locator('[data-action=water-open]').click();
+  await expect(page.locator('[data-action=water-save]')).toBeEnabled({timeout:20000});
+  const tuner=()=>page.frameLocator('#waterTuner');
+  const controls=await tuner().locator('[data-control]').count();assert.ok(controls>=60);
+  for(const [key,value] of Object.entries({swellAmp:'1.12',rock:'0',hullFoamLook:'0',splashSize:'0.8'}))await tuner().locator('[data-control='+key+']').fill(value);
+  await page.locator('#waterName').fill('Rolling blue');
+  await page.locator('[data-action=water-save]').click();await expect(page.locator('#waterStatus')).toContainText('Saved');
+  const library=await page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).settings.water);
+  assert.equal(library.presets.length,1);assert.equal(library.presets[0].values.swellAmp,1.12);
+  await page.screenshot({path:'test-results/water-workshop.png',fullPage:true});
+  // Exercise the manual-copy fallback too, without depending on clipboard permissions.
+  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('unavailable');}}}));
+  await page.locator('[data-action=water-copy]').click();const exported=await page.locator('#waterJson').inputValue();
+  assert.equal(JSON.parse(exported).settings.splashSize,.8);await page.locator('[data-action=close]').click();
+  await settings();await expect(page.locator('#waterLook')).toHaveValue(library.selected);
+  await page.locator('[data-action=water-paste]').click();await page.locator('#waterJson').fill('{"speed":999}');await page.locator('[data-action=water-import]').click();
+  await expect(page.locator('#waterImportError')).toContainText('speed must be');
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).settings.water),library);
+  await page.locator('#waterJson').fill(exported);await page.locator('[data-action=water-import]').click();
+  await expect(page.locator('[data-action=water-save]')).toBeEnabled();
+  assert.equal(await tuner().locator('[data-control=swellAmp]').inputValue(),'1.12');
+  await page.locator('#waterName').fill('Copied sea');await page.locator('[data-action=water-save]').click();
+  await page.reload();await settings();await expect(page.locator('#waterLook option')).toHaveCount(3);
+  await page.locator('#waterLook').selectOption(library.selected);
+  await page.locator('[data-action=nav][data-id=battle]').click();await page.locator('[data-action=start]').click();
+  await page.waitForTimeout(600);
+  const water=page.frames().find(f=>f.url().endsWith('/public/water.html'));
+  await water.waitForFunction(()=>window.pirateOceanSnapshot?.().contacts.length===2);
+  const live=await water.evaluate(()=>window.pirateOceanSnapshot());
+  assert.equal(live.settings.swellAmp,1.12);assert.equal(live.settings.rock,0);assert.equal(live.settings.splashSize,.8);
+  assert.ok(live.contacts.every(c=>c.pose.roll===0&&c.foamLook===0));
+  await page.reload();await settings();await page.locator('[data-action=water-open]').click();await expect(page.locator('[data-action=water-save]')).toBeEnabled();
+  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(300);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:'test-results/water-workshop-portrait.png',fullPage:true});
+  assert.deepEqual(errors,[]);
+  const report={passed:true,controls,errors,checks:['all prototype controls plus advanced swell','named look persistence','copy fallback and JSON import roundtrip','invalid import preserves library','saved look selected in battle','zero rocking and foam look respected','portrait layout']};
+  fs.writeFileSync('test-results/water-workshop-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});

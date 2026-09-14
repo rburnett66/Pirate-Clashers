@@ -37,6 +37,7 @@
   if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}
   if(d.action==='hit'){archetype=ARCHETYPES.find(a=>a.id===d.weapon)||ARCHETYPES[0];fire(d.x??0,d.y??0);}
   if(d.action==='fire')stations.filter(st=>st.gunner===d.gunner).forEach(st=>fireStation(st));
+  if(d.action==='ocean'&&d.surface?.length===32&&d.foam?.length===32&&d.surface.every(Number.isFinite)&&d.foam.every(Number.isFinite)){gameSurface.set(d.surface);gameFoam.set(d.foam);if(Number.isFinite(d.look))gameFoamLook=Math.max(0,Math.min(2.5,d.look));}
   if(d.action==='scope'){scopeOn=!!d.on;updateScopeLabels();}
  });
  setInterval(drawPortraits,100);

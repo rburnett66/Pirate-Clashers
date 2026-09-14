@@ -1,3 +1,4 @@
+import {waterLibrary} from './ocean-settings.js';
 import {chipHull,maskPixels} from './hull-mask.js';
 import {ensureGeometry,trajectory,projectileFor,rigLayout,traceProjectile,muzzle,parabolicPath} from './ballistics.js';
 export {projectileFor} from './ballistics.js';
@@ -26,13 +27,14 @@ if(!int(s.port,14)||!s.visited.every(n=>int(n,14))||!s.moves.every(n=>int(n,5))|
 if(s.chests.length>5||new Set(s.chests.map(c=>c.id)).size!==s.chests.length||s.chests.some(c=>!obj(c)||typeof c.id!=='string'||!E.CHESTS[c.kind]||!int(c.seed,4294967295)))bad();
 if(s.claims.some(k=>typeof k!=='string'||!/^([1-9]|[1-4][0-9]|50):(true|false)$/.test(k)))bad();
 if(!bool(s.premium)||!bool(s.onboarded)||!obj(s.quests)||!obj(s.settings)||!bool(s.settings.sound)||!bool(s.settings.motion)||!int(s.quests.matches)||!int(s.quests.wins)||!bool(s.quests.dailyClaim)||!bool(s.quests.weeklyClaim))bad();
+s.settings.water=waterLibrary(s.settings.water);
 if(!['bare','hardwood','iron'].includes(s.plating)||!['plain','heavy','storm'].includes(s.canvas)||!num(s.durability,100)||!obj(s.enh)||!obj(s.figureheads)||!obj(s.deals)||!obj(s.declined))bad();
 if(Object.entries(s.enh).some(([k,v])=>!E.ENHANCEMENTS[k]||!int(v,5))||Object.entries(s.figureheads).some(([k,v])=>!E.FIGUREHEADS[k]||!int(v,4))||(s.figurehead!==null&&!s.figureheads[s.figurehead]))bad();
 for(const k of ['week','day'])if(typeof s[k]!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s[k]))bad();
 if(s.bench!==null&&(!obj(s.bench)||!s.levels[s.bench.id]||s.levels[s.bench.id]>=12||!int(s.bench.ends)))bad();
 const partsOK=(parts,n)=>Array.isArray(parts)&&parts.length===n&&parts.every(p=>obj(p)&&num(p.hp)&&num(p.maxHp)&&p.maxHp>0&&p.hp<=p.maxHp);
 const maskOK=f=>{try{return !f.hullMask||!!maskPixels(f);}catch{return false;}};
-const fighterOK=f=>obj(f)&&maskOK(f)&&(!f.hullParts||(num(f.x,12)&&LADDER[f.shipLevel]&&partsOK(f.hullParts,f.shipLevel)&&partsOK(f.mastParts,3)&&partsOK(f.sailParts,8)))&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
+const fighterOK=f=>obj(f)&&(!f.pose||(obj(f.pose)&&Number.isFinite(f.pose.heave)&&Math.abs(f.pose.heave)<=.4&&Number.isFinite(f.pose.roll)&&Math.abs(f.pose.roll)<=.27))&&maskOK(f)&&(!f.hullParts||(num(f.x,12)&&LADDER[f.shipLevel]&&partsOK(f.hullParts,f.shipLevel)&&partsOK(f.mastParts,3)&&partsOK(f.sailParts,8)))&&num(f.hull)&&num(f.maxHull)&&f.maxHull>0&&f.hull<=f.maxHull&&num(f.sails,100)&&num(f.durability,100)&&Array.isArray(f.crew)&&f.crew.length<=8&&f.crew.every(g=>obj(g)&&PIRATES.some(p=>p.id===g.id)&&num(g.hp)&&int(g.level,12)&&g.level>0&&/^[dh][0-3]$/.test(g.slot))&&obj(f.enh);
 if(s.battle!==null){const b=s.battle;if(!obj(b)||!['player','enemy','flight','result'].includes(b.phase)||!fighterOK(b.player)||!fighterOK(b.enemy)||!int(b.rng,4294967295)||!int(b.turn,25)||!int(b.shots,2)||!Array.isArray(b.events)||!Array.isArray(b.log)||!bool(b.rewarded)||!bool(b.charged)||!bool(b.used))bad();}
 if(s.battle?.phase==='flight'&&(!s.battle.pending||!['player','enemy'].includes(s.battle.pending.side)||!num(s.battle.pending.angle,75)||s.battle.pending.angle<5||!s.battle[s.battle.pending.side]?.crew.some(g=>g.id===s.battle.pending.gunner&&g.hp>0)))bad();
 

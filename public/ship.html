@@ -304,6 +304,10 @@ float band(float v, float a, float b, float aa) {
   return smoothstep(a - aa, a + aa, v) * (1.0 - smoothstep(b - aa, b + aa, v));
 }
 
+uniform float uFoamLook;
+uniform float uOceanSurface[32];
+uniform float uOceanFoam[32];
+float oceanAt(float x,bool foam){float q=clamp((x+1.35)/2.7*31.0,0.0,31.0);int a=int(floor(q)),b=min(31,a+1);return foam?mix(uOceanFoam[a],uOceanFoam[b],fract(q)):mix(uOceanSurface[a],uOceanSurface[b],fract(q));}
 uniform sampler2D uMaterial;
 uniform vec4 uMaterialBounds;
 float materialAt(vec2 p){
@@ -393,6 +397,10 @@ uniform vec3 uPlank, uPlankDark, uTrim, uOutline, uChar;
 out vec4 outColor;
 
 
+uniform float uFoamLook;
+uniform float uOceanSurface[32];
+uniform float uOceanFoam[32];
+float oceanAt(float x,bool foam){float q=clamp((x+1.35)/2.7*31.0,0.0,31.0);int a=int(floor(q)),b=min(31,a+1);return foam?mix(uOceanFoam[a],uOceanFoam[b],fract(q)):mix(uOceanSurface[a],uOceanSurface[b],fract(q));}
 uniform sampler2D uMaterial;
 uniform vec4 uMaterialBounds;
 float materialAt(vec2 p){
@@ -465,14 +473,14 @@ void main() {
 
   // Climbing foam / wet wood adapted from the supplied ocean prototype.
   float x=p.x, ax=abs(x);
-  float waterY=-0.29+0.025*sin(x*8.0+uTime*1.4);
+  float waterY=oceanAt(x,false);
   float dy=(p.y-waterY)/uUnit;
-  float foamHere=0.3+0.2*sin(x*12.0-uTime*1.7);
+  float foamHere=max(0.18,oceanAt(x,true));
   float climb=smoothstep(0.35,1.0,ax)*(x>0.0?1.4:0.6);
   float torn=0.65+0.7*fbm(vec2(x*17.0,uTime*1.4));
-  float foamH=(3.0+(5.0+16.0*foamHere)*(0.6+1.6*climb))*torn*0.36;
+  float foamH=uFoamLook*max(2.5,(3.0+(5.0+16.0*foamHere)*(0.6+1.6*climb))*torn*0.55);
   float band=clamp(foamH-dy+0.5,0.0,1.0)*clamp(dy+1.5,0.0,1.0);
-  float foamA=band*smoothstep(-aa,aa,inside);
+  float foamA=band*min(1.0,uFoamLook*10.0)*smoothstep(-aa,aa,inside);
   vec3 foamCol=mix(vec3(0.87,0.97,0.95),vec3(0.40,0.70,0.73),clamp(1.0-dy/max(foamH,1.0),0.0,1.0)*0.45);
   float bubble=step(0.76,fbm(vec2(x*180.0,dy*2.0+uTime)));
   foamCol=mix(foamCol,vec3(0.32,0.63,0.67),bubble*0.7);
@@ -1115,6 +1123,8 @@ import {paintShipInterior} from "/src/ship-interior.js";
   if (!gl) { fatal('This prototype needs WebGL2. Open it in a current Chrome, Safari, Firefox or Edge.'); return; }
 
 
+const gameSurface=new Float32Array(32).fill(-.29),gameFoam=new Float32Array(32).fill(.3);
+let gameFoamLook=1;
 let lastMaterialBits=null;
 const gameMaterialTexture=gl.createTexture();
 function uploadMaterial(f){
@@ -1550,7 +1560,7 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
       const L = innerProg.loc;
       gl.useProgram(innerProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
+      if(L.uOceanSurface){gl.uniform1fv(L.uOceanSurface,gameSurface);gl.uniform1fv(L.uOceanFoam,gameFoam);if(L.uFoamLook)gl.uniform1f(L.uFoamLook,gameFoamLook);}if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform4fv(L.uCrew, crewBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1564,7 +1574,7 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
       const L = hullProg.loc;
       gl.useProgram(hullProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
+      if(L.uOceanSurface){gl.uniform1fv(L.uOceanSurface,gameSurface);gl.uniform1fv(L.uOceanFoam,gameFoam);if(L.uFoamLook)gl.uniform1f(L.uFoamLook,gameFoamLook);}if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       gl.uniform1i(L.uMask, 0);
       gl.uniform4fv(L.uStations, stationBuf);
       gl.uniform1i(L.uStationCount, stations.length);
@@ -1591,7 +1601,7 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
       const L = fxProg.loc;
       gl.useProgram(fxProg.p);
       setCam(L, QUAD_HULL);
-      if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
+      if(L.uOceanSurface){gl.uniform1fv(L.uOceanSurface,gameSurface);gl.uniform1fv(L.uOceanFoam,gameFoam);if(L.uFoamLook)gl.uniform1f(L.uFoamLook,gameFoamLook);}if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}
       if (fxDirty) {
         gl.uniform4fv(L.uHits, hitBuf);
         gl.uniform4fv(L.uHitPts, hitPtBuf);
@@ -1859,6 +1869,7 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
   if(d.action==='sync'){gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);}
   if(d.action==='hit'){archetype=ARCHETYPES.find(a=>a.id===d.weapon)||ARCHETYPES[0];fire(d.x??0,d.y??0);}
   if(d.action==='fire')stations.filter(st=>st.gunner===d.gunner).forEach(st=>fireStation(st));
+  if(d.action==='ocean'&&d.surface?.length===32&&d.foam?.length===32&&d.surface.every(Number.isFinite)&&d.foam.every(Number.isFinite)){gameSurface.set(d.surface);gameFoam.set(d.foam);if(Number.isFinite(d.look))gameFoamLook=Math.max(0,Math.min(2.5,d.look));}
   if(d.action==='scope'){scopeOn=!!d.on;updateScopeLabels();}
  });
  setInterval(drawPortraits,100);

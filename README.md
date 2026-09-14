@@ -15,7 +15,7 @@ The server binds only to this computer. Opening index.html directly does not sup
 3. Land both shots four turns running to charge your selected finishing move. Finishing moves have skip controls and shorter repeat presentations.
 4. Wins earn a chest and gold; losses earn one-third gold and may offer one rematch. Open chests, collect specific crew cards, and upgrade at the gunsmith.
 5. Ship upgrades use materials. Equipment includes individual hull sections, canvas, repairs, permanent enhancements, figureheads and sail emblems.
-6. Leaders shows local seeded boards, grouped Europe → Americas → Africa / India → Asia → Pacific. Booty contains free/preview reward tracks. Settings provides sound, reduced motion and save export/import.
+6. Leaders shows local seeded boards, grouped Europe → Americas → Africa / India → Asia → Pacific. Booty contains free/preview reward tracks. Settings provides sound, reduced motion, save export/import and Water Workshop. Tune the water, copy/paste settings, save named looks and choose your battle look.
 
 ## Validation
 ```
@@ -23,6 +23,8 @@ npm ci
 npm run build
 npm run check
 npm test
+node scripts/browser-workshop.cjs
+node scripts/browser-ocean.cjs
 node scripts/browser-hull-mask.cjs
 node scripts/browser-combat.cjs
 node scripts/browser-acceptance.cjs

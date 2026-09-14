@@ -1,3 +1,4 @@
+import {shipToWorld,worldToShip} from './ship-pose.js';
 import {ensureHullMask,maskSolid,maskSampleTimes} from './hull-mask.js';
 export {hullInside} from './hull-mask.js';
 // Combat coordinates match the supplied hull and rig prototype (one ship ~2.4 units wide).
@@ -27,7 +28,7 @@ export function stationPosition(f,slot){
 }
 export function muzzle(f,side,g){
  const st=stationPosition(f,g.slot),dir=facing(side);
- return {x:f.x+dir*(st.x+.17),y:st.y+.23};
+ return shipToWorld(f,dir,{x:st.x+.17,y:st.y+.23});
 }
 export function projectileFor(p){
  const mast=[10,16,26].includes(p.id),bonus=mast?'masts':p.primary;
@@ -35,7 +36,7 @@ export function projectileFor(p){
  return {name:p.projectile,type,bonus,icon:p.icon,count:type==='grape'?7:1,color:{iron:'#26343f',grape:'#32323c',fire:'#ff831b',chain:'#bac6cc',bolt:'#dfd4ae',element:'#73dfef',bullet:'#f1c769'}[type],effect:type==='fire'?'fire':type==='grape'?'grape':type==='chain'?'chain':type==='bolt'?'rail':'roundshot'};
 }
 export function collisionAt(f,side,point){
- const x=(point.x-f.x)*facing(side),y=point.y;if(x < -1.2 || x > 1.4 || y > 2.4 || y < -.57)return null;const rig=rigLayout();
+ const {x,y}=worldToShip(f,facing(side),point);if(x < -1.2 || x > 1.4 || y > 2.4 || y < -.57)return null;const rig=rigLayout();
  // Crew are separate sprites. Remaining hull texels occlude port crew; empty texels are open.
  const section=clamp(Math.floor((x+1.08)/2.44*f.hullParts.length),0,f.hullParts.length-1);
  const hull=maskSolid(f,x,y);
