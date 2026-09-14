@@ -20,6 +20,8 @@ module.exports=function combatRenderer(hull){
  hull=hull.replaceAll('setCam(L, QUAD_HULL);','setCam(L, QUAD_HULL);\n      if(L.uOceanSurface){gl.uniform1fv(L.uOceanSurface,gameSurface);gl.uniform1fv(L.uOceanFoam,gameFoam);if(L.uFoamLook)gl.uniform1f(L.uFoamLook,gameFoamLook);}if(L.uMaterial){gl.uniform1i(L.uMaterial,2);gl.uniform4f(L.uMaterialBounds,HULL_MASK.left,HULL_MASK.bottom,HULL_MASK.spanX,HULL_MASK.spanY);}');
  hull=hull.replace(/    \{\s+const L = crewProg\.loc;[\s\S]*?gl\.drawArrays\(gl\.TRIANGLES, 0, 6\);\s+\}/,'    // Supplied crew sprites have their own health; port crew render behind the masked hull.');
  hull=hull.replace('applyRigDamage(pts, a);','// Rig health comes from game model.').replace('applyCrewDamage(pts);','// Crew health comes from game model.');
+ hull=hull.replace('if (showInner) {','if (showInner && !gameCutaway) {').replace('{\n      const L = hullProg.loc;','if (!gameCutaway) {\n      const L = hullProg.loc;');
+ hull=hull.replace('float r = uDebrisSize *','float r = 2.0 * uDebrisSize *');
  hull=hull.replace(':not(#pirateMark)',':not(#pirateMark):not(#gameCrew):not(#gamePorts)');
  return hull.replace(/[ \t]+$/gm,'');
 };

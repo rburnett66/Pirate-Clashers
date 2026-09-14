@@ -1,0 +1,52 @@
+const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'),fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')));
+ async function seed(kind){await page.evaluate(async kind=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;s.settings.sound=false;
+  if(kind){const b=M.startBattle(s);s.moves=[0,3,5];s.move=kind==='gulls'?5:3;b.charged=true;
+   if(kind==='destroy'){b.enemy.hullParts.forEach(p=>p.hp=0);b.enemy.hull=0;delete b.enemy.hullMask;b.enemy.sailParts.forEach((p,i)=>p.hp=i===0?1:0);b.enemy.sails=100/280;b.enemy.mastParts.forEach((p,i)=>p.hp=i===0?1:0);}
+  }localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));},kind);await page.reload();}
+ await page.goto('http://127.0.0.1:4173');await seed();await page.locator('[data-action=start]').click();
+ assert.equal(await page.locator('.match-team').count(),2);assert.equal(await page.locator('.match-crew .framed-portrait').count(),6);
+ await page.waitForTimeout(1100);await page.screenshot({path:'test-results/battle-polish-intro.png'});await page.locator('[data-action=begin-battle]').click();
+ await page.waitForTimeout(600);assert.equal(await page.locator('[data-preview]').count(),0);assert.equal(await page.locator('#combatField').getAttribute('data-view'),'crew');assert.ok(await page.locator('[data-action=fire]').isDisabled());
+ await page.locator('[data-action=sail][data-id="1"]').click();await page.locator('[data-action=sail][data-id="-1"]').click();assert.equal((await state()).battle.movesLeft,0);
+ await page.locator('[data-action=scope]').click();await page.waitForTimeout(550);assert.equal(await page.locator('#combatField').getAttribute('data-view'),'wide');await page.screenshot({path:'test-results/battle-polish-overview.png'});
+ await page.locator('#guns [data-action=gun]').first().click();await page.waitForTimeout(550);
+ const playerFrame=()=>page.frames().find(f=>f.url().endsWith('ship.html?side=player'));
+ assert.equal(await playerFrame().locator('[data-pedestal]').count(),1);assert.equal(await page.locator('#aimArc circle').count(),9);
+ const field=await page.locator('#combatField').boundingBox(),x=field.width*.7,y=field.y+field.height*.35;
+ const beforeCancel=(await state()).battle.shots;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+70,y+35,{steps:5});await page.mouse.up();
+ assert.equal(await page.locator('#combatField').getAttribute('data-selected'),'');assert.equal((await state()).battle.shots,beforeCancel);
+ await page.locator('#guns [data-action=gun]').first().click();await page.waitForTimeout(550);
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x-90,y+48,{steps:7});await page.mouse.up();
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='flight');
+ assert.ok(await page.locator('[data-action=fire]').isDisabled());assert.ok(await page.locator('#flyingShots circle').count()>0);
+ await page.screenshot({path:'test-results/battle-polish-flight.png'});
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player',null,{timeout:15000});
+ assert.equal((await state()).battle.events.length,1);assert.equal(await page.locator('#combatField').getAttribute('data-selected'),'');
+ await page.locator('#guns [data-action=gun]').first().click();await page.locator('#aimAngle').fill('25');await page.locator('[data-action=fire]').click();
+ await page.waitForFunction(()=>{const b=JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle;return b.phase==='player'&&b.turn===2;},null,{timeout:25000});
+ assert.equal((await state()).battle.events.length,4);
+ await page.locator('#guns [data-action=gun]').first().click();await page.locator('#aimAngle').fill('75');await page.waitForTimeout(500);
+ assert.ok(await page.locator('#aimArc circle').evaluateAll(nodes=>nodes.every(n=>Number(n.getAttribute('cy'))>=0)));
+ await page.locator('#aimAngle').fill('35');await page.locator('[data-action=fire]').click();await page.waitForTimeout(150);await page.reload();await page.locator('[data-action=start]').click();
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player',null,{timeout:15000});assert.equal((await state()).battle.events.length,5);
+ for(const [name,width,height] of [['desktop',1440,900],['phone-landscape',932,430],['small-landscape',667,375],['phone-portrait',390,844]]){
+  await page.setViewportSize({width,height});await page.waitForTimeout(650);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'no page scrolling: '+name);
+  for(const control of await page.locator('[data-action=fire],[data-action=finisher],[data-action=retreat],[data-action=sail],[data-action=scope]').all()){const r=await control.boundingBox();assert.ok(r&&r.x>=0&&r.y>=0&&r.x+r.width<=width+1&&r.y+r.height<=height+1,name+' '+await control.getAttribute('data-action')+' '+JSON.stringify(r));}
+  await page.screenshot({path:'test-results/battle-polish-'+name+'.png'});
+ }
+ await page.setViewportSize({width:932,height:430});await seed('gulls');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);await page.locator('[data-action=finisher]').click();
+ await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('GULLS'));assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'laugh');
+ await page.waitForTimeout(1300);
+ await seed('destroy');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);await page.locator('[data-action=finisher]').click();
+ await page.waitForSelector('#powderBlast:not([hidden])',{timeout:7000});await page.screenshot({path:'test-results/battle-polish-explosion.png'});
+ await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('VICTORY'),null,{timeout:5000});
+ assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'victory');await page.screenshot({path:'test-results/battle-polish-celebration.png'});
+ await page.waitForSelector('#sheet[open] .result-title',{timeout:5000});const result=(await state()).lastResult;assert.equal(result.won,true);assert.equal(result.lootBonus,0);
+ assert.deepEqual(errors,[]);fs.writeFileSync('test-results/battle-polish-report.json',JSON.stringify({passed:true,errors,checks:['match introduction','preview cleanup','gunner selection','gold pedestal','water movement','telescope','short dot arc','drag cancellation','drag release fire','enemy turn','landscape and portrait viewport controls','seagull reaction','powder explosion','victory celebration','destruction reward']},null,2));
+ console.log('Battle polish browser checks passed.');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});

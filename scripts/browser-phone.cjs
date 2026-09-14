@@ -16,6 +16,7 @@ const base=process.argv[2];if(!base)throw Error('Pass the URL printed by npm run
  assert.match(await page.locator('#waterStatus').innerText(),/Saved/);
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).settings.water.presets.some(p=>p.name==='Phone test sea')));
  await page.locator('#rail [data-id=battle]').tap();await page.locator('[data-action=start]').tap();
+ await page.locator('[data-action=begin-battle]').tap();await page.locator('#guns [data-action=gun]').first().tap();
  await page.waitForSelector('#aimAngle');await page.locator('#aimAngle').fill('30');assert.equal(await page.locator('#angleValue').innerText(),'30°');
  await page.locator('[data-action=retreat]').tap();await page.locator('[data-action=confirm-retreat]').tap();assert.match(await page.locator('.result-title').innerText(),/OUTGUNNED/);
  assert.deepEqual(errors,[]);console.log('LAN runtime routes and exclusions pass; mobile HTTP browser loads, saves a water preset and completes the battle/retreat flow.');

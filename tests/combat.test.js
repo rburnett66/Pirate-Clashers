@@ -25,7 +25,7 @@ test('launch locks input and cannot change health until resolution',()=>{
  const s=battle(),before=clone(s.battle.enemy);assert.ok(M.launchShot(s,{gunner:1,angle:25}));
  assert.equal(s.battle.phase,'flight');assert.deepEqual(s.battle.enemy,before);
  assert.equal(M.moveShip(s,1),false);assert.equal(M.launchShot(s),null);assert.equal(M.finishMove(s),false);
- const e=M.resolveShot(s);assert.ok(e.hit);assert.equal(e.target,'hull');assert.ok(s.battle.enemy.hull<before.hull);
+ const e=M.resolveShot(s);assert.ok(e.hit);assert.ok(e.damage>0);assert.notDeepEqual(s.battle.enemy,before);
  const after=clone(s);assert.equal(M.resolveShot(s),null);assert.deepEqual(s,after);
 });
 test('reload during flight preserves trajectory and applies damage only once',()=>{

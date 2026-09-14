@@ -11,6 +11,7 @@ const base=process.argv[2]||'http://127.0.0.1:4173';
  const fullscreen=page.locator('#topbar [data-action=fullscreen]');
  await fullscreen.click();await page.waitForFunction(()=>!!document.fullscreenElement);assert.equal(await fullscreen.getAttribute('aria-label'),'Exit full screen');
  await page.locator('[data-action=start]').click();await page.waitForSelector('#aimAngle');
+ await page.locator('[data-action=begin-battle]').click();await page.locator('#guns [data-action=gun]').first().click();
  await page.locator('#aimAngle').fill('30');await page.evaluate(()=>window.originalShip=document.querySelector('#playerShip'));
  await page.locator('.battle-top [data-action=fullscreen]').click();await page.waitForFunction(()=>!document.fullscreenElement);
  assert.ok(await page.evaluate(()=>window.originalShip===document.querySelector('#playerShip')),'Fullscreen exit preserves the live renderer');assert.equal(await page.locator('#aimAngle').inputValue(),'30');

@@ -24,11 +24,11 @@ export function ensureGeometry(f,side){
 export function stationPosition(f,slot){
  const [deck,ports]=SHIP_LADDER[f.shipLevel]||SHIP_LADDER[3],port=slot[0]==='h',n=port?ports:deck,i=Number(slot[1]);
  const x=n<=1?0:(i/(n-1)-.5)*1.45,foot=port?-.175:.34*(1+.42*x*x);
- return {x,y:foot,port,width:.32,height:.44};
+ return {x,y:foot,port,width:.32*1.3,height:.44*1.3};
 }
 export function muzzle(f,side,g){
  const st=stationPosition(f,g.slot),dir=facing(side);
- return shipToWorld(f,dir,{x:st.x+.17,y:st.y+.23});
+ return shipToWorld(f,dir,{x:st.x+.17*1.3,y:st.y+.23*1.3});
 }
 export function projectileFor(p){
  const mast=[10,16,26].includes(p.id),bonus=mast?'masts':p.primary;
