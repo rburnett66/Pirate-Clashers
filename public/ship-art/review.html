@@ -10,7 +10,7 @@
 <details><summary>Hull cutouts with original rigging</summary><div class="grid" id="hulls"></div></details>
 <details><summary>Sail sets</summary><div class="grid" id="sails"></div></details>
 <details><summary>Individual flags</summary><div class="grid" id="flags"></div></details>
-<p>The assembled ship above previews the modular art kit. Gameplay still uses its existing renderer. The full hull cutouts retain the original rigging; the assembly uses hull bodies and the shared gold masts.</p></main>
+<p>The assembled ship above previews the modular art kit. Selected designs now appear in combat, match introductions, Crew and Shipyard. The full hull cutouts retain the original rigging; the assembly uses hull bodies and the shared gold masts.</p></main>
 <script type="module">
 const data=await(await fetch('manifest.json')).json(),$=id=>document.getElementById(id),cache=new Map(),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
 const picture=path=>{if(!cache.has(path))cache.set(path,new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=path;}));return cache.get(path)};

@@ -44,3 +44,14 @@ The battle-polish suite covers the introduction, selection, pedestal, movement, 
 Selecting a gunner immediately starts the move to the wide view. After impact, the camera remains on the target and does not automatically return to the crew. Both player and enemy hits have a 3-second damage-view hold; final destruction has a 5-second hold before the victory celebration. These values are centralized in `COMBAT_TIMING` in `src/combat-view.js` for tuning. The turn clock and combat inputs remain paused during the hold. The defending ship's exterior stays visible through the entire shot and hold, including when the model has already advanced to the next turn; the player's interior returns only for their gunner-selection turn. `node scripts/browser-camera-hold.cjs` verifies the timing, camera persistence, paused clock and defender visibility.
 
 Enemy firing revision: both hulls remain closed throughout enemy flight and the impact hold. Only the player's selection phase opens the player interior; the battle-end celebration remains a separate crew view.
+
+
+## Supplied ship art integration
+
+Combat and match previews now use the deterministic hull cutouts, shared x-ray masts, sail cloth and pirate flags. Crew and Shipyard use the same renderer; the existing six sail purchases show and equip their supplied designs. Hull levels choose exterior designs, with the iron-plating appearance retained. Artwork scales uniformly and each mast carries its attached cloth and flag when destroyed.
+
+The supplied x-ray interior is clipped behind the hull. Crew stations, muzzles, cloth collision zones and the hull mask follow the artwork. Hold crew are additionally clipped to the hull footprint, preventing portraits above the closed deck. Enemy firing keeps both hulls closed, and the 3/5-second impact holds remain unchanged.
+
+Version-one saved hull masks migrate to the artwork silhouette while preserving remaining health per section; old breach locations are reconstructed. Cosmetic hull designs share the canonical collision footprint and supplied decorative cannons do not create additional weapons. See `public/ship-art/README.md` for asset processing and rebuild details.
+
+Additional validation: `node scripts/browser-ship-art.cjs` covers the six sail styles, upgraded hull, torn cloth, attached mast destruction and reversible interior reveal. `node scripts/browser-hull-mask.cjs` checks visible art breaches against the saved collision mask. Unit coverage includes a real version-one damaged-mask fixture and its migration.

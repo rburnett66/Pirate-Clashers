@@ -17,9 +17,9 @@ test('rocking and mirroring preserve local hull and crew coordinates',()=>{
 test('rocked hull pixels and exposed crew collide at their rendered positions',()=>{
  for(const side of ['player','enemy']){
   const f=battle().battle[side],dir=facing(side);f.pose={heave:.09,roll:-.07};
-  const wood=shipToWorld(f,dir,{x:.65,y:-.25}),crew=shipToWorld(f,dir,{x:-.07,y:.06});
+  const wood=shipToWorld(f,dir,{x:.65,y:-.25}),crew=shipToWorld(f,dir,{x:-.07,y:-.3});
   assert.equal(collisionAt(f,side,wood).kind,'hull');assert.equal(collisionAt(f,side,crew).kind,'hull');
-  H.chipHull(f,.65,-.25,8);H.chipHull(f,-.07,.06,8);
+  H.chipHull(f,.65,-.25,8);H.chipHull(f,-.07,-.3,8);
   assert.equal(collisionAt(f,side,wood),null);assert.equal(collisionAt(f,side,crew).kind,'crew');
  }
 });

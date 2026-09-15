@@ -53,9 +53,9 @@ test('a blast chips the first collision and the next shot reaches deeper wood',(
  assert.ok(next.path.at(-1).x>first.path.at(-1).x);
 });
 test('intact planking covers port crew and a pixel hole exposes them',()=>{
- const f=battle().battle.enemy,point={x:f.x,y:0};
+ const f=battle().battle.enemy,point={x:f.x+.07,y:-.3};
  assert.equal(collisionAt(f,'enemy',point).kind,'hull');
- chipHull(f,0,0,8);assert.equal(collisionAt(f,'enemy',point).kind,'crew');
+ chipHull(f,-.07,-.3,8);assert.equal(collisionAt(f,'enemy',point).kind,'crew');
 });
 test('every projectile has exactly one specialty and does less damage off specialty',()=>{
  for(const p of M.PIRATES){const spec=M.projectileFor(p);assert.ok(['hull','crew','sails','masts'].includes(spec.bonus));assert.equal(typeof spec.bonus,'string');}

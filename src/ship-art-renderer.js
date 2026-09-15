@@ -1,0 +1,71 @@
+import {HULL_MASK,maskPixels} from './hull-mask.js';
+import {SHIP_ART,shipAppearance,MAST_MOUNTS,clothPlacement,worldToArt,artRig} from './ship-art-layout.js';
+
+const images=new Map(),image=path=>{if(!images.has(path))images.set(path,new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Ship artwork failed to load: '+path));img.src='/public/ship-art/'+path;}));return images.get(path);};
+const surface=(w=1792,h=1008)=>Object.assign(document.createElement('canvas'),{width:w,height:h});
+const initial=maskPixels({}),C=HULL_MASK,rig=artRig();
+function bitmap(pixels){const c=surface(C.width,C.height),ctx=c.getContext('2d'),data=ctx.createImageData(C.width,C.height);for(let y=0;y<C.height;y++)for(let x=0;x<C.width;x++){const i=(y*C.width+x)*4;data.data[i+3]=pixels[(C.height-1-y)*C.width+x];}ctx.putImageData(data,0,0);return c;}
+const inside=initial.slice();
+for(let y=2;y<C.height-2;y++)for(let x=2;x<C.width-2;x++){const i=y*C.width+x;if(!initial[i])continue;for(const [dx,dy] of [[-2,0],[2,0],[0,-2],[0,2]])if(!initial[i+dy*C.width+dx]){inside[i]=0;break;}}
+const opening=bitmap(inside),maskOrigin=worldToArt({x:C.left,y:C.bottom+C.spanY});
+const drawMask=(ctx,mask)=>ctx.drawImage(mask,maskOrigin[0],maskOrigin[1],C.spanX*480,C.spanY*480);
+function layer(id,z){const c=surface();c.id=id;c.setAttribute('aria-hidden','true');c.style.cssText=`position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:${z}`;document.body.append(c);return c;}
+
+export class ShipArtRenderer{
+ constructor(interior){this.interior=interior;this.rig=layer('gameRigArt',0);this.hull=layer('gameHullArt',3);this.canvases=[this.rig,interior,this.hull];this.body=surface();this.inside=surface();this.groups=[];this.ready=false;this.revision=0;this.fallen=[null,null,null];this.cutaway=false;this.hideRig=false;this.motion=true;this.parts=null;}
+ async configure(d,side){
+  const request=(this.request||0)+1;this.request=request;this.motion=d.motion!==false;this.preview=!!d.preview;this.setView(d);this.appearance=shipAppearance(d.level,d.cosmetic,side,d.parts?.plating??d.plating);this.setParts(d.parts,true);
+  const a=this.appearance;
+  try{const loaded=await Promise.all([image(a.hull.body.right),image('bodies/xray-hull-right.png'),...SHIP_ART.masts.map(m=>image(m.images.right)),...a.sails.sails.map(s=>image(s.cloth)),image(a.flag.image)]);if(request!==this.request)return;
+   [this.skin,this.xray]=loaded;this.masts=loaded.slice(2,5);this.cloth=loaded.slice(5,8);this.flag=loaded[8];this.ready=true;this.rebuild();document.body.dataset.shipArt='ready';document.body.dataset.hullArt=a.hull.id;document.body.dataset.sailArt=a.sails.id;
+  }catch(error){document.body.dataset.shipArt='error';console.error(error);}
+ }
+ setView(d){const cutaway=!!d.cutaway,hideRig=!!d.hideRig;document.body.dataset.cutaway=String(cutaway);if(cutaway===this.cutaway&&hideRig===this.hideRig)return;if(cutaway!==this.cutaway){this.cutaway=cutaway;if(this.ready)this.buildBody();}this.hideRig=hideRig;this.revision++;}
+ setParts(f,reset=false){
+  if(!f){this.parts=null;this.fallen=[null,null,null];return;}
+  const key=f.hullMask?.bits+'|'+f.sailParts?.map(p=>p.hp).join(',')+'|'+f.mastParts?.map(p=>p.hp).join(',');
+  if(!reset&&key===this.partsKey)return;this.partsKey=key;this.parts=f;
+  this.fallen=f.mastParts?.map((p,i)=>p.hp>0?null:reset?-Infinity:this.fallen[i]??performance.now()/1000)||[null,null,null];
+  if(this.ready)this.rebuild();
+ }
+ rebuild(){this.buildBody();this.buildRig();this.revision++;}
+ buildBody(){
+  const ctx=this.body.getContext('2d');ctx.clearRect(0,0,1792,1008);ctx.drawImage(this.skin,0,0);
+  ctx.globalCompositeOperation='destination-out';
+  if(this.cutaway)drawMask(ctx,opening);
+  if(this.parts){const current=maskPixels(this.parts),holes=initial.map((p,i)=>p&&!current[i]?255:0);drawMask(ctx,bitmap(holes));}
+  ctx.globalCompositeOperation='source-over';
+  const inner=this.inside.getContext('2d');inner.clearRect(0,0,1792,1008);inner.drawImage(this.skin,0,0);inner.globalCompositeOperation='source-in';inner.fillStyle='#302014';inner.fillRect(0,0,1792,1008);inner.globalCompositeOperation='source-atop';inner.drawImage(this.xray,0,0);inner.globalCompositeOperation='source-over';this.revision++;
+ }
+ buildRig(){
+  this.groups=SHIP_ART.masts.map((m,i)=>{
+   const group=surface(),ctx=group.getContext('2d'),dx=MAST_MOUNTS[i][0]-m.pivot[0],dy=MAST_MOUNTS[i][1]-m.pivot[1];ctx.drawImage(this.masts[i],dx,dy);
+   const cloth=surface(),cc=cloth.getContext('2d'),part=this.appearance.sails.sails[i],place=clothPlacement(i,part);
+   cc.translate(...place.origin);cc.rotate(place.angle);cc.scale(place.scale,place.scale);cc.drawImage(this.cloth[i],0,0);cc.setTransform(1,0,0,1,0,0);
+   rig.sails.forEach((s,j)=>{if(s.mast!==i)return;const health=this.parts?.sailParts?.[j],damage=health?1-health.hp/health.maxHp:0;if(damage<=0)return;
+    const [x,y]=worldToArt({x:s.x-s.halfW,y:s.y+s.halfH}),w=s.halfW*960,h=s.halfH*960;
+    cc.save();cc.beginPath();cc.rect(x,y,w,h);cc.clip();
+    if(damage>=.999){cc.clearRect(x-2,y-2,w+4,h+4);}else{
+     for(let k=0;k<3;k++){const cx=x+w*(.2+.3*k),cy=y+h*(.25+((j+k)%3)*.23),r=Math.sqrt(w*h*damage/(3*Math.PI))*.9;cc.globalCompositeOperation='source-atop';cc.fillStyle='#27180be6';cc.beginPath();cc.ellipse(cx,cy,r+4,(r+4)*.7,k*.8,0,Math.PI*2);cc.fill();cc.globalCompositeOperation='destination-out';cc.beginPath();cc.ellipse(cx,cy,r,r*.7,k*.8,0,Math.PI*2);cc.fill();}
+    }cc.restore();cc.globalCompositeOperation='source-over';
+   });ctx.drawImage(cloth,0,0);
+   const scale=125/this.flag.width;ctx.drawImage(this.flag,m.flagAnchor[0]+dx-9,m.flagAnchor[1]+dy-45,this.flag.width*scale,this.flag.height*scale);return group;
+  });this.revision++;
+ }
+ paint(cam,canvas,now,ocean,foam){
+  if(!this.ready)return;
+  const clock=performance.now()/1000,falling=this.fallen.some(t=>t!==null&&clock-t<1.25),key=[canvas.width,canvas.height,cam.ppu,cam.x,cam.y,this.revision,this.hideRig,falling?Math.floor(clock*30):0].join(':');
+  for(const c of this.canvases)if(c.width!==canvas.width||c.height!==canvas.height){c.width=canvas.width;c.height=canvas.height;}
+  const transform=ctx=>ctx.setTransform(cam.ppu/480,0,0,cam.ppu/480,canvas.width/2-(cam.x+810/480)*cam.ppu,canvas.height/2+(cam.y-960/480+.56)*cam.ppu);
+  const portKey=[canvas.width,canvas.height,cam.ppu,cam.x,cam.y].join(':');
+  if(portKey!==this.portKey){this.portKey=portKey;const mask=surface(canvas.width,canvas.height),ctx=mask.getContext('2d');transform(ctx);drawMask(ctx,bitmap(initial));const ports=document.querySelector('#gamePorts');if(ports){ports.style.maskImage=`url(${mask.toDataURL()})`;ports.style.webkitMaskImage=ports.style.maskImage;ports.style.maskSize='100% 100%';ports.style.webkitMaskSize='100% 100%';}}
+  if(key!==this.paintKey){this.paintKey=key;
+   const ctx=this.rig.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);transform(ctx);
+   if(!this.hideRig)this.groups.forEach((g,i)=>{const at=this.fallen[i],age=at===null?0:clock-at;if(at!==null&&(!this.motion||age>=1.25))return;ctx.save();if(at!==null){const [x,y]=MAST_MOUNTS[i],t=age/1.25;ctx.translate(x,y);ctx.rotate((i%2?-1:1)*1.5*t*t);ctx.translate(-x,-y);ctx.globalAlpha=Math.max(0,1-Math.max(0,t-.6)/.4);}ctx.drawImage(g,0,0);ctx.restore();});
+   const inner=this.interior.getContext('2d');inner.setTransform(1,0,0,1,0,0);inner.clearRect(0,0,canvas.width,canvas.height);transform(inner);inner.drawImage(this.inside,0,0);
+  }
+  const wetKey=key+':'+Math.floor(now*15);if(wetKey===this.wetKey)return;this.wetKey=wetKey;
+  const ctx=this.hull.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);transform(ctx);ctx.drawImage(this.body,0,0);
+  if(!this.preview&&ocean?.length===32){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.beginPath();for(let i=0;i<32;i++){const p=worldToArt({x:-1.35+i*2.7/31,y:ocean[i]});i?ctx.lineTo(...p):ctx.moveTo(...p);}ctx.lineTo(1500,1100);ctx.lineTo(0,1100);ctx.closePath();ctx.fillStyle='#12607444';ctx.fill();ctx.beginPath();for(let i=0;i<32;i++){const p=worldToArt({x:-1.35+i*2.7/31,y:ocean[i]});i?ctx.lineTo(...p):ctx.moveTo(...p);}ctx.strokeStyle='#c7f2e9bb';ctx.lineWidth=3+Math.max(0,...foam)*5;ctx.stroke();ctx.restore();}
+ }
+}

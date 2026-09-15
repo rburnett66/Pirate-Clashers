@@ -1,19 +1,13 @@
 import {shipToWorld,worldToShip} from './ship-pose.js';
-import {ensureHullMask,maskSolid,maskSampleTimes} from './hull-mask.js';
+import {ensureHullMask,maskSolid,maskSampleTimes,hullInside} from './hull-mask.js';
+import {artRig,deckFoot,insidePolygon} from './ship-art-layout.js';
 export {hullInside} from './hull-mask.js';
-// Combat coordinates match the supplied hull and rig prototype (one ship ~2.4 units wide).
+// Combat coordinates follow the supplied ship artwork with a uniform source-pixel scale.
 export const BALLISTICS = Object.freeze({speed:4.8, gravity:3.2, minAngle:5, maxAngle:75, step:1/180, sea:-.67});
 export const SHIP_LADDER={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const facing=side=>side==='enemy'?-1:1;
-export function rigLayout(){
- const xs=[-.62,.02,.62],heights=[1.8,2.35,1.65],counts=[3,3,2],sails=[];
- for(let mast=0;mast<3;mast++){
-  const span=heights[mast]-.34-.12,n=counts[mast];
-  for(let j=0;j<n;j++)sails.push({mast,x:xs[mast]+.02,y:.34+.18+span*((j+.55)/n),halfW:.30-.035*j,halfH:span/(n+.6)*.5*.9});
- }
- return {masts:xs.map((x,i)=>({x,foot:-.1,top:heights[i]})),sails};
-}
+export const rigLayout=artRig;
 export function ensureGeometry(f,side){
  f.x??=side==='enemy'?8.4:2.8;f.shipLevel??=f.plates?.length||Math.max(1,f.crew.length);
  f.hullParts??=Array.from({length:f.shipLevel},()=>({hp:f.hull/f.shipLevel,maxHp:f.maxHull/f.shipLevel}));
@@ -23,7 +17,7 @@ export function ensureGeometry(f,side){
 }
 export function stationPosition(f,slot){
  const [deck,ports]=SHIP_LADDER[f.shipLevel]||SHIP_LADDER[3],port=slot[0]==='h',n=port?ports:deck,i=Number(slot[1]);
- const x=n<=1?0:(i/(n-1)-.5)*1.45,foot=port?-.175:.34*(1+.42*x*x);
+ const x=n<=1?0:(i/(n-1)-.5)*1.45,foot=port?-.52:deckFoot(x);
  return {x,y:foot,port,width:.32*1.3,height:.44*1.3};
 }
 export function muzzle(f,side,g){
@@ -36,18 +30,19 @@ export function projectileFor(p){
  return {name:p.projectile,type,bonus,icon:p.icon,count:type==='grape'?7:1,color:{iron:'#26343f',grape:'#32323c',fire:'#ff831b',chain:'#bac6cc',bolt:'#dfd4ae',element:'#73dfef',bullet:'#f1c769'}[type],effect:type==='fire'?'fire':type==='grape'?'grape':type==='chain'?'chain':type==='bolt'?'rail':'roundshot'};
 }
 export function collisionAt(f,side,point){
- const {x,y}=worldToShip(f,facing(side),point);if(x < -1.2 || x > 1.4 || y > 2.4 || y < -.57)return null;const rig=rigLayout();
+ const {x,y}=worldToShip(f,facing(side),point);if(x < -1.4 || x > 1.4 || y > 2.4 || y < -.67)return null;const rig=rigLayout();
  // Crew are separate sprites. Remaining hull texels occlude port crew; empty texels are open.
  const section=clamp(Math.floor((x+1.08)/2.44*f.hullParts.length),0,f.hullParts.length-1);
  const hull=maskSolid(f,x,y);
  for(const g of f.crew){
   if(g.hp<=0)continue;const q=stationPosition(f,g.slot);
-  if(q.port&&hull)continue;
+  if(q.port&&(hull||!hullInside(x,y)))continue;
   if(Math.abs(x-q.x)<q.width/2&&y>=q.y&&y<=q.y+q.height)return {kind:'crew',id:g.id,slot:g.slot,x,y};
  }
  // Wood is a different object from the canvas attached to it.
  for(let i=0;i<rig.masts.length;i++){const m=rig.masts[i];if(f.mastParts[i].hp>0&&Math.abs(x-m.x)<.031&&y>=m.foot&&y<=m.top&&!hull)return {kind:'masts',index:i,x,y};}
- for(let i=0;i<rig.sails.length;i++){const s=rig.sails[i];if(f.sailParts[i].hp>0&&f.mastParts[s.mast].hp>0&&Math.abs(x-s.x)<=s.halfW*.97&&Math.abs(y-s.y)<=s.halfH*.97)return {kind:'sails',index:i,x,y};}
+ // Fore cloth is painted over main cloth, which is painted over aft cloth.
+ for(let i=rig.sails.length-1;i>=0;i--){const s=rig.sails[i];if(f.sailParts[i].hp>0&&f.mastParts[s.mast].hp>0&&Math.abs(x-s.x)<=s.halfW&&Math.abs(y-s.y)<=s.halfH&&insidePolygon(x,y,s.polygon))return {kind:'sails',index:i,x,y};}
  if(hull)return {kind:'hull',index:section,x,y};
  return null;
 }

@@ -8,9 +8,9 @@ const T=Date.UTC(2026,8,13,12),battle=()=>{const s=M.fresh(T);M.startBattle(s,T)
 test('blast removes only local pixels and preserves blocking wood within the same section',()=>{
  const s=battle(),f=s.battle.enemy,before=H.maskPixels(f).slice(),health=f.hull;
  H.chipHull(f,-.4,-.25,8);
- assert.equal(H.maskSolid(f,-.4,-.25),false);assert.equal(H.maskSolid(f,-.4,.25),true);
+ assert.equal(H.maskSolid(f,-.4,-.25),false);assert.equal(H.maskSolid(f,-.4,-.1),true);
  assert.equal(collisionAt(f,'enemy',{x:f.x+.4,y:-.25}),null);
- assert.equal(collisionAt(f,'enemy',{x:f.x+.4,y:.25}).kind,'hull');
+ assert.equal(collisionAt(f,'enemy',{x:f.x+.4,y:-.1}).kind,'hull');
  assert.ok(f.hull>0&&f.hull<health);assert.ok(f.hullParts.every(p=>p.hp>0));
  const after=H.maskPixels(f);assert.ok(after.some((v,i)=>v!==before[i]));
  assert.ok(after.every((v,i)=>!v||before[i])); // No blast adds material.
@@ -27,7 +27,7 @@ test('swept parabola hits a single surviving texel from either direction',()=>{
  for(const side of ['player','enemy']){
   const s=battle(),foe=side==='player'?'enemy':'player',f=s.battle[foe],C=H.HULL_MASK;
   const col=Math.floor((.6-C.left)/C.spanX*C.width),row=Math.floor((-.25-C.bottom)/C.spanY*C.height),p=H.pixelPoint(col,row),pixels=new Uint8Array(C.width*C.height);
-  pixels[row*C.width+col]=255;H.replaceHullPixels(f,pixels);
+  pixels[row*C.width+col]=255;H.replaceHullPixels(f,pixels);f.crew.forEach(g=>g.hp=0);f.mastParts.forEach(p=>p.hp=0);f.sailParts.forEach(p=>p.hp=0);
   const speed=20,angle=5,rad=angle*Math.PI/180,dt=.091234,x=f.x+facing(foe)*p.x;
   const origin={x:x-facing(side)*speed*Math.cos(rad)*dt,y:p.y-speed*Math.sin(rad)*dt+.5*BALLISTICS.gravity*dt*dt};
   const shot=traceProjectile(f,side,origin,angle,speed);
@@ -55,7 +55,7 @@ test('partial pellet volley resumes the original plan without repeating damage',
  assert.equal(M.resolveShot(restored),null);assert.equal(restored.battle.events.length,1);
 });
 test('invalid masks fail restoration and replacement cannot add material outside the silhouette',()=>{
- for(const corrupt of [f=>f.hullMask.version=2,f=>f.hullMask.bits='not a mask',f=>{const raw=atob(f.hullMask.bits);f.hullMask.bits=btoa(String.fromCharCode(raw.charCodeAt(0)|1)+raw.slice(1));}]){
+ for(const corrupt of [f=>f.hullMask.version=99,f=>f.hullMask.bits='not a mask',f=>{const raw=atob(f.hullMask.bits);f.hullMask.bits=btoa(String.fromCharCode(raw.charCodeAt(0)|1)+raw.slice(1));}]){
   const s=battle();corrupt(s.battle.enemy);assert.throws(()=>M.restore(JSON.stringify(s),T));
  }
  const f=battle().battle.enemy,pixels=H.maskPixels(f).slice();pixels[0]=255;H.replaceHullPixels(f,pixels);
@@ -63,9 +63,9 @@ test('invalid masks fail restoration and replacement cannot add material outside
 });
 
 test('exposed hull crew take the same damage as deck crew and the interior cannot shield them',()=>{
- const s=battle(),f=s.battle.enemy,point={x:f.x+.07,y:.06},port=f.crew.find(g=>g.slot==='h0'),deck=f.crew.find(g=>g.slot==='d0');
+ const s=battle(),f=s.battle.enemy,point={x:f.x+.07,y:-.3},port=f.crew.find(g=>g.slot==='h0'),deck=f.crew.find(g=>g.slot==='d0');
  assert.equal(collisionAt(f,'enemy',point).kind,'hull');
- const protectedHp=port.hp;H.chipHull(f,-.07,.06,8);assert.equal(port.hp,protectedHp);
+ const protectedHp=port.hp;H.chipHull(f,-.07,-.3,8);assert.equal(port.hp,protectedHp);
  const hit=collisionAt(f,'enemy',point);assert.equal(hit.kind,'crew');assert.equal(hit.id,port.id);
  const hull=f.hull,portBefore=port.hp,deckBefore=deck.hp;
  const damage=M.impactDamage(f,hit,20,{bonus:'crew'});

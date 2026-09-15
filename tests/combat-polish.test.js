@@ -32,7 +32,7 @@ test('larger crew and hit boxes agree above the old head boundary',()=>{
 });
 test('wide camera contains both entire ships and reserves water room below hull',()=>{
  for(const [w,h] of [[1440,668],[932,265],[390,516]])for(const [px,ex] of [[1.9,9.3],[3.7,7.5]]){
-  for(const mode of ['wide','impact']){const c=battleCamera(w,h,px,ex,mode,ex);for(const x of [px-1.3,ex+1.3])assert.ok(c.ox+x*c.ppu>=0&&c.ox+x*c.ppu<=w);assert.ok(c.oy-2.5*c.ppu>=0);assert.ok(c.oy+.7*c.ppu<=h-40);}
+  for(const mode of ['wide','impact']){const c=battleCamera(w,h,px,ex,mode,ex);for(const x of [px-1.3,ex+1.3])assert.ok(c.ox+x*c.ppu>=0&&c.ox+x*c.ppu<=w);assert.ok(c.oy-1.6*c.ppu>=0);assert.ok(c.oy+.7*c.ppu<=h-40);}
   const close=battleCamera(w,h,px,ex);assert.ok(close.oy+.7*close.ppu<=h-40);
  }
 });

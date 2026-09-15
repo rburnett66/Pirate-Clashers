@@ -10,17 +10,17 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
   await page.goto('http://127.0.0.1:4173/public/ship.html?side=enemy');await page.waitForTimeout(500);
   const configure=async damaged=>page.evaluate(async damaged=>{
    const M=await import('/src/model.js'),H=await import('/src/hull-mask.js');
-   const s=M.fresh(),b=M.startBattle(s);if(damaged){H.chipHull(b.enemy,-.4,-.25,16);H.chipHull(b.enemy,0,.06,12);}
+   const s=M.fresh(),b=M.startBattle(s);if(damaged){H.chipHull(b.enemy,-.4,-.25,16);H.chipHull(b.enemy,-.07,-.3,12);}
    window.fixture=b.enemy;window.hullAPI=H;
    window.postMessage({type:'pirate-render',action:'configure',level:3,parts:b.enemy,crew:b.enemy.crew.map(g=>({...g,name:M.PIRATES.find(p=>p.id===g.id).name}))},location.origin);
   },damaged);
   const read=()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{
-   const H=window.hullAPI,c=document.querySelector('#ship'),gl=c.getContext('webgl2'),ppu=Math.min(c.width/3.5,c.height/3.3),points=[[-.4,-.25],[-.4,.25],[-.07,.06]];
-   const alphas=points.map(([x,y])=>{const a=new Uint8Array(4);gl.readPixels(Math.floor(c.width/2+x*ppu),Math.floor(c.height/2+(y-.85)*ppu),1,1,gl.RGBA,gl.UNSIGNED_BYTE,a);return Array.from(a);});
+   const H=window.hullAPI,c=document.querySelector('#ship'),gl=c.getContext('webgl2'),ppu=Math.min(c.width/3.5,c.height/3.3),points=[[-.4,-.25],[-.4,-.1],[-.07,-.3]];
+   const alphas=points.map(([x,y])=>{const art=document.querySelector('#gameHullArt');return Array.from(art.getContext('2d').getImageData(Math.floor(c.width/2+x*ppu),Math.floor(c.height/2-(y-.85)*ppu),1,1).data);});
    const interior=document.querySelector('#gameInterior'),ctx=interior.getContext('2d');
    const insidePixels=points.map(([x,y])=>Array.from(ctx.getImageData(Math.floor(c.width/2+x*ppu),Math.floor(c.height/2-(y-.85)*ppu),1,1).data));
    const outsideAlpha=ctx.getImageData(0,0,1,1).data[3];
-   const layers=['#gameInterior','#gamePorts','#ship'].map(id=>Number(getComputedStyle(document.querySelector(id)).zIndex));
+   const layers=['#gameInterior','#gamePorts','#gameHullArt'].map(id=>Number(getComputedStyle(document.querySelector(id)).zIndex));
    const active=gl.getParameter(gl.ACTIVE_TEXTURE),old=gl.getParameter(gl.FRAMEBUFFER_BINDING);gl.activeTexture(gl.TEXTURE2);
    const texture=gl.getParameter(gl.TEXTURE_BINDING_2D),fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,texture,0);
    const status=gl.checkFramebufferStatus(gl.FRAMEBUFFER),pixels=new Uint8Array(H.HULL_MASK.width*H.HULL_MASK.height*4);
@@ -29,7 +29,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
    const error=gl.getError();gl.bindFramebuffer(gl.FRAMEBUFFER,old);gl.deleteFramebuffer(fbo);gl.activeTexture(active);
    resolve({alphas,insidePixels,outsideAlpha,layers,status,complete:gl.FRAMEBUFFER_COMPLETE,mismatches,error,portraits:document.querySelectorAll('#gamePorts img').length});
   })));
-  await configure(false);await page.waitForTimeout(250);const intact=await read();console.log('intact',intact);
+  await configure(false);await page.waitForFunction(()=>document.body.dataset.shipArt==='ready');await page.waitForTimeout(250);const intact=await read();console.log('intact',intact);
   await configure(true);await page.waitForTimeout(250);const chipped=await read();console.log('chipped',chipped);
   assert.ok(chipped.insidePixels.every(p=>p[3]===255));assert.equal(chipped.outsideAlpha,0);
   assert.ok(chipped.layers[0]<chipped.layers[1]&&chipped.layers[1]<chipped.layers[2]);
@@ -41,7 +41,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
   assert.equal(sizes.length,3);assert.ok(sizes.every(s=>Math.abs(s.width-sizes[0].width)<.1&&Math.abs(s.height-sizes[0].height)<.1));
   await page.screenshot({path:'test-results/hull-pixel-mask.png'});
   assert.deepEqual(errors,[]);
-  const report={passed:true,intact,chipped,errors,checks:['all 163840 GPU mask texels equal saved collision mask','outer and inner wood both transparent inside blast','nearby surviving wood remains opaque','port crew in independent layer behind wood','above and below deck crew have equal sprite dimensions','interior image remains opaque behind open breaches and crew','interior is clipped outside ship silhouette']};
+  const report={passed:true,intact,chipped,errors,checks:['all 163840 GPU mask texels equal saved collision mask','supplied exterior art is transparent inside the collision breach','nearby surviving wood remains opaque','port crew in independent layer behind wood','above and below deck crew have equal sprite dimensions','interior image remains opaque behind open breaches and crew','interior is clipped outside ship silhouette']};
   fs.writeFileSync('test-results/hull-mask-report.json',JSON.stringify(report,null,2));console.log('Hull mask browser checks passed.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

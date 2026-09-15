@@ -44,10 +44,11 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  await page.setViewportSize({width:932,height:430});await seed('gulls');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);await page.locator('[data-action=finisher]').click();
  await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('GULLS'));assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'laugh');
  await page.waitForTimeout(1300);
- await seed('destroy');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);await page.locator('[data-action=finisher]').click();
+ await seed('destroy');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);
+ await page.evaluate(()=>new MutationObserver(()=>{if(!document.querySelector('#powderBlast').hidden&&!window.blastStarted)window.blastStarted=performance.now();}).observe(document.querySelector('#powderBlast'),{attributes:true}));await page.locator('[data-action=finisher]').click();
  await page.waitForSelector('#powderBlast:not([hidden])',{timeout:7000});const explosionAt=Date.now();await page.screenshot({path:'test-results/battle-polish-explosion.png'});
  await page.waitForTimeout(Math.max(0,3800-(Date.now()-explosionAt)));assert.ok(await page.locator('#powderBlast').isVisible());assert.equal(await page.locator('#sheet[open]').count(),0);
- await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('VICTORY'),null,{timeout:7000});assert.ok(Date.now()-explosionAt>=4800);
+ await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('VICTORY'),null,{timeout:7000});assert.ok(await page.evaluate(()=>performance.now()-window.blastStarted>=4900));
  assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'victory');await page.screenshot({path:'test-results/battle-polish-celebration.png'});
  await page.waitForSelector('#sheet[open] .result-title',{timeout:5000});const result=(await state()).lastResult;assert.equal(result.won,true);assert.equal(result.lootBonus,0);
  assert.deepEqual(errors,[]);fs.writeFileSync('test-results/battle-polish-report.json',JSON.stringify({passed:true,errors,checks:['match introduction','preview cleanup','gunner selection','gold pedestal','water movement','telescope','short dot arc','drag cancellation','drag release fire','enemy turn','landscape and portrait viewport controls','seagull reaction','powder explosion','victory celebration','destruction reward']},null,2));

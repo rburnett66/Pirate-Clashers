@@ -10,7 +10,7 @@ export function cutawaySide({phase,pending},busy,attacker,view,focus){
 }
 export function battleCamera(width,height,playerX,enemyX,mode='crew',targetX=enemyX){
  const close=mode==='crew',span=close?4.5:Math.max(7.5,enemyX-playerX+3.5);
- const usable=Math.max(80,height-55),ppu=Math.min(width/span,usable/(close?2.1:3.5));
+ const usable=Math.max(80,height-55),ppu=Math.min(width/span,usable/(close?2.1:2.6));
  const wanted=close?playerX:mode==='impact'?(playerX+enemyX)/2+(targetX-(playerX+enemyX)/2)*.13:(playerX+enemyX)/2;
  const center=close?wanted:Math.max(enemyX+1.4-width/(2*ppu),Math.min(playerX-1.4+width/(2*ppu),wanted));
  return {ppu,ox:width/2-center*ppu,oy:close?usable*.63:usable-.8*ppu};
