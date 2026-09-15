@@ -55,3 +55,10 @@ The supplied x-ray interior is clipped behind the hull. Crew stations, muzzles, 
 Version-one saved hull masks migrate to the artwork silhouette while preserving remaining health per section; old breach locations are reconstructed. Cosmetic hull designs share the canonical collision footprint and supplied decorative cannons do not create additional weapons. See `public/ship-art/README.md` for asset processing and rebuild details.
 
 Additional validation: `node scripts/browser-ship-art.cjs` covers the six sail styles, upgraded hull, torn cloth, attached mast destruction and reversible interior reveal. `node scripts/browser-hull-mask.cjs` checks visible art breaches against the saved collision mask. Unit coverage includes a real version-one damaged-mask fixture and its migration.
+
+
+## Revised hull and five-sail assembly
+
+Replaced the cut-up original x-ray body with the owner's `xray-hull-nomast.png` and the gold mast extracts with `only-mast.png`. Background removal and exact mirrors preserve their 1792 × 1008 registration. The complete interior is shown for crew selection; closed hull damage still uses the existing breach mask.
+
+The owner's `full-ship-template.JPG` defines one aft sail, two main sails, two fore sails and two flags (main/fore). Cloth uses uniform fitting within the template bounds. The red upper sails are cut directly from the template; other colors reuse proportionally reduced matching cloth. Eight saved sail-health zones retain their original mast ownership and now cover the five panels. Masts remove all attached cloth and their flag when destroyed. Preview framing includes the taller registered mast tips.

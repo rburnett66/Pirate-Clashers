@@ -1,0 +1,26 @@
+{
+  "sourceFolder": "https://drive.google.com/drive/folders/137nxn0QX1kwEckWwt6BDLVGqWCDLBPcf",
+  "files": [
+    {
+      "id": "1GYMe-ty3TXpVAfxNDO34_A8tsqwArShn",
+      "title": "only-mast.png",
+      "mime_type": "image/png",
+      "size": 493581,
+      "url": "https://drive.google.com/file/d/1GYMe-ty3TXpVAfxNDO34_A8tsqwArShn/view?usp=drivesdk",
+      "local": "source/only-mast.png"
+    },
+    {
+      "id": "1O43U1MwuWOtnzX44IoBWqcaIHwfeAqHK",
+      "title": "xray-hull-nomast.png",
+      "mime_type": "image/png",
+      "size": 1362419,
+      "url": "https://drive.google.com/file/d/1O43U1MwuWOtnzX44IoBWqcaIHwfeAqHK/view?usp=drivesdk",
+      "local": "source/xray-hull-nomast.png"
+    }
+  ],
+  "template": {
+    "name": "full-ship-template.JPG",
+    "url": "https://drive.google.com/file/d/1DobsVNJSs5EJhvDvkF14kP0OBfysE82P/view?usp=drivesdk",
+    "sha256": "0fa9c30e1ede5bbdb342cb1a683852687bb57f732fc67dcbb6de2a5c99597daf"
+  }
+}

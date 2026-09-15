@@ -340,6 +340,20 @@
       "drive": "https://drive.google.com/file/d/1wb6u-dDquLbbSsod3MXqFv9wK0bIuJCU/view?usp=drivesdk",
       "sha256": "e21d928a4f7fc9e068c57290486eff48a78368372a38a25719aecc72f7a38809",
       "opaquePixelsPreserved": 375909
+    },
+    {
+      "name": "only-mast.png",
+      "category": "replacement",
+      "drive": "https://drive.google.com/file/d/1GYMe-ty3TXpVAfxNDO34_A8tsqwArShn/view?usp=drivesdk",
+      "sha256": "1d23f4723ede433a8e62e61a067e390beaf239a56db66c60e137f49fc3b3d32e",
+      "opaquePixelsPreserved": 62286
+    },
+    {
+      "name": "xray-hull-nomast.png",
+      "category": "replacement",
+      "drive": "https://drive.google.com/file/d/1O43U1MwuWOtnzX44IoBWqcaIHwfeAqHK/view?usp=drivesdk",
+      "sha256": "bd01e083ef014e4c01f5f1f2a06301dddd5814c9ebfeb1d6e07655511eecfdc9",
+      "opaquePixelsPreserved": 318307
     }
   ],
   "hulls": [
@@ -356,16 +370,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -382,16 +396,16 @@
       },
       "mastMounts": [
         [
-          566,
-          706
+          562,
+          675
         ],
         [
-          807,
-          744
+          804,
+          742
         ],
         [
-          1133,
-          704
+          1134,
+          682
         ]
       ]
     },
@@ -408,16 +422,16 @@
       },
       "mastMounts": [
         [
-          566,
-          706
+          562,
+          675
         ],
         [
-          807,
-          744
+          804,
+          742
         ],
         [
-          1133,
-          704
+          1134,
+          682
         ]
       ]
     },
@@ -434,16 +448,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -460,16 +474,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -486,16 +500,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -512,16 +526,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -538,16 +552,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -564,16 +578,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -590,16 +604,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -616,16 +630,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -642,16 +656,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -668,16 +682,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -694,16 +708,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -720,16 +734,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -746,16 +760,16 @@
       },
       "mastMounts": [
         [
-          566,
-          696
+          562,
+          675
         ],
         [
-          807,
-          794
+          804,
+          742
         ],
         [
-          1133,
-          727
+          1134,
+          682
         ]
       ]
     },
@@ -767,21 +781,21 @@
         "left": "hulls/xray-hull-left.png"
       },
       "body": {
-        "right": "bodies/xray-hull-right.png",
-        "left": "bodies/xray-hull-left.png"
+        "right": "bodies/xray-hull-nomast-right.png",
+        "left": "bodies/xray-hull-nomast-left.png"
       },
       "mastMounts": [
         [
-          566,
-          657
+          562,
+          675
         ],
         [
-          807,
-          695
+          804,
+          742
         ],
         [
-          1133,
-          650
+          1134,
+          682
         ]
       ]
     }
@@ -3623,49 +3637,49 @@
     {
       "id": "aft",
       "images": {
-        "right": "masts/aft-right.png",
-        "left": "masts/aft-left.png"
+        "right": "masts/revised-aft-right.png",
+        "left": "masts/revised-aft-left.png"
       },
       "pivot": [
-        566,
-        657
+        562,
+        675
       ],
       "yard": [
         [
-          432,
-          296
+          430,
+          293
         ],
         [
-          667,
-          345
+          663,
+          344
         ]
       ],
       "flagAnchor": [
-        566,
-        132
+        564,
+        139
       ],
       "mirrorPivot": [
-        1225,
-        657
+        1229,
+        675
       ]
     },
     {
       "id": "main",
       "images": {
-        "right": "masts/main-right.png",
-        "left": "masts/main-left.png"
+        "right": "masts/revised-main-right.png",
+        "left": "masts/revised-main-left.png"
       },
       "pivot": [
-        807,
-        695
+        804,
+        742
       ],
       "yard": [
         [
-          659,
-          276
+          660,
+          274
         ],
         [
-          993,
+          989,
           333
         ]
       ],
@@ -3674,38 +3688,101 @@
         10
       ],
       "mirrorPivot": [
-        984,
-        695
+        987,
+        742
       ]
     },
     {
       "id": "fore",
       "images": {
-        "right": "masts/fore-right.png",
-        "left": "masts/fore-left.png"
+        "right": "masts/revised-fore-right.png",
+        "left": "masts/revised-fore-left.png"
       },
       "pivot": [
-        1133,
-        650
+        1134,
+        682
       ],
       "yard": [
         [
-          1041,
-          353
+          1042,
+          357
         ],
         [
-          1266,
-          402
+          1265,
+          396
         ]
       ],
       "flagAnchor": [
-        1132,
-        159
+        1131,
+        124
       ],
       "mirrorPivot": [
-        658,
-        650
+        657,
+        682
       ]
     }
-  ]
+  ],
+  "registration": {
+    "canvas": [
+      1792,
+      1008
+    ],
+    "interior": {
+      "right": "bodies/xray-hull-nomast-right.png",
+      "left": "bodies/xray-hull-nomast-left.png"
+    },
+    "mastScale": 1,
+    "mastTranslation": [
+      0,
+      0
+    ],
+    "source": "owner-supplied mast-free hull and separate masts"
+  },
+  "upperSails": [
+    {
+      "id": "main",
+      "cloth": "sails/cloth/template-upper-main.png",
+      "sourceBox": [
+        725,
+        151,
+        944,
+        307
+      ],
+      "attachment": [
+        [
+          16,
+          2
+        ],
+        [
+          200,
+          42
+        ]
+      ]
+    },
+    {
+      "id": "fore",
+      "cloth": "sails/cloth/template-upper-fore.png",
+      "sourceBox": [
+        1069,
+        246,
+        1240,
+        373
+      ],
+      "attachment": [
+        [
+          16,
+          2
+        ],
+        [
+          157,
+          34
+        ]
+      ]
+    }
+  ],
+  "assemblyTemplate": {
+    "name": "full-ship-template.JPG",
+    "url": "https://drive.google.com/file/d/1DobsVNJSs5EJhvDvkF14kP0OBfysE82P/view?usp=drivesdk",
+    "sha256": "0fa9c30e1ede5bbdb342cb1a683852687bb57f732fc67dcbb6de2a5c99597daf"
+  }
 }

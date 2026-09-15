@@ -24,7 +24,7 @@ module.exports=function combatRenderer(hull){
  hull=hull.replace('if (showInner && !gameCutaway) {','if (!artRenderer.ready && showInner && !gameCutaway) {').replace('if (!gameCutaway) {','if (!artRenderer.ready && !gameCutaway) {');
  hull=hull.replaceAll('if (showRig) drawRig(', 'if (!artRenderer.ready && showRig) drawRig(');
  hull=hull.replace('    resize();\n    gl.bindFramebuffer', '    resize();\n    artRenderer.paint(cam,canvas,now,gameSurface,gameFoam);\n    gl.bindFramebuffer');
- hull=hull.replace('cam.ppu = Math.min(canvas.width / 3.5, canvas.height / 3.3);',"cam.ppu = document.body.dataset.preview==='true'?Math.min(canvas.width/3.1,canvas.height/(document.body.dataset.previewClose==='true'?1.45:2.15)):Math.min(canvas.width/3.5,canvas.height/3.3);").replace('cam.y = .85;',"cam.y = document.body.dataset.preview==='true'?(document.body.dataset.previewClose==='true'?-.06:.35):.85;");
+ hull=hull.replace('cam.ppu = Math.min(canvas.width / 3.5, canvas.height / 3.3);',"cam.ppu = document.body.dataset.preview==='true'?Math.min(canvas.width/3.1,canvas.height/(document.body.dataset.previewClose==='true'?1.45:2.3)):Math.min(canvas.width/3.5,canvas.height/3.3);").replace('cam.y = .85;',"cam.y = document.body.dataset.preview==='true'?(document.body.dataset.previewClose==='true'?-.06:.39):.85;");
  hull=hull.replace('float r = uDebrisSize *','float r = 2.0 * uDebrisSize *');
  hull=hull.replace(':not(#pirateMark)',':not(#pirateMark):not(#gameCrew):not(#gamePorts)');
  return hull.replace(/[ \t]+$/gm,'');

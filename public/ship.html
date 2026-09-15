@@ -1296,8 +1296,8 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
     const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
     if (w !== lastW || h !== lastH) { canvas.width = w; canvas.height = h; lastW = w; lastH = h; }
     // Fit the ship with room around it, the same on any screen shape.
-    cam.ppu = document.body.dataset.preview==='true'?Math.min(canvas.width/3.1,canvas.height/(document.body.dataset.previewClose==='true'?1.45:2.15)):Math.min(canvas.width/3.5,canvas.height/3.3);
-    cam.y = document.body.dataset.preview==='true'?(document.body.dataset.previewClose==='true'?-.06:.35):.85; cam.unit = 1 / cam.ppu;
+    cam.ppu = document.body.dataset.preview==='true'?Math.min(canvas.width/3.1,canvas.height/(document.body.dataset.previewClose==='true'?1.45:2.3)):Math.min(canvas.width/3.5,canvas.height/3.3);
+    cam.y = document.body.dataset.preview==='true'?(document.body.dataset.previewClose==='true'?-.06:.39):.85; cam.unit = 1 / cam.ppu;
   }
   window.addEventListener('resize', resize);
   resize();

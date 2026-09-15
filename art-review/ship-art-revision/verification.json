@@ -1,0 +1,23 @@
+{
+  "sources": [
+    {
+      "name": "only-mast.png",
+      "category": "replacement",
+      "drive": "https://drive.google.com/file/d/1GYMe-ty3TXpVAfxNDO34_A8tsqwArShn/view?usp=drivesdk",
+      "sha256": "1d23f4723ede433a8e62e61a067e390beaf239a56db66c60e137f49fc3b3d32e",
+      "opaquePixelsPreserved": 62286
+    },
+    {
+      "name": "xray-hull-nomast.png",
+      "category": "replacement",
+      "drive": "https://drive.google.com/file/d/1O43U1MwuWOtnzX44IoBWqcaIHwfeAqHK/view?usp=drivesdk",
+      "sha256": "bd01e083ef014e4c01f5f1f2a06301dddd5814c9ebfeb1d6e07655511eecfdc9",
+      "opaquePixelsPreserved": 318307
+    }
+  ],
+  "mirrorPairsChecked": 4,
+  "nativeCanvas": [
+    1792,
+    1008
+  ]
+}
