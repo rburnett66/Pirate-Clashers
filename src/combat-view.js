@@ -3,10 +3,10 @@ export const COMBAT_TIMING=Object.freeze({hitHoldMs:3000,finalExplosionHoldMs:50
 export function cutawaySide({phase,pending},busy,attacker,view,focus){
  if(view==='celebrate')return focus;
  if(phase==='result')return null;
- if(pending?.side)return pending.side;
+ if(pending?.side)return pending.side==='player'?'player':null;
  // Keep the defender intact while the resolved shot is still being watched.
- if(busy)return attacker;
- return phase==='player'?'player':phase==='enemy'?'enemy':null;
+ if(busy)return attacker==='player'?'player':null;
+ return phase==='player'?'player':null;
 }
 export function battleCamera(width,height,playerX,enemyX,mode='crew',targetX=enemyX){
  const close=mode==='crew',span=close?4.5:Math.max(7.5,enemyX-playerX+3.5);

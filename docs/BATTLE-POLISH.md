@@ -42,3 +42,5 @@ The battle-polish suite covers the introduction, selection, pedestal, movement, 
 ## Camera timing revision
 
 Selecting a gunner immediately starts the move to the wide view. After impact, the camera remains on the target and does not automatically return to the crew. Both player and enemy hits have a 3-second damage-view hold; final destruction has a 5-second hold before the victory celebration. These values are centralized in `COMBAT_TIMING` in `src/combat-view.js` for tuning. The turn clock and combat inputs remain paused during the hold. The defending ship's exterior stays visible through the entire shot and hold, including when the model has already advanced to the next turn; the player's interior returns only for their gunner-selection turn. `node scripts/browser-camera-hold.cjs` verifies the timing, camera persistence, paused clock and defender visibility.
+
+Enemy firing revision: both hulls remain closed throughout enemy flight and the impact hold. Only the player's selection phase opens the player interior; the battle-end celebration remains a separate crew view.
