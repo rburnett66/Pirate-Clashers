@@ -3,8 +3,15 @@ import assert from 'node:assert/strict';
 import * as M from '../src/model.js';
 import {stationPosition,collisionAt} from '../src/ballistics.js';
 import {shipToWorld} from '../src/ship-pose.js';
-import {battleCamera,aimDots,dragAim,crewReaction} from '../src/combat-view.js';
+import {cutawaySide,battleCamera,aimDots,dragAim,crewReaction} from '../src/combat-view.js';
 const setup=()=>{const s=M.fresh(1900000000000);M.startBattle(s,1900000000000);return s;};
+test('defender stays closed through flight and impact hold, including a turn transition',()=>{
+ assert.equal(cutawaySide({phase:'flight',pending:{side:'enemy'}},true,'enemy','impact','player'),'enemy');
+ assert.equal(cutawaySide({phase:'player'},true,'enemy','impact','player'),'enemy');
+ assert.equal(cutawaySide({phase:'player'},false,'enemy','impact','player'),'player');
+ assert.equal(cutawaySide({phase:'enemy'},true,'player','impact','enemy'),'player');
+ assert.equal(cutawaySide({phase:'result'},true,'player','wide','enemy'),null);
+});
 test('a hull or sails alone can survive, destruction requires both; empty crew can be boarded',()=>{
  const b=setup().battle;b.enemy.hull=0;assert.equal(M.outcome(b),null);b.enemy.sails=0;assert.equal(M.outcome(b),true);
  b.enemy.hull=10;assert.equal(M.outcome(b),null);b.enemy.crew.forEach(g=>g.hp=0);assert.equal(M.outcome(b),true);

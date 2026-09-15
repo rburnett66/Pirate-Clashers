@@ -24,15 +24,17 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='flight');
  assert.ok(await page.locator('[data-action=fire]').isDisabled());assert.ok(await page.locator('#flyingShots circle').count()>0);
  await page.screenshot({path:'test-results/battle-polish-flight.png'});
- await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player',null,{timeout:15000});
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player'&&!document.querySelector('#guns button').disabled,null,{timeout:15000});
  assert.equal((await state()).battle.events.length,1);assert.equal(await page.locator('#combatField').getAttribute('data-selected'),'');
  await page.locator('#guns [data-action=gun]').first().click();await page.locator('#aimAngle').fill('25');await page.locator('[data-action=fire]').click();
- await page.waitForFunction(()=>{const b=JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle;return b.phase==='player'&&b.turn===2;},null,{timeout:25000});
+ await page.waitForFunction(()=>{const b=JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle;return b.phase==='player'&&b.turn===2&&!document.querySelector('#guns button').disabled;},null,{timeout:30000});
  assert.equal((await state()).battle.events.length,4);
  await page.locator('#guns [data-action=gun]').first().click();await page.locator('#aimAngle').fill('75');await page.waitForTimeout(500);
  assert.ok(await page.locator('#aimArc circle').evaluateAll(nodes=>nodes.every(n=>Number(n.getAttribute('cy'))>=0)));
  await page.locator('#aimAngle').fill('35');await page.locator('[data-action=fire]').click();await page.waitForTimeout(150);await page.reload();await page.locator('[data-action=start]').click();
- await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player',null,{timeout:15000});assert.equal((await state()).battle.events.length,5);
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player'&&!document.querySelector('#guns button').disabled,null,{timeout:15000});assert.equal((await state()).battle.events.length,5);
+ // Inspect layout without the turn expiring during software-rendered screenshots.
+ await page.evaluate(()=>Object.defineProperty(document,'hidden',{configurable:true,get:()=>true}));
  for(const [name,width,height] of [['desktop',1440,900],['phone-landscape',932,430],['small-landscape',667,375],['phone-portrait',390,844]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(650);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'no page scrolling: '+name);
@@ -43,8 +45,9 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('GULLS'));assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'laugh');
  await page.waitForTimeout(1300);
  await seed('destroy');await page.locator('[data-action=start]').click();await page.waitForTimeout(500);await page.locator('[data-action=finisher]').click();
- await page.waitForSelector('#powderBlast:not([hidden])',{timeout:7000});await page.screenshot({path:'test-results/battle-polish-explosion.png'});
- await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('VICTORY'),null,{timeout:5000});
+ await page.waitForSelector('#powderBlast:not([hidden])',{timeout:7000});const explosionAt=Date.now();await page.screenshot({path:'test-results/battle-polish-explosion.png'});
+ await page.waitForTimeout(Math.max(0,3800-(Date.now()-explosionAt)));assert.ok(await page.locator('#powderBlast').isVisible());assert.equal(await page.locator('#sheet[open]').count(),0);
+ await page.waitForFunction(()=>document.querySelector('#crewCheer').textContent.includes('VICTORY'),null,{timeout:7000});assert.ok(Date.now()-explosionAt>=4800);
  assert.equal(await playerFrame().locator('body').getAttribute('data-reaction'),'victory');await page.screenshot({path:'test-results/battle-polish-celebration.png'});
  await page.waitForSelector('#sheet[open] .result-title',{timeout:5000});const result=(await state()).lastResult;assert.equal(result.won,true);assert.equal(result.lootBonus,0);
  assert.deepEqual(errors,[]);fs.writeFileSync('test-results/battle-polish-report.json',JSON.stringify({passed:true,errors,checks:['match introduction','preview cleanup','gunner selection','gold pedestal','water movement','telescope','short dot arc','drag cancellation','drag release fire','enemy turn','landscape and portrait viewport controls','seagull reaction','powder explosion','victory celebration','destruction reward']},null,2));

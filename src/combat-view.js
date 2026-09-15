@@ -1,4 +1,13 @@
 // Presentation math: no collision forecasts or changes to the combat simulation.
+export const COMBAT_TIMING=Object.freeze({hitHoldMs:3000,finalExplosionHoldMs:5000});
+export function cutawaySide({phase,pending},busy,attacker,view,focus){
+ if(view==='celebrate')return focus;
+ if(phase==='result')return null;
+ if(pending?.side)return pending.side;
+ // Keep the defender intact while the resolved shot is still being watched.
+ if(busy)return attacker;
+ return phase==='player'?'player':phase==='enemy'?'enemy':null;
+}
 export function battleCamera(width,height,playerX,enemyX,mode='crew',targetX=enemyX){
  const close=mode==='crew',span=close?4.5:Math.max(7.5,enemyX-playerX+3.5);
  const usable=Math.max(80,height-55),ppu=Math.min(width/span,usable/(close?2.1:3.5));

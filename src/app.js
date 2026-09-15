@@ -2,7 +2,7 @@ import {chartMarkup,mountPortMap} from './port-map.js';
 import {fullscreenButton,toggleFullscreen,screenHelp} from './fullscreen.js';
 import {syncUIScale} from './ui-scale.js';
 import {artImage, HARBORS, harbor, portrait} from './menu-art.js';
-import {battleCamera,aimDots,dragAim,crewReaction} from './combat-view.js';
+import {COMBAT_TIMING,cutawaySide,battleCamera,aimDots,dragAim,crewReaction} from './combat-view.js';
 import {waterValues,waterName,waterLibrary,activeWater,parseWater,exportWater} from './ocean-settings.js';
 import {worldToShip,shipToWorld} from './ship-pose.js';
 import {pointAt,muzzle,stationPosition} from './ballistics.js';
@@ -151,15 +151,16 @@ function syncOcean(){if(!el('battleOcean')||!state.battle)return;sendOcean({acti
 function visualCrew(f){return f.crew.map(g=>({...g,name:pirate(g.id).name,range:M.stats(pirate(g.id),g.level).range,type:{hull:0,crew:1,sails:2}[pirate(g.id).primary]}));}
 function configure(side){
  if(side==='home'){send(side,{action:'configure',level:state.shipLevel,crew:Object.entries(state.slots).map(([slot,id])=>({slot,id,hp:1,name:pirate(id).name})),cosmetic:state.cosmetic,motion:state.settings.motion});return;}
- const b=state.battle;if(!b)return;const f=b[side];send(side,{action:'configure',level:f.shipLevel,crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,cosmetic:side==='player'?state.cosmetic:null,motion:state.settings.motion,cutaway:side===(b.pending?.side||'player'),hideRig:viewMode==='crew'});
+ const b=state.battle;if(!b)return;const f=b[side];send(side,{action:'configure',level:f.shipLevel,crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,cosmetic:side==='player'?state.cosmetic:null,motion:state.settings.motion,...shipView(side)});
  layoutCombat();
 }
-let camera={ppu:1,ox:0,oy:0},flying=false,cameraReady=false,viewMode='crew',cameraAnimation=0,cameraTarget=null,flightTarget='enemy';
+let camera={ppu:1,ox:0,oy:0},flying=false,cameraReady=false,viewMode='crew',cameraAnimation=0,cameraTarget=null,flightTarget='enemy',attackSide='player';
+function shipView(side){return {cutaway:side===cutawaySide(state.battle,busy,attackSide,viewMode,flightTarget),hideRig:viewMode==='crew'||viewMode==='celebrate'};}
 const screenPoint=p=>({x:camera.ox+p.x*camera.ppu,y:camera.oy-p.y*camera.ppu});
 function desiredCamera(){const field=el('combatField'),b=state.battle;if(!field||!b)return null;return viewMode==='celebrate'?battleCamera(field.clientWidth,field.clientHeight,b[flightTarget].x,b[flightTarget==='player'?'enemy':'player'].x,'crew'):battleCamera(field.clientWidth,field.clientHeight,b.player.x,b.enemy.x,viewMode,b[flightTarget].x);}
 function setBattleView(mode){
  viewMode=mode;const target=desiredCamera();if(!target)return;
- for(const side of ['player','enemy'])send(side,{action:'view',cutaway:side===(mode==='celebrate'?flightTarget:state.battle.pending?.side||'player'),hideRig:mode==='crew'||mode==='celebrate'});
+ for(const side of ['player','enemy'])send(side,{action:'view',...shipView(side)});
  cancelAnimationFrame(cameraAnimation);cameraTarget=target;
  const from={...camera},start=performance.now(),duration=state.settings.motion?460:0;
  function tick(now){const t=duration?Math.min(1,(now-start)/duration):1,e=t*t*(3-2*t);camera=Object.fromEntries(Object.keys(target).map(k=>[k,from[k]+(target[k]-from[k])*e]));paintCombat();if(t<1)cameraAnimation=requestAnimationFrame(tick);else{cameraAnimation=0;cameraTarget=null;}}
@@ -203,7 +204,7 @@ function updateArena(){
  if(gunner!==null&&!M.active(b.player).some(g=>g.id===gunner))gunner=null;
  const locked=busy||b.phase!=='player';
  for(const side of ['player','enemy']){
-  const f=b[side];send(side,{action:'sync',crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,cutaway:side===(b.pending?.side||'player')&&(side==='player'||busy)});
+  const f=b[side];send(side,{action:'sync',crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,...shipView(side)});
   el(side+'Health').value=f.hull;el(side+'Percent').textContent=Math.ceil(f.hull/f.maxHull*100)+'%';
   el(side+'Meta').innerHTML='<span>'+Math.round(f.sails)+'% SAILS</span><span>'+M.active(f).length+' CREW</span>';
   el(side+'Meta').title='Hull sections: '+f.hullParts.map(p=>Math.ceil(p.hp)).join(' / ')+' · Masts: '+f.mastParts.map(p=>Math.ceil(p.hp)).join(' / ');
@@ -238,7 +239,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 
 async function animateShot(flight){
- if(!flight)return;flying=true;flightTarget=flight.side==='player'?'enemy':'player';setBattleView('wide');send(flight.side,{action:'fire',gunner:flight.gunnerId});sound(120,.25);
+ if(!flight)return;flying=true;attackSide=flight.side;flightTarget=flight.side==='player'?'enemy':'player';setBattleView('wide');send(flight.side,{action:'fire',gunner:flight.gunnerId});sound(120,.25);
  const layer=el('flyingShots'),readout=el('shotReadout'),spec=flight.spec,offset=state.battle.pending?.elapsed||0;
  if(readout)readout.textContent=(flight.side==='player'?'YOUR':'ENEMY')+' '+spec.name.toUpperCase()+' · '+flight.angle.toFixed(1)+'°';
  const crewBefore=M.active(state.battle[flightTarget]).length;
@@ -261,13 +262,17 @@ async function animateShot(flight){
 
   if(t<flight.duration)requestAnimationFrame(tick);else{if(layer)layer.innerHTML='';resolve();}
  }requestAnimationFrame(tick);});
- flying=false;const e=event;reactCrew(e,flight.side,crewBefore-M.active(state.battle[flightTarget]).length);gunner=null;scope=false;setBattleView(state.battle.phase==='player'?'crew':'wide');
+ flying=false;const e=event;reactCrew(e,flight.side,crewBefore-M.active(state.battle[flightTarget]).length);gunner=null;scope=true;
  if(readout)readout.textContent=e?.hit?Math.round(e.damage)+' DAMAGE · '+e.impacts.map(i=>i.kind+(i.bonus?' BONUS':'')).filter((v,i,a)=>a.indexOf(v)===i).join(' + '):'SPLASH — SHOT FELL SHORT OR PASSED THE SHIP';
+ if(e?.hit&&state.battle.phase!=='result'){
+  setBattleView('impact');updateArena();
+  await sleep(COMBAT_TIMING.hitHoldMs);
+ }
  updateArena();
 }
 async function runEnemyTurn(){
  const b=state.battle;if(!b||b.phase!=='enemy')return;
- busy=true;setBattleView('wide');updateArena();await sleep(650);
+ busy=true;attackSide='enemy';setBattleView('wide');updateArena();await sleep(650);
  if(b.enemyMoves>0){M.moveShip(state,b.enemy.x>8.4?1:-1,'enemy');updateArena();await sleep(250);}
  while(b.phase==='enemy'){const shot=M.planEnemyShot(state);if(!shot)break;const flight=M.launchShot(state,{...shot,live:true});if(!flight)break;updateArena();await animateShot(flight);if(b.phase==='enemy')await sleep(400);}
  busy=false;updateArena();if(b.phase==='result')finish();
@@ -312,7 +317,7 @@ async function finish(){
    await sleep(state.settings.motion?480:20);
    const blast=el('powderBlast');if(blast){const p=screenPoint({x:loser.x,y:.2});blast.style.left=p.x+'px';blast.style.top=p.y+'px';blast.hidden=false;blast.innerHTML=Array.from({length:20},(_,i)=>`<i style="--a:${i*137.5}deg;--d:${70+(i%5)*28}px;--delay:${i%4*35}ms"></i>`).join('');}
    sound(65,.8);shakeBattle(140);send(flightTarget,{action:'reaction',kind:'defeat'});sendOcean({action:'splash',id:b.id+':magazine',x:loser.x,y:-.29,energy:1});
-   await sleep(state.settings.motion?1400:120);if(blast)blast.hidden=true;
+   await sleep(COMBAT_TIMING.finalExplosionHoldMs);if(blast)blast.hidden=true;
   }
   const winner=b.won?'player':'enemy';flightTarget=winner;setBattleView('celebrate');send(winner,{action:'reaction',kind:'victory',level:4});
   clearTimeout(cheerTimer);if(el('crewCheer')){el('crewCheer').hidden=false;el('crewCheer').textContent=(b.won?'YOUR CREW':'RIVAL CREW')+': VICTORY!';}
@@ -322,7 +327,7 @@ async function finish(){
 let cinemaResolve=null;
 async function finisher(){
 if(busy)return;const move=M.finishMove(state);if(!move)return;
-busy=true;const repeat=(state.seenMoves||[]).includes(move.id);state.seenMoves??=[];if(!repeat)state.seenMoves.push(move.id);save();
+busy=true;attackSide='player';const repeat=(state.seenMoves||[]).includes(move.id);state.seenMoves??=[];if(!repeat)state.seenMoves.push(move.id);save();
 const c=el('cinema');c.innerHTML='<div class="poster"><div class="eyebrow">A PIRATE BASH PICTURE</div><div class="beast">'+move.icon+'</div><h1>'+move.name.toUpperCase()+'</h1><p>ALL HANDS. BRACE YOURSELVES.</p>'+button('Skip spectacle','skip-cinema','','ghost spaced')+'</div>';
 c.hidden=false;sound(300,.8);let skipped=false;
 await Promise.race([sleep(state.settings.motion?(repeat?500:1400):100),new Promise(r=>cinemaResolve=()=>{skipped=true;r();})]);
@@ -331,7 +336,7 @@ c.hidden=true;el('crewCheer').hidden=false;
 if(move.id===5){send('player',{action:'reaction',kind:'laugh',level:4});el('crewCheer').textContent='HA-HA! MIND THE GULLS!';[340,410,340,410].forEach((f,i)=>setTimeout(()=>sound(f,.12),i*140));}
 else if(move.id===0){send('player',{action:'reaction',kind:'cringe'});el('crewCheer').textContent='OOH… THAT LEFT A MARK.';sound(95,.45);}
 else reactCrew({hit:true,damage:100},'player',1);
-if(!skipped)await Promise.race([sleep(state.settings.motion?900:100),new Promise(r=>cinemaResolve=r)]);
+if(!skipped&&state.battle.phase!=='result'){flightTarget='enemy';setBattleView('impact');updateArena();await sleep(COMBAT_TIMING.hitHoldMs);}
 cinemaResolve=null;c.hidden=true;busy=false;sound(650,.3);updateArena();if(state.battle.phase==='result')finish();
 }
 
@@ -385,7 +390,7 @@ case 'help':help();break;
 case 'onboard':state.onboarded=true;save();close();break;
 case 'start':if(state.battle&&state.battle.phase!=='result'){page='arena';render();await resumeCombat();break;}if(M.startBattle(state)){page='arena';gunner=null;save();render();matchIntro();}else toast('Post at least one pirate to your ship first.');break;
 case 'begin-battle':close();setBattleView('crew');break;
-case 'gun':if(!busy&&state.battle?.phase==='player'){gunner=Number(id);scope=false;updateArena();setBattleView('crew');}break;
+case 'gun':if(!busy&&state.battle?.phase==='player'){gunner=Number(id);scope=true;updateArena();setBattleView('wide');}break;
 case 'sail':if(!busy&&M.moveShip(state,Number(id)))updateArena();break;
 case 'fire':await fire();break;
 case 'skip-cinema':cinemaResolve?.();break;

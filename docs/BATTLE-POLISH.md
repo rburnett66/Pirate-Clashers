@@ -38,3 +38,7 @@ node scripts/browser-phone.cjs http://192.168.1.9:4174
 ```
 
 The battle-polish suite covers the introduction, selection, pedestal, movement, telescope, cancellation, drag release, full enemy turn, steep aim, flight reload, desktop/phone control bounds, seagull reaction, destruction and victory celebration. Screenshots and the report are written under `test-results/battle-polish-*`. Fullscreen checks include simulated safe areas and iPhone fallback paths. These browser checks use Edge/Chromium; physical iPhone Safari and Chrome playtesting remains on the device.
+
+## Camera timing revision
+
+Selecting a gunner immediately starts the move to the wide view. After impact, the camera remains on the target and does not automatically return to the crew. Both player and enemy hits have a 3-second damage-view hold; final destruction has a 5-second hold before the victory celebration. These values are centralized in `COMBAT_TIMING` in `src/combat-view.js` for tuning. The turn clock and combat inputs remain paused during the hold. The defending ship's exterior stays visible through the entire shot and hold, including when the model has already advanced to the next turn; the player's interior returns only for their gunner-selection turn. `node scripts/browser-camera-hold.cjs` verifies the timing, camera persistence, paused clock and defender visibility.
