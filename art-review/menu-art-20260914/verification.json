@@ -1,0 +1,238 @@
+{
+  "source_originals_unchanged": true,
+  "approved_icons_identical": true,
+  "scenes_pixel_identical": true,
+  "frame_opening_transparent": true,
+  "assets": [
+    {
+      "name": "chest-icon.JPG",
+      "role": "approved icon",
+      "file": "chest-icon__4d65463e.png",
+      "size": [
+        1309,
+        1196
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "crew-icon.JPG",
+      "role": "approved icon",
+      "file": "crew-icon__4f92ad33.png",
+      "size": [
+        1274,
+        1178
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "fight-icon.JPG",
+      "role": "approved icon",
+      "file": "fight-icon__fa59e280.png",
+      "size": [
+        1432,
+        1378
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "gift-icon.JPG",
+      "role": "approved icon",
+      "file": "gift-icon__4186e173.png",
+      "size": [
+        1432,
+        1432
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "map-icon.JPG",
+      "role": "approved icon",
+      "file": "map-icon__454c9d84.png",
+      "size": [
+        919,
+        928
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "options-icon.JPG",
+      "role": "approved icon",
+      "file": "options-icon__fb0e7125.png",
+      "size": [
+        1365,
+        1292
+      ],
+      "status": "Approved"
+    },
+    {
+      "name": "battle.JPG",
+      "role": "transparent cutout",
+      "file": "battle__8f2f3bff.png",
+      "size": [
+        1690,
+        856
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "bombay.JPG",
+      "role": "opaque scene",
+      "file": "bombay__ab7b9def.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "booty-pass.JPG",
+      "role": "transparent cutout",
+      "file": "booty-pass__395cc0eb.png",
+      "size": [
+        1710,
+        992
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "crew-frame.JPG",
+      "role": "transparent cutout",
+      "file": "crew-frame__819ba7b5.png",
+      "size": [
+        1262,
+        1261
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "crew.JPG",
+      "role": "transparent cutout",
+      "file": "crew__c937254a.png",
+      "size": [
+        1816,
+        1032
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "davies-locker.JPG",
+      "role": "opaque scene",
+      "file": "davies-locker__253f7e6e.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "find-match.JPG",
+      "role": "transparent cutout",
+      "file": "find-match__794c6851.png",
+      "size": [
+        1601,
+        686
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "hawaii.JPG",
+      "role": "opaque scene",
+      "file": "hawaii__85ab9143.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "header.JPG",
+      "role": "transparent cutout",
+      "file": "header__08e28e4c.png",
+      "size": [
+        1758,
+        464
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "lost.JPG",
+      "role": "opaque scene",
+      "file": "lost__3d56a169.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "madagascar.JPG",
+      "role": "opaque scene",
+      "file": "madagascar__2221d2d6.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "menu.JPG",
+      "role": "opaque scene",
+      "file": "menu__1f08e7be.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "open-chest.JPG",
+      "role": "transparent cutout",
+      "file": "open-chest__5a0cb1a0.png",
+      "size": [
+        1816,
+        1032
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "rematch.JPG",
+      "role": "transparent cutout",
+      "file": "rematch__e48b14f8.png",
+      "size": [
+        1490,
+        851
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "spooky-fog.JPG",
+      "role": "opaque scene",
+      "file": "spooky-fog__03d8dedd.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "store.JPG",
+      "role": "transparent cutout",
+      "file": "store__69204157.png",
+      "size": [
+        1681,
+        938
+      ],
+      "status": "Needs Review"
+    },
+    {
+      "name": "victory.JPG",
+      "role": "opaque scene",
+      "file": "victory__1eedb918.png",
+      "size": [
+        1792,
+        1008
+      ],
+      "status": "Needs Review"
+    }
+  ]
+}

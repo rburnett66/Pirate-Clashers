@@ -1,0 +1,74 @@
+[
+  {
+    "name": "battle.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 162
+  },
+  {
+    "name": "booty-pass.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 0
+  },
+  {
+    "name": "crew-frame.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 0
+  },
+  {
+    "name": "crew.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 255
+  },
+  {
+    "name": "find-match.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 255
+  },
+  {
+    "name": "header.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 255
+  },
+  {
+    "name": "open-chest.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 255
+  },
+  {
+    "name": "rematch.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 0
+  },
+  {
+    "name": "store.JPG",
+    "alpha": [
+      0,
+      255
+    ],
+    "center_alpha": 255
+  }
+]

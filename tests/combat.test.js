@@ -5,7 +5,7 @@ import * as M from '../src/model.js';
 import {BALLISTICS,traceProjectile,collisionAt,pointAt} from '../src/ballistics.js';
 import {chipHull} from '../src/hull-mask.js';
 const T=Date.UTC(2026,8,13,12),clone=x=>structuredClone(x);
-const battle=()=>{const s=M.fresh(T);M.startBattle(s,T);return s;};
+const battle=()=>{const s=M.fresh(T);s.sailLevel=5;M.startBattle(s,T);return s;};
 test('angle trajectory is repeatable, independent of legacy target coordinates',()=>{
  const a=battle(),b=clone(a);
  assert.deepEqual(M.previewShot(a,{gunner:1,angle:25}),M.previewShot(a,{gunner:1,angle:25}));
@@ -44,6 +44,11 @@ test('movement changes the trajectory origin, obeys turn and per-turn limits',()
  assert.ok(Math.abs(M.previewShot(s,{gunner:1,angle:25}).origin.x-p.origin.x)<1e-10);
  assert.equal(s.battle.movesLeft,0);assert.equal(M.moveShip(s,1),false);
  M.elapse(s,30);assert.equal(M.moveShip(s,-1),false);M.enemyTurn(s);assert.equal(s.battle.movesLeft,2);
+});
+test('wheel steering previews smoothly, then commits against the shared movement budget',()=>{
+ const s=battle(),origin=s.battle.player.x,moves=s.battle.movesLeft;
+ const preview=M.steerShip(s,{originX:origin,targetX:origin+.12});assert.equal(preview.moves,1);assert.ok(preview.x>origin);assert.equal(s.battle.player.x,origin);assert.equal(s.battle.movesLeft,moves);
+ const full=M.steerShip(s,{originX:origin,targetX:origin+2});assert.equal(full.moves,2);assert.ok(full.x>preview.x);assert.equal(M.steerShip(s,{originX:origin,targetX:origin+2,commit:true}).moves,2);assert.equal(s.battle.player.x,full.x);assert.equal(s.battle.movesLeft,0);assert.equal(M.steerShip(s,{originX:origin,targetX:origin+1}),null);
 });
 test('a blast chips the first collision and the next shot reaches deeper wood',()=>{
  const f=battle().battle.enemy,origin={x:6,y:-.2};

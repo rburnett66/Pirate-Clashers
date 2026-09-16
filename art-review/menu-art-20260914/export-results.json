@@ -1,0 +1,21 @@
+{
+  "scenes": {
+    "state": "complete",
+    "done": 8,
+    "total": 8,
+    "errors": [],
+    "result": {
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\processed\\images"
+    }
+  },
+  "cutouts": {
+    "state": "complete",
+    "done": 9,
+    "total": 9,
+    "errors": [],
+    "result": {
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\processed\\images"
+    }
+  },
+  "approved_icons_copied": 6
+}

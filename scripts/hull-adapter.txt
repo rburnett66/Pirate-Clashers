@@ -5,7 +5,7 @@
  const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
  const portPortraits=document.createElement('div');portPortraits.id='gamePorts';portPortraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';document.body.append(portPortraits);canvas.style.zIndex='4';interior.style.zIndex='1';
  const artRenderer=new ShipArtRenderer(interior);
- let gameRows=[],gameSelected=null,gameLevel=3,gameCutaway=false,gameMotion=true,portraitKey='';
+ let gameRows=[],gameSelected=null,gameLevel=1,gameCutaway=false,gameMotion=true,portraitKey='';
  function syncCrew(rows){
   gameRows=rows||[];let d=0,h=0;
   stations.forEach(st=>{const key=st.port?'h'+h++:'d'+d++,g=gameRows.find(g=>g.slot===key),position=stationPosition({shipLevel:gameLevel},key);st.x=position.x;st.y=position.y;st.slot=key;st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});
@@ -28,6 +28,7 @@
    return pedestal+'<img data-gunner="'+st.gunner+'" data-alive="'+!st.out+'" alt="'+(st.name||'Gunner')+'" src="/Pirate%20Art/pirate_segments/zombie-pirate/zombie-pirate-'+st.gunner+'.png" style="position:absolute;object-fit:contain;object-position:50% 100%;transform-origin:50% 100%;left:'+(x-w/2)+'px;top:'+(y-h)+'px;width:'+w+'px;height:'+h+'px;opacity:'+(st.out?0:1)+';filter:'+(st.gunner===gameSelected?'drop-shadow(0 0 3px #fff29a)':'none')+'">';
   }).join('');
   portraits.innerHTML=drawRows(false);portPortraits.innerHTML=drawRows(true);
+  parent.postMessage({type:'pirate-stations',side:gameSide,anchors:stationAnchors(gameLevel).map(p=>({...p,left:50+(p.x-cam.x)*ppu/rect.width*100,top:50-(p.y+p.height/2-cam.y)*ppu/rect.height*100}))},location.origin);
   mark.style.left=rect.width/2+(.02-cam.x)*ppu+'px';mark.style.top=rect.height/2-(1.13-cam.y)*ppu+'px';mark.style.fontSize=Math.max(14,ppu*.22)+'px';
  }
  function animateCrew(kind,level=2){
@@ -46,8 +47,8 @@
   if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
   if(d.action==='configure'){
    document.body.dataset.preview=String(!!d.preview);document.body.dataset.previewClose=String(!!d.preview&&!!d.hideRig);
-   const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-   interiorKey='';portraitKey='';gameMotion=d.motion!==false;gameCutaway=!!d.cutaway;showRig=!d.hideRig;gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
+   const ladder=SHIP_LADDER;
+   interiorKey='';portraitKey='';gameMotion=d.motion!==false;gameCutaway=!!d.cutaway;showRig=!d.hideRig;gameLevel=d.level||1;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[1];P.shake=0;repair();
    artRenderer.configure(d,gameSide);gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent='';
   }
   if(d.action==='sync'){gameSelected=d.selected;gameCutaway=!!d.cutaway;artRenderer.setView(d);syncCrew(d.crew);syncParts(d.parts);}

@@ -1,0 +1,56 @@
+{
+  "4d65463eec6a41f4b864916e39b6ebb4": {
+    "engine": "solid",
+    "tolerance": 28,
+    "shadow": 100,
+    "threshold": 24,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  },
+  "4f92ad3339f84b86853531684df77802": {
+    "engine": "solid",
+    "tolerance": 3,
+    "shadow": 0,
+    "threshold": 8,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  },
+  "fa59e28086d345deb19a839e6d608d2b": {
+    "engine": "solid",
+    "tolerance": 3,
+    "shadow": 0,
+    "threshold": 8,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  },
+  "4186e1734c2049a69a60d80805793c92": {
+    "engine": "solid",
+    "tolerance": 28,
+    "shadow": 100,
+    "threshold": 24,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  },
+  "454c9d84e5f047eda1f475c44aadc26e": {
+    "engine": "solid",
+    "tolerance": 28,
+    "shadow": 100,
+    "threshold": 24,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  },
+  "fb0e71256aa04e87b0351a1e855a2d97": {
+    "engine": "solid",
+    "tolerance": 28,
+    "shadow": 100,
+    "threshold": 24,
+    "morph": 8,
+    "feather": 0.5,
+    "halo": 0
+  }
+}

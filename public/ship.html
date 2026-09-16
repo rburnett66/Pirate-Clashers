@@ -75,7 +75,7 @@
   }
   .scope-label[data-port="1"] { color: #FFD9A8; border-color: rgba(255, 200, 130, 0.7); }
 </style>
-<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark):not(#gameCrew):not(#gamePorts){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
+<style>html,body{color-scheme:dark;background:transparent!important}body>*:not(canvas):not(script):not(style):not(#scopeLabels):not(#pirateMark):not(#gameCrew):not(#gamePorts):not(#deathEffects){display:none!important}#ship{position:fixed!important;inset:0!important;width:100%!important;height:100%!important}canvas{touch-action:none}</style></head>
 <body>
 <canvas id="ship" aria-label="A pirate ship in cross section. Tap the hull to fire the selected projectile at it."></canvas>
 <div class="scope-labels" id="scopeLabels" aria-live="polite"></div>
@@ -909,7 +909,8 @@ void main() {
 
 <script type="module">
 import {HULL_MASK,maskPixels} from "/src/hull-mask.js";
-import {stationPosition} from "/src/ballistics.js";
+import {stationPosition,SHIP_LADDER} from "/src/ballistics.js";
+import {stationAnchors} from "/src/ship-config.js";
 import {ShipArtRenderer} from "/src/ship-art-renderer.js";
 (() => {
   'use strict';
@@ -1837,10 +1838,18 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
  const interior=document.createElement('canvas');interior.id='gameInterior';interior.setAttribute('aria-hidden','true');interior.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';document.body.append(interior);let interiorKey='';
  const portraits=document.createElement('div');portraits.id='gameCrew';portraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9';document.body.append(portraits);
  const portPortraits=document.createElement('div');portPortraits.id='gamePorts';portPortraits.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';document.body.append(portPortraits);canvas.style.zIndex='4';interior.style.zIndex='1';
+ const deathEffects=document.createElement('div');deathEffects.id='deathEffects';deathEffects.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:11;overflow:visible';document.body.append(deathEffects);
  const artRenderer=new ShipArtRenderer(interior);
- let gameRows=[],gameSelected=null,gameLevel=3,gameCutaway=false,gameMotion=true,portraitKey='';
+ let gameRows=[],gameSelected=null,gameLevel=1,gameCutaway=false,gameMotion=true,portraitKey='';
  function syncCrew(rows){
-  gameRows=rows||[];let d=0,h=0;
+  const next=rows||[],dead=gameRows.filter(old=>old.hp>0&&next.some(g=>g.id===old.id&&g.hp<=0));
+  if(dead.length&&gameMotion)dead.forEach(g=>{
+   const source=[...document.querySelectorAll('#gameCrew img, #gamePorts img')].find(n=>Number(n.dataset.gunner)===g.id);if(!source)return;
+   const clone=source.cloneNode(true);clone.style.opacity='1';deathEffects.append(clone);const dir=(g.id%2)?1:-1;
+   clone.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+(dir*35)+'px,-65px) rotate('+(dir*120)+'deg)',opacity:1,offset:.35},{transform:'translate('+(dir*120)+'px,185px) rotate('+(dir*420)+'deg)',opacity:0}],{duration:1050,easing:'ease-in',fill:'forwards'}).finished.then(()=>clone.remove());
+   const splash=document.createElement('i');splash.style.cssText='position:absolute;left:'+source.style.left+';top:calc('+source.style.top+' + 175px);width:34px;height:10px;border:3px solid #d9ffff;border-top-color:transparent;border-radius:50%;opacity:0';deathEffects.append(splash);splash.animate([{opacity:0,transform:'scale(.3)'},{opacity:1,transform:'scale(1.2)'},{opacity:0,transform:'scale(1.8)'}],{duration:500,delay:720,fill:'forwards'}).finished.then(()=>splash.remove());
+  });
+  gameRows=next;let d=0,h=0;
   stations.forEach(st=>{const key=st.port?'h'+h++:'d'+d++,g=gameRows.find(g=>g.slot===key),position=stationPosition({shipLevel:gameLevel},key);st.x=position.x;st.y=position.y;st.slot=key;st.gunner=g?.id??-1;st.name=g?.name;st.type=g?.type??0;st.out=!g||g.hp<=0;});
   uploadStations();updateScopeLabels();drawPortraits();
  }
@@ -1861,6 +1870,7 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
    return pedestal+'<img data-gunner="'+st.gunner+'" data-alive="'+!st.out+'" alt="'+(st.name||'Gunner')+'" src="/Pirate%20Art/pirate_segments/zombie-pirate/zombie-pirate-'+st.gunner+'.png" style="position:absolute;object-fit:contain;object-position:50% 100%;transform-origin:50% 100%;left:'+(x-w/2)+'px;top:'+(y-h)+'px;width:'+w+'px;height:'+h+'px;opacity:'+(st.out?0:1)+';filter:'+(st.gunner===gameSelected?'drop-shadow(0 0 3px #fff29a)':'none')+'">';
   }).join('');
   portraits.innerHTML=drawRows(false);portPortraits.innerHTML=drawRows(true);
+  parent.postMessage({type:'pirate-stations',side:gameSide,anchors:stationAnchors(gameLevel).map(p=>({...p,left:50+(p.x-cam.x)*ppu/rect.width*100,top:50-(p.y+p.height/2-cam.y)*ppu/rect.height*100}))},location.origin);
   mark.style.left=rect.width/2+(.02-cam.x)*ppu+'px';mark.style.top=rect.height/2-(1.13-cam.y)*ppu+'px';mark.style.fontSize=Math.max(14,ppu*.22)+'px';
  }
  function animateCrew(kind,level=2){
@@ -1879,8 +1889,8 @@ const COMMON_GLSL = document.getElementById('common').textContent.trim();
   if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='pirate-render')return;const d=e.data;
   if(d.action==='configure'){
    document.body.dataset.preview=String(!!d.preview);document.body.dataset.previewClose=String(!!d.preview&&!!d.hideRig);
-   const ladder={1:[1,0],2:[2,0],3:[2,1],4:[2,2],5:[3,2],6:[3,3],7:[4,3],8:[4,4]};
-   interiorKey='';portraitKey='';gameMotion=d.motion!==false;gameCutaway=!!d.cutaway;showRig=!d.hideRig;gameLevel=d.level||3;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[3];P.shake=0;repair();
+   const ladder=SHIP_LADDER;
+   interiorKey='';portraitKey='';gameMotion=d.motion!==false;gameCutaway=!!d.cutaway;showRig=!d.hideRig;gameLevel=d.level||1;[P.deckStations,P.hullStations]=ladder[gameLevel]||ladder[1];P.shake=0;repair();
    artRenderer.configure(d,gameSide);gameSelected=d.selected;syncCrew(d.crew);syncParts(d.parts);mark.textContent='';
   }
   if(d.action==='sync'){gameSelected=d.selected;gameCutaway=!!d.cutaway;artRenderer.setView(d);syncCrew(d.crew);syncParts(d.parts);}

@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "source": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+  "output": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\processed",
+  "settings": {
+    "engine": "solid",
+    "tolerance": 28,
+    "shadow": 35,
+    "threshold": 8,
+    "morph": 0,
+    "feather": 0.4,
+    "halo": 30
+  },
+  "assets": [
+    {
+      "id": "4d65463eec6a41f4b864916e39b6ebb4",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\chest-icon.JPG",
+      "name": "chest-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "4f92ad3339f84b86853531684df77802",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\crew-icon.JPG",
+      "name": "crew-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.5,
+        "halo": 0
+      },
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "fa59e28086d345deb19a839e6d608d2b",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\fight-icon.JPG",
+      "name": "fight-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.5,
+        "halo": 0
+      },
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "4186e1734c2049a69a60d80805793c92",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\gift-icon.JPG",
+      "name": "gift-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "454c9d84e5f047eda1f475c44aadc26e",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\map-icon.JPG",
+      "name": "map-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "fb0e71256aa04e87b0351a1e855a2d97",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source\\options-icon.JPG",
+      "name": "options-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\icons-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    }
+  ],
+  "atlas": {
+    "mode": "grid",
+    "cols": 4,
+    "rows": 4,
+    "size": 2048,
+    "padding": 2,
+    "extrusion": 1
+  },
+  "export": {
+    "padding": 12,
+    "preserve": true,
+    "center": false,
+    "height": 0,
+    "trim": true,
+    "scale": 1,
+    "width": 0
+  }
+}

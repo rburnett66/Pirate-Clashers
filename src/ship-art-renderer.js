@@ -1,3 +1,4 @@
+import {hullConfig,sailConfig,figureConfig} from './ship-config.js';
 import {HULL_MASK,maskPixels} from './hull-mask.js';
 import {SHIP_ART,shipAppearance,MAST_MOUNTS,RIG_SAILS,RIG_FLAGS,sailPanels,clothPlacement,worldToArt,artRig} from './ship-art-layout.js';
 
@@ -12,10 +13,10 @@ function layer(id,z){const c=surface();c.id=id;c.setAttribute('aria-hidden','tru
 export class ShipArtRenderer{
  constructor(interior){this.interior=interior;this.rig=layer('gameRigArt',0);this.hull=layer('gameHullArt',3);this.canvases=[this.rig,interior,this.hull];this.body=surface();this.inside=surface();this.groups=[];this.ready=false;this.revision=0;this.fallen=[null,null,null];this.cutaway=false;this.hideRig=false;this.motion=true;this.parts=null;}
  async configure(d,side){
-  const request=(this.request||0)+1;this.request=request;this.motion=d.motion!==false;this.preview=!!d.preview;this.setView(d);this.appearance=shipAppearance(d.level,d.cosmetic,side,d.parts?.plating??d.plating);this.setParts(d.parts,true);
+  const request=(this.request||0)+1;this.request=request;this.motion=d.motion!==false;this.preview=!!d.preview;this.setView(d);this.config=hullConfig(d.level);this.rigConfig=sailConfig(d.sailLevel??d.parts?.sailLevel);this.figure=figureConfig(d.figure??d.parts?.figure);this.appearance=shipAppearance(d.level,d.cosmetic,side,d.parts?.plating??d.plating);this.setParts(d.parts,true);
   const a=this.appearance,panels=sailPanels(a.sails);
-  try{const loaded=await Promise.all([image(a.hull.body.right),image(SHIP_ART.registration.interior.right),...SHIP_ART.masts.map(m=>image(m.images.right)),...panels.map(s=>image(s.cloth)),...a.sails.flags.map(f=>image(f.image))]);if(request!==this.request)return;
-   [this.skin,this.xray]=loaded;this.masts=loaded.slice(2,5);this.cloth=loaded.slice(5,10);this.flags=loaded.slice(10,12);this.panels=panels;this.ready=true;this.rebuild();document.body.dataset.shipArt='ready';document.body.dataset.hullArt=a.hull.id;document.body.dataset.sailArt=a.sails.id;document.body.dataset.sailCount=String(panels.length);document.body.dataset.flagCount=String(this.flags.length);
+  try{const loaded=await Promise.all([image(a.hull.body.right),image(SHIP_ART.registration.interior.right),...SHIP_ART.masts.map(m=>image(m.images.right)),...panels.map(s=>image(s.cloth)),...RIG_FLAGS.map(()=>image(SHIP_ART.flags.find(f=>f.id===(d.flag??d.parts?.flag??7)).image)),...(this.figure?.asset?[image(this.figure.asset)]:[])]);if(request!==this.request)return;
+   [this.skin,this.xray]=loaded;this.masts=loaded.slice(2,5);this.cloth=loaded.slice(5,10);this.flags=loaded.slice(10,12);this.figureImage=loaded[12];this.panels=panels;this.ready=true;this.rebuild();document.body.dataset.mastCount=String(this.rigConfig.masts.length);document.body.dataset.portCount=String(this.config.ports);document.body.dataset.figurehead=this.figure?.id||'';document.body.dataset.shipArt='ready';requestAnimationFrame(()=>requestAnimationFrame(()=>{if(request===this.request)parent.postMessage({type:'pirate-art-ready',side,requestId:d.requestId},location.origin);}));document.body.dataset.hullArt=a.hull.id;document.body.dataset.sailArt=a.sails.id;document.body.dataset.sailCount=String(this.rigConfig.panels.length);document.body.dataset.flagCount=String(RIG_FLAGS.filter(f=>this.rigConfig.masts.includes(f.mast)).length);
   }catch(error){document.body.dataset.shipArt='error';console.error(error);}
  }
  setView(d){const cutaway=!!d.cutaway,hideRig=!!d.hideRig;document.body.dataset.cutaway=String(cutaway);if(cutaway===this.cutaway&&hideRig===this.hideRig)return;if(cutaway!==this.cutaway){this.cutaway=cutaway;if(this.ready)this.buildBody();}this.hideRig=hideRig;this.revision++;}
@@ -28,17 +29,22 @@ export class ShipArtRenderer{
  }
  rebuild(){this.buildBody();this.buildRig();this.revision++;}
  buildBody(){
-  const ctx=this.body.getContext('2d');ctx.clearRect(0,0,1792,1008);if(!this.cutaway)ctx.drawImage(this.skin,0,0);
+  const ctx=this.body.getContext('2d');ctx.clearRect(0,0,1792,1008);if(!this.cutaway){ctx.drawImage(this.skin,0,0);
+   // Port doors are exterior details; the intact material mask still protects crew.
+   ctx.save();ctx.globalCompositeOperation='source-atop';
+   for(const p of this.config.holdAnchors){const [x,y]=worldToArt({x:p.x,y:p.y+.24});ctx.fillStyle='#ba8a41';ctx.fillRect(x-26,y-23,52,46);ctx.fillStyle='#23180f';ctx.fillRect(x-21,y-18,42,36);ctx.strokeStyle='#6a4823';ctx.lineWidth=4;ctx.strokeRect(x-26,y-23,52,46);ctx.fillStyle='#79716a';ctx.beginPath();ctx.ellipse(x+5,y+3,13,11,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#100e0a';ctx.beginPath();ctx.arc(x+8,y+3,7,0,Math.PI*2);ctx.fill();}
+   ctx.restore();if(this.figureImage)ctx.drawImage(this.figureImage,1350,730,130,180);
+  }
   ctx.globalCompositeOperation='destination-out';
   if(this.parts){const current=maskPixels(this.parts),holes=initial.map((p,i)=>p&&!current[i]?255:0);drawMask(ctx,bitmap(holes));}
   ctx.globalCompositeOperation='source-over';
   const inner=this.inside.getContext('2d');inner.clearRect(0,0,1792,1008);
-  if(this.cutaway){inner.drawImage(this.xray,0,0);}else{inner.drawImage(this.skin,0,0);inner.globalCompositeOperation='source-in';inner.fillStyle='#302014';inner.fillRect(0,0,1792,1008);inner.globalCompositeOperation='source-atop';inner.drawImage(this.xray,0,0);inner.globalCompositeOperation='source-over';}this.revision++;
+  inner.drawImage(this.xray,0,0);if(!this.cutaway){inner.globalCompositeOperation='destination-in';inner.drawImage(this.skin,0,0);inner.globalCompositeOperation='source-over';}this.revision++;
  }
  buildRig(){
   this.groups=SHIP_ART.masts.map((m,i)=>{
-   const group=surface(),ctx=group.getContext('2d'),dx=MAST_MOUNTS[i][0]-m.pivot[0],dy=MAST_MOUNTS[i][1]-m.pivot[1];ctx.drawImage(this.masts[i],dx,dy);
-   RIG_SAILS.forEach((spec,panel)=>{if(spec.mast!==i)return;
+   const group=surface(),ctx=group.getContext('2d');if(!this.rigConfig.masts.includes(i))return group;const dx=MAST_MOUNTS[i][0]-m.pivot[0],dy=MAST_MOUNTS[i][1]-m.pivot[1];ctx.drawImage(this.masts[i],dx,dy);
+   RIG_SAILS.forEach((spec,panel)=>{if(spec.mast!==i||!this.rigConfig.panels.includes(panel))return;
    const cloth=surface(),cc=cloth.getContext('2d'),part=this.panels[panel],place=clothPlacement(panel,part);
    cc.translate(...place.origin);cc.rotate(place.angle);cc.scale(place.scale,place.scale);cc.drawImage(this.cloth[panel],0,0);cc.setTransform(1,0,0,1,0,0);
    rig.sails.forEach((s,j)=>{if(s.panel!==panel)return;const health=this.parts?.sailParts?.[j],damage=health?1-health.hp/health.maxHp:0;if(damage<=0)return;

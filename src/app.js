@@ -1,3 +1,6 @@
+import {shipScreen,inventory,upgradeComparison} from './ship-screen.js';
+import {celebrateUpgrade} from './upgrade-celebration.js';
+import {resultScreen,preloadResult} from './result-screen.js';
 import {chartMarkup,mountPortMap} from './port-map.js';
 import {fullscreenButton,toggleFullscreen,screenHelp} from './fullscreen.js';
 import {syncUIScale} from './ui-scale.js';
@@ -10,10 +13,10 @@ import {SAIL_STYLES} from './ship-art-layout.js';
 import * as M from './model.js';
 const {$=null}= {};
 const el=id=>document.getElementById(id),fmt=n=>Math.floor(n).toLocaleString(),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEY='pirate-clashers-v1';let state,saveError='',page='battle',tab='ship',selected=null,gunner=null,port=0,busy=false,scope=false,toastTimer,lastFocus;
+const KEY='pirate-clashers-v1';let state,saveError='',page='battle',tab='ship',selected=null,gunner=null,port=0,busy=false,scope=false,telescope=false,toastTimer,lastFocus;let inventoryTab='sails',upgradeBusy=false;const artWaiters=new Map();
 try{state=M.restore(localStorage.getItem(KEY));}catch(e){state=M.fresh();saveError='Your previous save could not be read. It has been preserved; use Settings to export it before starting a new save.';}
 port=state.port;
-function save(){if(saveError)return;try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){saveError='Progress could not be saved on this browser. Export your captain in Settings.';toast(saveError);}}
+function save(){if(saveError)return false;try{localStorage.setItem(KEY,JSON.stringify(state));return true;}catch(e){saveError='Progress could not be saved on this browser. Export your captain in Settings.';toast(saveError);return false;}}
 function toast(s){el('toast').textContent=s;el('toast').classList.add('toast-show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el('toast').classList.remove('toast-show'),3500);}
 function button(label,action,id='',cls='',disabled=false){return '<button class="'+cls+'" data-action="'+action+'" data-id="'+esc(id)+'" '+(disabled?'disabled':'')+'>'+label+'</button>';}
 const SCREENS={battle:['BATTLE','Your next adventure awaits.','battle'],crew:['CREW','The right crew. The wrong crowd.','crew'],ports:['LEADERS','Make your name across the seven seas.'],booty:['BOOTY PASS','The sea rewards the bold.','booty'],store:['STORE','A little edge. A lot of character.','store'],settings:['SETTINGS','Make yourself at home.'],water:['WATER WORKSHOP','Build your favorite seas.'],arena:['BATTLE','Ready, aim, plunder.']};
@@ -29,7 +32,7 @@ function cost(c){return Object.entries(c).map(([k,v])=>({gold:'🪙',gems:'💎'
 function materials(){return '<div class="materials">'+Object.entries(state.mats).map(([k,v])=>'<div class="material">'+cost({[k]:v})+'</div>').join('')+'</div>';}
 function shell(){
  document.body.classList.toggle('reduce-motion',!state.settings.motion);document.body.classList.toggle('battle-mode',page==='arena');document.body.dataset.page=page;syncUIScale();
- const nav=[['battle','fight','Battle'],['crew','crewIcon','Crew'],['ports','map','Leaders'],['booty','chest','Booty'],['store','gift','Store'],['settings','settings','Settings']];
+ const nav=[['battle','fight','Battle'],['crew','crewIcon','Ship'],['ports','map','Leaders'],['booty','chest','Booty'],['store','gift','Store'],['settings','settings','Settings']];
  el('rail').innerHTML='<div class="brand"><span>☠</span><small>PIRATE<br>BASH</small></div>'+nav.map(([k,i,n])=>'<button class="nav-btn '+(page===k?'active':'')+'" data-action="nav" data-id="'+k+'" aria-label="'+n+'" '+(page===k?'aria-current="page"':'')+'><span class="nav-art-slot">'+artImage(i,'nav-art')+'</span><span>'+n+'</span></button>').join('')+'<div class="version">LOCAL VOYAGE</div>';
  el('topbar').innerHTML=screenHeader()+'<div class="wallet-plaque">'+artImage('header','header-art')+'<div class="wallet"><span class="wallet-label">YOUR TREASURE</span><span class="currency" aria-label="'+fmt(state.gold)+' gold"><small>GOLD</small><strong>'+fmt(state.gold)+'</strong></span><button class="wallet-add" data-action="nav" data-id="store" aria-label="Open gold and gem store">+</button><span class="gem" aria-label="'+fmt(state.gems)+' gems"><small>GEMS</small><strong>'+fmt(state.gems)+'</strong></span></div></div>'+fullscreenButton();
 }
@@ -62,14 +65,15 @@ function home(){
  <section class="card hold-panel spaced"><div class="row between"><div class="row">${artImage('open','hold-title','Open booty chest')}<div><span class="eyebrow">THE HOLD</span><h3>Your hard-earned haul</h3></div></div><small>${state.dailyChests} / 5 chest drops today</small></div><div class="chests spaced">${chests}</div></section>`;
 }
 
-function card(p){const owned=state.levels[p.id]>0,posted=Object.values(state.slots).includes(p.id);return '<button class="pirate-card '+(selected===p.id?'selected ':'')+(!owned?'locked':'')+'" style="--rarity:var(--'+p.rarity+')" data-action="'+(tab==='ship'&&owned?'select':'detail')+'" data-id="'+p.id+'">'+(posted?'<span class="posted">ON SHIP</span>':'')+portrait(p)+'<span class="rarity">'+p.rarity+'</span><strong class="name">'+p.name+'</strong><small>'+(owned?'Lv. '+state.levels[p.id]+' · '+p.primary:'Found in chests')+'</small></button>';}
-function crew(){return '<div class="tabs">'+[['ship','Ship'],['collection','Collection'],['yard','Shipyard'],['equipment','Equipment']].map(([k,n])=>button(n,'tab',k,tab===k?'active':'')).join('')+'</div>'+(tab==='ship'?'<div class="split"><section class="card"><div class="row between"><h3>The Blackwake</h3><span class="pill">LEVEL '+state.shipLevel+'</span></div>'+diagram()+'<p style="font-size:12px">'+(selected?'Posting '+pirate(selected).name+'. Choose an open station.':'Select a pirate, then a station. Tap a filled station to stand them down.')+'</p><div class="row spaced">'+button('Cancel selection','unselect','','ghost small',!selected)+(selected?button('View pirate','detail',selected,'small'):'')+'</div><p class="footer-note">● Deck: exposed, clear line of fire<br>● Gun ports: protected by the hull</p></section><section><div class="row between" style="margin-bottom:14px"><h3>Your crew</h3><small>'+M.PIRATES.filter(p=>state.levels[p.id]).length+' / 36 recruited</small></div><div class="roster scroll-panel">'+M.PIRATES.filter(p=>state.levels[p.id]).map(card).join('')+'</div></section></div>':tab==='collection'?'<div class="roster">'+M.PIRATES.map(card).join('')+'</div>':tab==='yard'?yard():equipment());}
-function diagram(){const valid=M.positions(state);return '<div class="ship-diagram"><iframe id="homeShip" src="/public/ship.html?side=home" title="Your ship artwork" tabindex="-1"></iframe>'+['d0','d1','d2','d3','h0','h1','h2','h3'].map((key,i)=>{const p=state.slots[key]&&pirate(state.slots[key]),open=valid.includes(key);return '<button class="slot '+(i>3?'port ':'')+(!open?'locked':'')+'" style="left:'+(24+i%4*17)+'%;top:'+(i<4?43:66)+'%" data-action="slot" data-id="'+key+'" aria-label="'+(open?(p?p.name:'Empty')+' '+(i<4?'deck':'gun port')+' station '+(i%4+1):'Locked station')+'" '+(!open?'disabled':'')+'>'+(open?p?portrait(p):'+':'⌑')+'</button>';}).join('')+'</div>';}
-function yard(){const c=state.shipLevel<8?{...M.E.SHIP[state.shipLevel-1]}:null;return '<div class="split"><section class="card"><div class="eyebrow">SHIPWRIGHT’S YARD</div><h2 class="spaced">Room for one more troublemaker.</h2>'+diagram()+materials()+'<div class="rule"></div><p>Each ship level opens one new gun station. Your current crew stays aboard.</p><div class="row spaced">'+button(c?'Upgrade to level '+(state.shipLevel+1):'Fully upgraded','ship-up','','primary',!c)+'</div><p class="footer-note">'+(c?cost(c):'Eight stations. A formidable ship.')+'</p></section><section class="card"><h3>The gunsmith</h3><p class="spaced">Cards buy experience. Gold pays the gunsmith. Great weapons take a little time.</p>'+bench()+'<div class="rule"></div><h3>The position ladder</h3>'+Object.entries(M.LADDER).map(([l,[d,h]])=>'<div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)"><span>Level '+l+'</span><small>'+d+' deck · '+h+' hull</small><strong>'+(+l<=state.shipLevel?'✓':'⌑')+'</strong></div>').join('')+'</section></div>';}
+function card(p){const owned=state.levels[p.id]>0,posted=Object.values(state.slots).includes(p.id),held=state.cards[p.id]||0,upgrade=M.upgradeCost(state,p.id),ready=owned&&!!upgrade&&!state.bench&&held>=upgrade.cards&&state.gold>=upgrade.gold;return '<button class="pirate-card '+(selected===p.id?'selected ':'')+(!owned?'locked':'')+'" style="--rarity:var(--'+p.rarity+')" data-action="'+(tab==='gunners'&&owned?'select':'detail')+'" data-id="'+p.id+'">'+(posted?'<span class="posted">ON SHIP</span>':'')+(ready?'<span class="upgrade-ready" aria-label="Upgrade available">↑</span>':'')+portrait(p)+'<span class="rarity">'+p.rarity+'</span><strong class="name">'+p.name+'</strong><small>'+(owned?'Lv. '+state.levels[p.id]+' · '+p.primary:'Found in chests')+'</small><small class="card-count">'+held+' cards</small></button>';}
+function crew(){return '<div class="tabs">'+[['ship','Ship'],['gunners','Gunners'],['collection','Collection'],['yard','Shipyard'],['equipment','Equipment']].map(([k,n])=>button(n,'tab',k,tab===k?'active':'')).join('')+'</div>'+(tab==='ship'?shipScreen(state,inventoryTab,{button,cost,diagram,materials}):tab==='gunners'?'<div class="split"><section class="card"><div class="row between"><h3>The Blackwake</h3><span class="pill">LEVEL '+state.shipLevel+'</span></div>'+diagram()+'<p style="font-size:12px">'+(selected?'Posting '+pirate(selected).name+'. Choose an open station.':'Select a pirate, then a station. Tap a filled station to stand them down.')+'</p><div class="row spaced">'+button('Cancel selection','unselect','','ghost small',!selected)+(selected?button('View pirate','detail',selected,'small'):'')+'</div><p class="footer-note">● Deck: exposed, clear line of fire<br>● Gun ports: protected by the hull</p></section><section><div class="row between" style="margin-bottom:14px"><h3>Your crew</h3><small>'+M.PIRATES.filter(p=>state.levels[p.id]).length+' / 36 recruited</small></div><div class="roster scroll-panel">'+M.PIRATES.filter(p=>state.levels[p.id]).map(card).join('')+'</div></section></div>':tab==='collection'?'<div class="roster">'+M.PIRATES.map(card).join('')+'</div>':tab==='yard'?yard():equipment());}
+function diagram(){const assigning=tab==='gunners';return '<div class="ship-diagram upgrade-stage '+(assigning?'assigning':'')+'"><iframe id="homeShip" src="/public/ship.html?side=home" title="Your ship artwork" tabindex="-1"></iframe>'+M.positions(state).map(key=>button(state.slots[key]?'●':'+','slot',key,'slot '+(state.slots[key]?'occupied ':''))).join('')+'</div>';}
+
+function yard(){const c=M.hullConfig(state.shipLevel).cost;return '<div class="split"><section class="card"><div class="eyebrow">SHIPWRIGHT’S YARD</div><h2 class="spaced">Room for one more troublemaker.</h2>'+diagram()+materials()+'<div class="rule"></div><p>Each ship level opens one new gun station. Your current crew stays aboard.</p><div class="row spaced">'+button(c?'Upgrade to level '+(state.shipLevel+1):'Fully upgraded','ship-up',state.shipLevel,'primary',!c)+'</div><p class="footer-note">'+(c?cost(c):'Eight stations. A formidable ship.')+'</p></section><section class="card"><h3>The gunsmith</h3><p class="spaced">Cards buy experience. Gold pays the gunsmith. Great weapons take a little time.</p>'+bench()+'<div class="rule"></div><h3>The position ladder</h3>'+Object.entries(M.LADDER).map(([l,[d,h]])=>'<div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)"><span>Level '+l+'</span><small>'+d+' deck · '+h+' hull</small><strong>'+(+l<=state.shipLevel?'✓':'⌑')+'</strong></div>').join('')+'</section></div>';}
 function bench(){if(!state.bench)return '<div class="empty spaced">Your bench is free.<br><small>Open a crew card to start an upgrade.</small></div>';const b=state.bench,left=Math.max(0,b.ends-Date.now()),gems=Math.ceil(left/360000);return '<div class="card spaced"><h3>'+pirate(b.id).name+'</h3><p data-timer="'+b.ends+'">'+duration(left)+' remaining</p>'+button('Finish now · 💎 '+gems,'skip','','primary small')+'</div>';}
 function equipment(){
 const rc=M.repairCost(state);
-return materials()+'<div class="row between spaced"><h3>Protection that earns its scars.</h3>'+button('Repair · '+(Object.keys(rc).length?cost(rc):'Ready'),'repair','','small',!Object.keys(rc).length)+'</div><p class="footer-note">Each hull section has its own plating and condition. Worn equipment never blocks battle.</p><div class="gear-grid spaced">'+state.plates.slice(0,state.shipLevel).map((p,i)=>'<section class="card"><div class="eyebrow">HULL SECTION '+(i+1)+'</div><h3>'+p.kind+'</h3><p>'+Math.round(p.durability)+'% condition</p>'+button('Hardwood · 220 wood + 1,800 gold','equip','plating:hardwood:'+i,'small',p.kind==='hardwood')+button('Iron · 140 metal + 3,000 gold + 25 gems','equip','plating:iron:'+i,'small spaced',p.kind==='iron')+'</section>').join('')+'</div><h3 class="spaced">Canvas · '+Math.round(state.canvasDurability)+'% condition</h3><div class="gear-grid spaced">'+[['heavy','Heavy canvas','20% protection','180 cloth · 1,200 gold'],['storm','Storm canvas','30% protection','240 cloth · 2,400 gold · 20 gems']].map(([v,n,desc,c])=>'<section class="card"><h3>'+n+'</h3><p>'+desc+'</p><small>'+c+'</small>'+button(state.canvas===v?'Fitted ✓':'Fit canvas','equip','canvas:'+v,'small spaced',state.canvas===v)+'</section>').join('')+'</div><h3 class="spaced">Permanent enhancements</h3><div class="gear-grid spaced">'+Object.entries(M.E.ENHANCEMENTS).map(([n,v])=>{const l=state.enh[n]||0;return '<div class="card"><h3>'+n+'</h3><p>'+v.effect+' · Grade '+l+'/5</p>'+button(l===5?'Maxed':'Improve · '+cost({gold:M.E.ENH_GOLD[l],gems:M.E.ENH_GEMS[l]}),'enhance',n,'small',l===5)+'</div>';}).join('')+'</div><h3 class="spaced">A face for your ship</h3><div class="gear-grid spaced">'+M.E.FIGUREHEADS.map((f,i)=>{const l=state.figureheads[i]||0;return '<div class="card"><div class="gear-icon">'+['🐕','🐏','🐢','🦅','🐙','🐉'][i]+'</div><h3>'+f.name+'</h3><p>'+f.bias+' · Grade '+l+'/4</p><small>'+(!l?cost({gold:f.gold,gems:f.gems}):'Permanently owned')+'</small><div class="spaced">'+button(state.figurehead===i?'Equipped ✓':l?'Equip':'Acquire','figure',i,'small',state.figurehead===i)+(l&&l<4?button('Improve · '+cost({gold:M.E.FIG_UPGRADE.gold[l-1],gems:M.E.FIG_UPGRADE.gems[l-1]}),'figure-up',i,'small spaced'):'')+'</div></div>';}).join('')+'</div><h3 class="spaced">Sails with personality</h3><div class="gear-grid spaced">'+M.E.SAILS.map((v,i)=>'<div class="card"><img class="sail-art-choice" src="/public/ship-art/sails/'+SAIL_STYLES[i][0]+'.png" alt="'+SAIL_STYLES[i][1]+' sail set"><h3>'+SAIL_STYLES[i][1]+'</h3><p>Cosmetic · gold only</p>'+button(state.cosmetic===i?'Equipped ✓':state.cosmetics.includes(i)?'Equip':fmt(v)+' gold','cosmetic',i,'small',state.cosmetic===i)+'</div>').join('')+'</div>';
+return materials()+'<div class="row between spaced"><h3>Protection that earns its scars.</h3>'+button('Repair · '+(Object.keys(rc).length?cost(rc):'Ready'),'repair','','small',!Object.keys(rc).length)+'</div><p class="footer-note">Each hull section has its own plating and condition. Worn equipment never blocks battle.</p><div class="gear-grid spaced">'+state.plates.slice(0,M.hullSections(state)).map((p,i)=>'<section class="card"><div class="eyebrow">HULL SECTION '+(i+1)+'</div><h3>'+p.kind+'</h3><p>'+Math.round(p.durability)+'% condition</p>'+button('Hardwood · 220 wood + 1,800 gold','equip','plating:hardwood:'+i,'small',p.kind==='hardwood')+button('Iron · 140 metal + 3,000 gold + 25 gems','equip','plating:iron:'+i,'small spaced',p.kind==='iron')+'</section>').join('')+'</div><h3 class="spaced">Canvas · '+Math.round(state.canvasDurability)+'% condition</h3><div class="gear-grid spaced">'+[['heavy','Heavy canvas','20% protection','180 cloth · 1,200 gold'],['storm','Storm canvas','30% protection','240 cloth · 2,400 gold · 20 gems']].map(([v,n,desc,c])=>'<section class="card"><h3>'+n+'</h3><p>'+desc+'</p><small>'+c+'</small>'+button(state.canvas===v?'Fitted ✓':'Fit canvas','equip','canvas:'+v,'small spaced',state.canvas===v)+'</section>').join('')+'</div><h3 class="spaced">Permanent enhancements</h3><div class="gear-grid spaced">'+Object.entries(M.E.ENHANCEMENTS).map(([n,v])=>{const l=state.enh[n]||0;return '<div class="card"><h3>'+n+'</h3><p>'+v.effect+' · Grade '+l+'/5</p>'+button(l===5?'Maxed':'Improve · '+cost({gold:M.E.ENH_GOLD[l],gems:M.E.ENH_GEMS[l]}),'enhance',n,'small',l===5)+'</div>';}).join('')+'</div><h3 class="spaced">Figureheads</h3><div class="gear-grid spaced">'+inventory(state,'figureheads',{button,cost})+'</div><h3 class="spaced">Sails</h3><div class="gear-grid spaced">'+inventory(state,'sails',{button,cost})+'</div>';
 }
 function detail(id){const p=pirate(id),l=state.levels[id],st=M.stats(p,l||1),c=M.upgradeCost(state,id);modal('<div class="eyebrow">'+p.rarity+' · '+(l?'LEVEL '+l:'UNRECRUITED')+'</div>'+portrait(p,'detail-portrait')+'<h2>'+p.name+'</h2><p>'+p.projectile+'</p><div class="badge-row">'+p.tags.map(t=>'<span class="pill">'+t+'</span>').join('')+'</div><div class="stats">'+Object.entries(st).map(([k,v])=>'<div class="stat"><small>'+k.toUpperCase()+'</small><strong>'+v+'</strong></div>').join('')+'</div><p>'+(!l?'Win chests to recruit this pirate. Each card belongs to a specific crew member.':c?'Next upgrade: '+c.cards+' cards and '+fmt(c.gold)+' gold. Bench time '+duration(c.hours*3600000)+'.':'This pirate has reached level 12.')+'</p><p class="spaced">Cards held: <strong>'+state.cards[id]+'</strong></p><div class="row spaced">'+button('Start upgrade','upgrade',id,'primary',!c||!!state.bench||state.cards[id]<c.cards||state.gold<c.gold)+(l?button('Select for ship','select-detail',id,'ghost'):'')+'</div>'+bench());}
 let focusMap;
@@ -132,18 +136,32 @@ function settings(){return '<div class="settings-grid"><section class="card sett
 
 function arena(){
  const b=M.prepareBattle(state.battle);if(!b){page='battle';return home();}
- cameraReady=false;viewMode='crew';scope=false;
+ cameraReady=false;viewMode='crew';scope=false;telescope=false;
  return `<section class="arena combat-arena polished-battle">
   <div class="battle-top">${['player','enemy'].map(side=>`<div class="health-card ${side}"><h3>${esc(side==='player'?state.name:b.enemyName)}</h3><div class="health-line"><progress id="${side}Health" max="${b[side].maxHull}" aria-label="${side==='player'?'Your':'Enemy'} hull health"></progress><strong id="${side}Percent"></strong></div><div class="health-meta" id="${side}Meta"></div></div>`).join('')}<div class="battle-tools">${button('🔭','scope','','telescope')}${fullscreenButton()}</div></div>
   <div class="turn-banner" id="turnBanner" role="status"><strong id="phaseLabel"></strong><span id="turnLabel"></span><span id="shots"></span><span id="turnClock"></span><span id="battleLog"></span></div>
-  <div id="combatField"><div id="battleWorld"><iframe class="arena-water" id="battleOcean" src="/public/water.html" title="Battle ocean" tabindex="-1"></iframe><iframe class="combat-ship" id="playerShip" src="/public/ship.html?side=player" title="Your crew and ship" tabindex="-1"></iframe><iframe class="combat-ship" id="enemyShip" src="/public/ship.html?side=enemy" title="Enemy crew and ship" tabindex="-1"></iframe><svg id="shotLayer" aria-label="Pull back and release to fire. Aim upward or backward to cancel."><g id="aimArc"></g><g id="flyingShots"></g></svg><div id="crewTargets"></div><div id="powderBlast" hidden></div></div><div id="waterMovement"><span id="movementLabel"></span><div>${button('←','sail','-1','water-arrow')}${button('→','sail','1','water-arrow')}</div></div><div id="crewCheer" role="status"></div><div id="shotReadout" aria-live="polite"></div></div>
-  <div class="battle-bottom"><div class="gun-panel"><div class="eyebrow">CHOOSE YOUR GUNNER</div><div class="gun-selection" id="guns"></div></div><div class="weapon-panel" id="weaponInfo"></div><div class="aim-panel"><label for="aimAngle">AIM <output id="angleValue">35°</output></label><input type="range" id="aimAngle" min="5" max="75" step="1" value="${b.aimAngle??35}" aria-label="Aim angle"><div class="aim-actions">${button('FIRE','fire','','primary')}<small>Pull back & release<br>or set angle & Fire</small></div></div><div class="move-panel">${button('Finishing move','finisher','','finisher')}${button('Retreat','retreat','','ghost small')}</div></div></section>`;
+  <div id="combatField"><div id="battleWorld"><iframe class="arena-water" id="battleOcean" src="/public/water.html" title="Battle ocean" tabindex="-1"></iframe><iframe class="combat-ship" id="playerShip" src="/public/ship.html?side=player" title="Your crew and ship" tabindex="-1"></iframe><iframe class="combat-ship" id="enemyShip" src="/public/ship.html?side=enemy" title="Enemy crew and ship" tabindex="-1"></iframe><svg id="shotLayer" aria-label="Pull back and release to fire. Aim upward or backward to cancel."><g id="aimArc"></g><g id="flyingShots"></g></svg><div id="crewTargets"></div><div id="powderBlast" hidden></div></div><div id="waterMovement"><span id="movementLabel"></span><div>${button('←','sail','-1','water-arrow')}${button('→','sail','1','water-arrow')}</div></div><div id="crewCheer" role="status"></div><div id="shotReadout" aria-live="polite"></div>
+   <div class="battle-bottom"><div class="crew-stack"><div class="weapon-panel" id="weaponInfo"></div><div class="gun-panel"><div class="eyebrow">CHOOSE YOUR GUNNER</div><div class="gun-selection" id="guns"></div></div></div><button type="button" class="ship-wheel-control" id="shipWheel" aria-label="Drag the ship wheel to steer" title="Drag left or right to steer"><img src="/public/menu-art/ship-wheel-cutout.png" alt="" draggable="false"></button><div class="aim-panel"><label for="aimAngle">AIM <output id="angleValue">35°</output></label><input type="range" id="aimAngle" min="5" max="75" step="1" value="${b.aimAngle??35}" aria-label="Aim angle"><div class="aim-actions">${button('FIRE','fire','','primary')}<small>Pull back & release<br>or set angle & Fire</small></div></div><div class="move-panel">${button('Finishing move','finisher','','finisher')}${button('Retreat','retreat','','ghost small')}</div></div>
+  </div></section>`;
+}
+async function matchSearch(){
+ const b=state.battle;if(!b)return;
+ const messages=['Looking for a fight ..','There\'s a ship hiding somewhere ..','Let\'s check the next cove ..'];
+ modal('<div class="match-search-water"><iframe id="matchSearchWater" src="/public/water.html" title="Open water"></iframe><iframe id="matchSearchShip" src="/public/ship.html?side=player" title="Your ship sailing" tabindex="-1"></iframe><div class="match-search-copy"><small>SCANNING THE HORIZON</small><strong>'+messages[Math.floor(Math.random()*messages.length)]+'</strong></div></div>');
+ el('sheet').classList.add('match-search');
+ const frame=el('matchSearchShip'),configure=()=>{const f=b.player;frame.contentWindow?.postMessage({type:'pirate-render',action:'configure',preview:true,level:f.shipLevel,crew:visualCrew(f),parts:f,cosmetic:f.cosmetic??state.cosmetic,sailLevel:f.sailLevel,flag:f.flag,figure:f.figure,motion:state.settings.motion},location.origin);};
+ frame.addEventListener('load',configure,{once:true});setTimeout(configure,120);
+ await sleep(5000);if(el('sheet').open)close();
 }
 function matchIntro(){
  const b=state.battle;if(!b)return;
- const team=side=>{const f=b[side],captain=pirate(f.crew[0].id);return `<section class="match-team ${side}"><div class="match-captain">${portrait(captain)}<div><small>${side==='player'?'YOUR CAPTAIN':'LOCAL RIVAL'}</small><h2>${esc(side==='player'?state.name:b.enemyName)}</h2><strong>🏆 ${side==='player'?state.trophies:M.board(state).find(r=>r.name===b.enemyName)?.trophies??'—'}</strong></div></div><div class="match-ship"><iframe src="/public/ship.html?side=${side}" title="${side==='player'?'Your':'Rival'} ship and sails" tabindex="-1" data-preview="${side}"></iframe></div><div class="match-crew">${f.crew.map(g=>`<div>${portrait(pirate(g.id))}<strong>${esc(pirate(g.id).name)}</strong><small>${esc(pirate(g.id).projectile)} · Lv. ${g.level}</small></div>`).join('')}</div></section>`;};
- modal(`<div class="match-background">${artImage(harbor(state.settings.harbor).id)}</div><div class="match-heading"><small>PIRATE BASH</small><h1>ALL HANDS ON DECK</h1><p>${esc(M.PORTS[state.port])} · Prepare for a broadside.</p></div><div class="match-teams">${team('player')}<span class="match-vs">VS</span>${team('enemy')}</div><div class="match-begin">${button('TO BATTLE →','begin-battle','','primary')}</div>`);
+ const team=side=>{const f=b[side];return `<section class="match-team ${side}"><div class="match-captain"><small>${side==='player'?'YOUR CAPTAIN':'LOCAL RIVAL'}</small><h2>${esc(side==='player'?state.name:b.enemyName)}</h2><strong>🏆 ${side==='player'?state.trophies:M.board(state).find(r=>r.name===b.enemyName)?.trophies??'—'}</strong></div><div class="match-ship"><iframe src="/public/ship.html?side=${side}" title="${side==='player'?'Your':'Rival'} ship and sails" tabindex="-1" data-preview="${side}"></iframe></div></section>`;};
+ const crew=side=>`<aside class="match-crew ${side}-crew" aria-label="${side==='player'?'Your':'Rival'} crew">${b[side].crew.map(g=>`<div class="match-crew-icon" role="img" aria-label="${esc(pirate(g.id).name)}">${portrait(pirate(g.id))}</div>`).join('')}</aside>`;
+ modal(`<div class="match-background">${artImage(harbor(state.settings.harbor).id)}</div><div class="match-heading"><small>PIRATE BASH</small><h1>ALL HANDS ON DECK</h1><p>${esc(M.PORTS[state.port])} · Prepare for a broadside.</p></div><div class="match-teams">${crew('player')}${team('player')}<span class="match-vs">VS</span>${team('enemy')}${crew('enemy')}</div><div class="match-begin">${button(artImage('battle','','Battle'),'begin-battle','','art-button match-battle-button')}</div>`);
  el('sheet').classList.add('match-intro');
+ const previewConfig=side=>{const frame=document.querySelector('[data-preview="'+side+'"]'),f=b[side];if(!frame||!f)return;frame.contentWindow?.postMessage({type:'pirate-render',action:'configure',preview:true,level:f.shipLevel,crew:visualCrew(f),parts:f,cosmetic:f.cosmetic??(side==='player'?state.cosmetic:null),sailLevel:f.sailLevel,flag:f.flag,figure:f.figure,motion:state.settings.motion},location.origin);};
+ document.querySelectorAll('[data-preview]').forEach(frame=>{const side=frame.dataset.preview;frame.addEventListener('load',()=>{previewConfig(side);const enter=()=>frame.classList.add('match-entered');if(side==='enemy')setTimeout(enter,850);else enter();},{once:true});});
+ setTimeout(()=>['player','enemy'].forEach(previewConfig),120);
 }
 
 function send(side,data){el(side+'Ship')?.contentWindow?.postMessage({type:'pirate-render',...data},location.origin);}
@@ -151,14 +169,14 @@ function sendOcean(data){el('battleOcean')?.contentWindow?.postMessage({type:'pi
 function syncOcean(){if(!el('battleOcean')||!state.battle)return;sendOcean({action:'scene',...camera,motion:state.settings.motion,settings:activeWater(state.settings.water).values,ships:['player','enemy'].map(side=>({side,x:state.battle[side].x,dir:side==='player'?1:-1}))});}
 function visualCrew(f){return f.crew.map(g=>({...g,name:pirate(g.id).name,range:M.stats(pirate(g.id),g.level).range,type:{hull:0,crew:1,sails:2}[pirate(g.id).primary]}));}
 function configure(side){
- if(side==='home'){send(side,{action:'configure',level:state.shipLevel,crew:[],cosmetic:state.cosmetic,plating:state.plating,motion:state.settings.motion,preview:true,cutaway:tab==='ship',hideRig:tab==='ship'});return;}
- const b=state.battle;if(!b)return;const f=b[side];send(side,{action:'configure',level:f.shipLevel,crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,cosmetic:side==='player'?state.cosmetic:null,motion:state.settings.motion,...shipView(side)});
+ if(side==='home'){send(side,homeConfiguration());return;}
+ const b=state.battle;if(!b)return;const f=b[side];send(side,{action:'configure',level:f.shipLevel,crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,cosmetic:f.cosmetic??(side==='player'?state.cosmetic:null),sailLevel:f.sailLevel,flag:f.flag,figure:f.figure,motion:state.settings.motion,...shipView(side)});
  layoutCombat();
 }
 let camera={ppu:1,ox:0,oy:0},flying=false,cameraReady=false,viewMode='crew',cameraAnimation=0,cameraTarget=null,flightTarget='enemy',attackSide='player';
 function shipView(side){return {cutaway:side===cutawaySide(state.battle,busy,attackSide,viewMode,flightTarget),hideRig:viewMode==='crew'||viewMode==='celebrate'};}
 const screenPoint=p=>({x:camera.ox+p.x*camera.ppu,y:camera.oy-p.y*camera.ppu});
-function desiredCamera(){const field=el('combatField'),b=state.battle;if(!field||!b)return null;return viewMode==='celebrate'?battleCamera(field.clientWidth,field.clientHeight,b[flightTarget].x,b[flightTarget==='player'?'enemy':'player'].x,'crew'):battleCamera(field.clientWidth,field.clientHeight,b.player.x,b.enemy.x,viewMode,b[flightTarget].x);}
+ function desiredCamera(){const field=el('combatField'),b=state.battle;if(!field||!b)return null;if(viewMode==='scope')return battleCamera(field.clientWidth,field.clientHeight,b.enemy.x,b.enemy.x,'crew',b.enemy.x);return viewMode==='celebrate'?battleCamera(field.clientWidth,field.clientHeight,b[flightTarget].x,b[flightTarget==='player'?'enemy':'player'].x,'crew'):battleCamera(field.clientWidth,field.clientHeight,b.player.x,b.enemy.x,viewMode,b[flightTarget].x);}
 function setBattleView(mode){
  viewMode=mode;const target=desiredCamera();if(!target)return;
  for(const side of ['player','enemy'])send(side,{action:'view',...shipView(side)});
@@ -203,6 +221,9 @@ function reactCrew(event,side,kills=0){
 function updateArena(){
  const b=M.prepareBattle(state.battle);if(!b||!el('playerHealth'))return;
  if(gunner!==null&&!M.active(b.player).some(g=>g.id===gunner))gunner=null;
+ const activeCrew=M.active(b.player);
+ let autoSelected=false;
+ if(b.phase==='player'&&!busy&&activeCrew.length===1&&gunner!==activeCrew[0].id){gunner=activeCrew[0].id;scope=true;autoSelected=true;}
  const locked=busy||b.phase!=='player';
  for(const side of ['player','enemy']){
   const f=b[side];send(side,{action:'sync',crew:visualCrew(f),parts:f,selected:side==='player'?gunner:null,...shipView(side)});
@@ -212,7 +233,7 @@ function updateArena(){
  }
  const own=b.phase==='player',shotSide=b.pending?.side;
  el('turnBanner').dataset.phase=own?'player':b.phase==='result'?'result':'enemy';
- el('phaseLabel').textContent=b.phase==='flight'?(shotSide==='player'?'YOUR SHOT IN FLIGHT':'ENEMY SHOT IN FLIGHT'):own?(gunner===null?'CHOOSE YOUR GUNNER':'PULL BACK & RELEASE'):b.phase==='result'?'BATTLE OVER':'ENEMY TURN — WATCH THEIR SHOT';
+ el('phaseLabel').textContent=own?'Choose Your Gunner':b.phase==='result'?'BATTLE OVER':b.phase==='flight'?(shotSide==='player'?'YOUR SHOT IN FLIGHT':'Incoming Fire'):'Incoming Fire';
  el('turnLabel').textContent='TURN '+b.turn;
  el('turnClock').textContent=own?Math.ceil(b.seconds??30)+'s':'';
  el('shots').textContent=(own?b.shots:b.phase==='flight'&&shotSide==='player'?b.shots:b.enemyShots)+' shots left';
@@ -221,18 +242,20 @@ function updateArena(){
  const targets=gunner===null&&!locked?roster.map(g=>{const p=pirate(g.id);return `<button data-action="gun" data-id="${g.id}" aria-label="Select ${esc(p.name)}" title="${esc(p.projectile)}"><span>${p.icon} ${M.stats(p,g.level).range} m<small>${esc(p.primary.toUpperCase())}</small></span></button>`;}).join(''):'';
  if(el('crewTargets').renderedMarkup!==targets){el('crewTargets').innerHTML=targets;el('crewTargets').renderedMarkup=targets;}
  const g=roster.find(g=>g.id===gunner),p=g&&pirate(g.id),spec=p&&M.projectileFor(p),stats=p&&M.stats(p,g.level);
- el('weaponInfo').innerHTML=p?'<strong>'+esc(p.name)+'</strong><span>'+esc(p.projectile)+' · Lv. '+g.level+'</span><small>'+stats.range+' m · '+stats.damage+' damage · +60% vs '+spec.bonus+'</small>':'<strong>All hands, ready!</strong><span>Choose a pirate on your ship.</span><small>Pull backward to launch forward. Aim straight up or backward to cancel.</small>';
+ el('weaponInfo').innerHTML=p?'<strong>'+esc(p.name)+'</strong><span>'+esc(p.projectile)+' · Lv. '+g.level+'</span><small>'+stats.range+' m · '+stats.damage+' damage · +60% vs '+spec.bonus+'</small>':'';
+ el('weaponInfo').hidden=!p;
  el('combatField').dataset.selected=gunner??'';
- const telescope=document.querySelector('[data-action=scope]');telescope.setAttribute('aria-label',scope?'Return to crew view':'Telescope: inspect both ships');telescope.setAttribute('aria-pressed',String(scope));
+ el('combatField').dataset.scope=telescope?'on':'off';const telescopeButton=document.querySelector('[data-action=scope]');telescopeButton.setAttribute('aria-label',telescope?'Return to crew view':'Telescope: inspect opposing ship');telescopeButton.setAttribute('aria-pressed',String(telescope));
 
  el('aimAngle').disabled=locked||gunner===null;el('aimAngle').value=b.aimAngle??35;el('angleValue').textContent=(b.aimAngle??35)+'°';
  document.querySelector('[data-action=fire]').disabled=locked||gunner===null;
  document.querySelector('[data-action=retreat]').disabled=locked;
- document.querySelectorAll('[data-action=sail]').forEach(e=>{e.disabled=locked||b.movesLeft<=0;e.setAttribute('aria-label',e.dataset.id==='1'?'Move forward':'Move backward');});
+ document.querySelectorAll('[data-action=sail]').forEach(e=>{const unavailable=locked||b.movesLeft<=0;e.disabled=unavailable;e.hidden=b.movesLeft<=0;e.setAttribute('aria-label',e.dataset.id==='1'?'Move forward':'Move backward');});
+ el('shipWheel').disabled=locked||b.movesLeft<=0;
  el('movementLabel').textContent=b.movesLeft+' MOVES';
  const fin=document.querySelector('[data-action=finisher]');fin.disabled=locked||!b.charged||b.used;fin.classList.toggle('charged',b.charged);fin.textContent=M.FINISHERS[state.move].icon+' '+(b.charged?'UNLEASH!':b.used?'MOVE USED':b.streak+'/4 DUAL HITS');
  el('battleLog').textContent=b.log.at(-1)||'';
- layoutCombat();save();
+ layoutCombat();save();if(autoSelected)setBattleView('wide');
 }
 function sound(freq=120,length=.15){if(!state.settings.sound)return;try{const a=audioContext||(audioContext=new AudioContext()),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='triangle';o.frequency.setValueAtTime(freq,a.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(25,freq/4),a.currentTime+length);g.gain.setValueAtTime(.1,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+length);o.start();o.stop(a.currentTime+length);}catch{}}
 let audioContext;
@@ -263,10 +286,14 @@ async function animateShot(flight){
 
   if(t<flight.duration)requestAnimationFrame(tick);else{if(layer)layer.innerHTML='';resolve();}
  }requestAnimationFrame(tick);});
- flying=false;const e=event;reactCrew(e,flight.side,crewBefore-M.active(state.battle[flightTarget]).length);gunner=null;scope=true;
+ flying=false;const e=event;reactCrew(e,flight.side,crewBefore-M.active(state.battle[flightTarget]).length);scope=true;
  if(readout)readout.textContent=e?.hit?Math.round(e.damage)+' DAMAGE · '+e.impacts.map(i=>i.kind+(i.bonus?' BONUS':'')).filter((v,i,a)=>a.indexOf(v)===i).join(' + '):'SPLASH — SHOT FELL SHORT OR PASSED THE SHIP';
  if(e?.hit&&state.battle.phase!=='result'){
   setBattleView('impact');updateArena();
+  // The hit has resolved and the player may already have another shot.
+  // Keep the destruction hold on screen, but release the input lock so the
+  // next shot can be selected while the opposing ship is still burning.
+  if(flight.side==='player'&&state.battle.phase==='player'&&busy){busy=false;updateArena();}
   await sleep(COMBAT_TIMING.hitHoldMs);
  }
  updateArena();
@@ -294,13 +321,26 @@ function changeAngle(value){
  state.battle.aimAngle=Math.max(5,Math.min(75,Math.round(value)));el('aimAngle').value=state.battle.aimAngle;el('angleValue').textContent=state.battle.aimAngle+'°';drawAim();save();
 }
 document.addEventListener('input',e=>{if(e.target.id==='aimAngle'){if(viewMode==='crew')setBattleView('wide');changeAngle(Number(e.target.value));}});
-let draggingAim=null;
+let draggingAim=null,draggingWheel=null,wheelFrame=0;
+function wheelMove(e){
+ if(!draggingWheel)return;
+ const desired=draggingWheel.originX+(e.clientX-draggingWheel.clientX)/draggingWheel.ppu;
+ const preview=M.steerShip(state,{originX:draggingWheel.originX,targetX:desired});if(!preview)return;
+ draggingWheel.targetX=preview.x;state.battle.player.x=preview.x;
+ el('shipWheel').style.setProperty('--steer-turn',((preview.x-draggingWheel.originX)*360)+'deg');
+ if(!wheelFrame)wheelFrame=requestAnimationFrame(()=>{wheelFrame=0;paintCombat();});
+}
+document.addEventListener('pointerdown',e=>{const wheel=e.target.closest('#shipWheel');if(!wheel||wheel.disabled||!e.isPrimary||busy||state.battle?.phase!=='player')return;draggingWheel={id:e.pointerId,clientX:e.clientX,originX:state.battle.player.x,targetX:state.battle.player.x,ppu:camera.ppu};wheel.setPointerCapture(e.pointerId);e.preventDefault();});
+document.addEventListener('pointermove',e=>{if(draggingWheel?.id===e.pointerId)wheelMove(e);});
+function cancelWheel(){if(!draggingWheel)return;cancelAnimationFrame(wheelFrame);wheelFrame=0;state.battle.player.x=draggingWheel.originX;draggingWheel=null;el('shipWheel').style.setProperty('--steer-turn','0deg');paintCombat();}
+document.addEventListener('pointerup',e=>{if(!draggingWheel||draggingWheel.id!==e.pointerId)return;wheelMove(e);cancelAnimationFrame(wheelFrame);wheelFrame=0;const drag=draggingWheel;draggingWheel=null;el('shipWheel').style.setProperty('--steer-turn','0deg');M.steerShip(state,{originX:drag.originX,targetX:drag.targetX,commit:true});updateArena();});
+document.addEventListener('pointercancel',e=>{if(draggingWheel?.id===e.pointerId)cancelWheel();});
 function pointerAim(e){if(!draggingAim)return;const aim=dragAim(draggingAim,{x:e.clientX,y:e.clientY});draggingAim.result=aim;
  if(aim.moved){if(aim.cancel){el('shotReadout').textContent='RELEASE TO CHOOSE ANOTHER GUNNER';el('aimArc').style.opacity='.25';}else{el('aimArc').style.opacity='1';el('shotReadout').textContent='RELEASE TO FIRE · '+aim.angle+'°';changeAngle(aim.angle);}}
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#shotLayer')&&gunner!==null&&!busy&&state.battle?.phase==='player'&&e.isPrimary){draggingAim={x:e.clientX,y:e.clientY,id:e.pointerId};e.target.setPointerCapture?.(e.pointerId);setBattleView('wide');e.preventDefault();}});
 document.addEventListener('pointermove',e=>{if(draggingAim?.id===e.pointerId)pointerAim(e);});
-function cancelAim(){draggingAim=null;gunner=null;scope=false;if(el('aimArc'))el('aimArc').style.opacity='1';updateArena();setBattleView('crew');}
+function cancelAim(){draggingAim=null;scope=false;if(el('aimArc'))el('aimArc').style.opacity='1';updateArena();setBattleView('crew');}
 document.addEventListener('pointerup',e=>{if(!draggingAim||draggingAim.id!==e.pointerId)return;pointerAim(e);const result=draggingAim.result;draggingAim=null;el('aimArc').style.opacity='1';if(result?.moved){if(result.cancel)cancelAim();else fire();}});
 document.addEventListener('pointercancel',()=>{if(draggingAim)cancelAim();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&page==='arena'&&!busy&&!el('sheet').open)cancelAim();});
@@ -324,7 +364,8 @@ async function finish(){
   clearTimeout(cheerTimer);if(el('crewCheer')){el('crewCheer').hidden=false;el('crewCheer').textContent=(b.won?'YOUR CREW':'RIVAL CREW')+': VICTORY!';}
   await sleep(state.settings.motion?2100:120);busy=false;
  }
- M.settle(state);save();const r=state.lastResult;if(!r)return;sound(r.won?640:160,.5);modal('<div class="result-illustration">'+artImage(r.won?'victory':'lost')+'</div><div class="eyebrow">'+(r.won?'THE SEA IS YOURS':'LIVE TO FIGHT ANOTHER DAY')+'</div><div class="dialog-art">'+(r.won?'🏴‍☠️':'⚓')+'</div><h2 class="result-title">'+(r.won?'VICTORY!':'OUTGUNNED.')+'</h2><p>'+esc(r.enemyName)+(r.won?' has struck their colors. Your crew has earned its share.':' won this broadside. Study the damage and make the next shots count.')+'</p><div class="reward-summary"><div class="card"><h3 class="gold">+'+r.gold+'</h3><small>GOLD EARNED</small>'+(r.lootBonus?'<small class="loot-bonus">Includes +'+r.lootBonus+' boarding loot (10%)</small>':'')+'</div><div class="card"><h3 class="foam">+'+(r.won?50:20)+'</h3><small>SEASON XP</small></div><div class="card"><h3>'+(r.chest?artImage('chest','result-chest'):'—')+'</h3><small>'+(r.chest?r.chest.kind.toUpperCase()+' CHEST':'NO CHEST DROP')+'</small></div></div>'+(!r.won?'<p><strong>What you learned</strong><br>'+r.log.slice(-3).map(esc).join('<br>')+'</p>':'')+'<div class="row wrap spaced">'+(!r.won&&!r.rematch&&!r.rematchAsked?button(artImage('rematch','','Demand a rematch'),'rematch','','art-button rematch-button'):'')+button('Return to port →','return','',''+(r.won?'primary':'ghost'))+'</div>');}
+ M.settle(state);save();const r=state.lastResult;if(!r)return;await preloadResult(r.won);if(state.lastResult?.id!==r.id)return;sound(r.won?640:160,.5);modal(resultScreen(r));el('sheet').className='battle-result-sheet';}
+
 let cinemaResolve=null;
 async function finisher(){
 if(busy)return;const move=M.finishMove(state);if(!move)return;
@@ -342,8 +383,17 @@ cinemaResolve=null;c.hidden=true;busy=false;sound(650,.3);updateArena();if(state
 }
 
 function help(){modal('<div class="eyebrow">WELCOME ABOARD</div><h2>Your ship. Your shots. Your spoils.</h2><p><strong>1. Post your crew.</strong> Select a pirate and tap an open station. Deck gunners are exposed; hull gunners get cover.</p><p class="spaced"><strong>2. Pick your shots.</strong> Your turn is highlighted in gold. Move ahead or back up to twice, choose a gunner, then pull back and release to fire. Aim straight up or backward to cancel; the angle slider and Fire button also work. Each weapon has fixed power and a shown range. Every slow, arcing projectile damages the first intact part it hits; its specialty gets bonus damage. You have two shots per turn.</p><p class="spaced"><strong>3. Make a scene.</strong> Hit both shots four turns running to charge your equipped finishing move.</p><p class="spaced"><strong>4. Bring home the booty.</strong> Wins earn chests. Cards and gold upgrade your crew. Weekly wins move you through ports.</p><div class="row spaced">'+button('Aye, captain →','onboard','','primary')+'</div>');}
+function homeConfiguration(){return {action:'configure',level:state.shipLevel,sailLevel:state.sailLevel,flag:state.flag,figure:state.figurehead,crew:Object.entries(state.slots).map(([slot,id])=>({id,slot,hp:M.stats(pirate(id),state.levels[id]).hp,name:pirate(id).name,type:{hull:0,crew:1,sails:2}[pirate(id).primary]})),cosmetic:state.cosmetic,plating:state.plating,motion:state.settings.motion,preview:true,cutaway:tab==='gunners',hideRig:tab==='gunners'};}
+async function purchaseHull(expected){
+ if(upgradeBusy||saveError)return;const previous=structuredClone(state),before=M.hullConfig(state.shipLevel);if(!M.shipUpgrade(state,expected)){toast('Not enough supplies, or finish your current battle first.');return;}
+ if(!save()){state=previous;render();return;}upgradeBusy=true;el('app').inert=true;const after=M.hullConfig(state.shipLevel),stage=el('homeShip')?.parentElement;
+ try{if(stage)await celebrateUpgrade({stage,sound:state.settings.sound,motion:state.settings.motion,status:document.querySelector('.upgrade-status')||document.createElement('div'),swap:()=>new Promise((resolve,reject)=>{const requestId='upgrade-'+Date.now();const timer=setTimeout(()=>{artWaiters.delete(requestId);reject(Error('Ship art is still loading. Your purchased upgrade is saved.'));},15000);artWaiters.set(requestId,()=>{clearTimeout(timer);resolve();});send('home',{...homeConfiguration(),requestId});})});
+  page='crew';tab='ship';render();modal(upgradeComparison(before,after));
+ }catch(error){page='crew';tab='ship';render();toast(error.message);}finally{upgradeBusy=false;el('app').inert=false;}
+}
+window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==el('homeShip')?.contentWindow)return;const d=e.data;if(d?.type==='pirate-art-ready'){artWaiters.get(d.requestId)?.();artWaiters.delete(d.requestId);}if(d?.type==='pirate-stations')for(const p of d.anchors){const button=document.querySelector('.ship-diagram [data-id="'+p.slot+'"]');if(button){button.style.left=p.left+'%';button.style.top=p.top+'%';button.setAttribute('aria-label',(state.slots[p.slot]?pirate(state.slots[p.slot]).name:'Empty')+' '+(p.port?'gun port':'deck')+' station '+(Number(p.slot[1])+1));}}});
 function actionResult(ok,msg){if(!ok)toast('Not enough supplies, or this action is not available yet.');else{save();toast(msg);render();}}
-document.addEventListener('click',async ev=>{const b=ev.target.closest('[data-action]');if(!b||b.disabled)return;const {action:a,id}=b.dataset;switch(a){
+document.addEventListener('click',async ev=>{const b=ev.target.closest('[data-action]');if(!b||b.disabled||upgradeBusy)return;const {action:a,id}=b.dataset;switch(a){
 case 'nav':page=id;render();break;
 case 'last-result':finish();break;
 case 'harbor':if(HARBORS.some(h=>h.id===id)){state.settings.harbor=id;save();close();render();}break;
@@ -351,22 +401,25 @@ case 'close':close();if(page==='arena'&&state.battle?.phase==='result'){page='ba
 case 'tab':tab=id;render();break;
 case 'yard':page='crew';tab='yard';render();break;
 case 'select':selected=Number(id);render();break;
-case 'select-detail':selected=Number(id);close();page='crew';tab='ship';render();break;
+case 'select-detail':selected=Number(id);close();page='crew';tab='gunners';render();break;
 case 'unselect':selected=null;render();break;
 case 'slot':if(selected){M.assign(state,selected,id);selected=null;}else delete state.slots[id];save();render();break;
 case 'detail':detail(Number(id));break;
 case 'upgrade':if(M.upgrade(state,Number(id))){save();close();toast('The gunsmith is on the job.');render();}else toast('Check your cards, gold, and bench.');break;
 case 'skip':actionResult(M.skip(state),'Upgrade complete.');close();break;
-case 'ship-up':actionResult(M.shipUpgrade(state),'A new gun station is ready.');break;
+case 'ship-up':await purchaseHull(Number(id));break;
+case 'sail-up':actionResult(M.sailUpgrade(state,Number(id)),'New rigging is ready.');break;
+case 'inventory-tab':if(['sails','flags','figureheads'].includes(id)){inventoryTab=id;tab='ship';render();}break;
+case 'flag':actionResult(M.flag(state,Number(id)),'Flag equipped.');break;
 case 'equip':{const[k,v,i]=id.split(':');actionResult(M.equip(state,k,v,Number(i||0)),'Fitted and ready.');break;}
 case 'repair':actionResult(M.repair(state),'Ready for another broadside.');break;
 case 'enhance':actionResult(M.enhance(state,id),'Enhancement installed.');break;
-case 'figure-up':actionResult(M.upgradeFigure(state,Number(id)),'Figurehead upgraded.');break;
-case 'figure':actionResult(M.figure(state,Number(id)),'Figurehead fitted.');break;
+case 'figure-up':actionResult(M.upgradeFigure(state,id),'Figurehead upgraded.');break;
+case 'figure':actionResult(M.figure(state,id),'Figurehead fitted.');break;
 case 'cosmetic':actionResult(M.cosmetic(state,Number(id)),'Flying your colors.');break;
 case 'weekly':modal('<h2>Weekly orders</h2><p class="spaced">Win 5 battles · '+Math.min(5,state.quests.wins)+'/5</p><div class="spaced">'+button(state.quests.weeklyClaim?'Claimed ✓':'Claim 300 XP','quest','weekly','primary',state.quests.weeklyClaim||state.quests.wins<5)+'</div>');break;
 case 'quest':if(id==='weekly'&&el('sheet').open)close();actionResult(M.questClaim(state,id),'Season XP claimed.');break;
-case 'chest':{const r=M.openChest(state,id);if(!r)break;save();render();modal('<div class="eyebrow">A FAIR SHARE OF THE SPOILS</div>'+artImage('open','dialog-banner','Open booty chest')+'<h2>Look what the tide brought in.</h2><p class="gold">+'+r.gold+' gold</p><div class="roster spaced">'+Object.entries(r.cards).map(([id,n])=>'<div class="card">'+portrait(pirate(id))+'<strong>'+pirate(id).name+'</strong><p>+'+n+' card'+(n>1?'s':'')+'</p></div>').join('')+'</div>');break;}
+case 'chest':{const r=M.openChest(state,id);if(!r)break;save();render();modal('<div class="eyebrow">A FAIR SHARE OF THE SPOILS</div>'+artImage('open','dialog-banner','Open booty chest')+'<h2>Look what the tide brought in.</h2><p class="gold">+'+r.gold+' gold</p><div class="chest-card-reveal" id="chestCardReveal" role="list" aria-label="Four cards revealed one at a time" aria-live="polite"></div><p class="footer-note">'+r.draws.length+' new cards found</p>');el('sheet').classList.add('chest-reveal-modal');const reveal=el('chestCardReveal'),revealNext=index=>{if(!reveal.isConnected||index>=r.draws.length)return;const p=pirate(r.draws[index]),card=document.createElement('article');card.className='chest-reward-card';card.dataset.revealIndex=String(index);card.dataset.revealedAt=String(performance.now());card.setAttribute('role','listitem');card.innerHTML=portrait(p)+'<strong>'+esc(p.name)+'</strong><small>+1 CARD</small>';reveal.append(card);setTimeout(()=>revealNext(index+1),500);};revealNext(0);break;}
 case 'port':setPort(Number(id));break;
 case 'port-step':stepPort(Number(id));break;
 case 'scenery':scenery();break;
@@ -389,21 +442,21 @@ case 'fullscreen':await toggleFullscreen(modal,toast);break;
 case 'screen-help':modal(screenHelp());break;
 case 'help':help();break;
 case 'onboard':state.onboarded=true;save();close();break;
-case 'start':if(state.battle&&state.battle.phase!=='result'){page='arena';render();await resumeCombat();break;}if(M.startBattle(state)){page='arena';gunner=null;save();render();matchIntro();}else toast('Post at least one pirate to your ship first.');break;
+case 'start':if(state.battle&&state.battle.phase!=='result'){page='arena';render();await resumeCombat();break;}if(M.startBattle(state)){page='arena';gunner=null;save();render();await matchSearch();if(state.battle?.phase==='player')matchIntro();}else toast('Post at least one pirate to your ship first.');break;
 case 'begin-battle':close();setBattleView('crew');break;
-case 'gun':if(!busy&&state.battle?.phase==='player'){gunner=Number(id);scope=true;updateArena();setBattleView('wide');}break;
+case 'gun':if(!busy&&state.battle?.phase==='player'){gunner=Number(id);scope=true;telescope=false;updateArena();setBattleView('wide');}break;
 case 'sail':if(!busy&&M.moveShip(state,Number(id)))updateArena();break;
 case 'fire':await fire();break;
 case 'skip-cinema':cinemaResolve?.();break;
 case 'finisher':await finisher();break;
-case 'scope':scope=!scope;setBattleView(scope?'wide':'crew');updateArena();break;
+case 'scope':telescope=!telescope;setBattleView(telescope?'scope':'crew');updateArena();break;
 case 'retreat':modal('<h2>Strike your colors?</h2><p>Retreat counts as a loss. Your crew still earns a little gold for the fight.</p><div class="row spaced">'+button('Retreat','confirm-retreat','','danger')+button('Keep fighting','close','','primary')+'</div>');break;
 case 'confirm-retreat':close();state.battle.won=false;state.battle.phase='result';finish();break;
 case 'return':close();state.battle=null;page='battle';save();render();break;
 case 'rematch':{b.disabled=true;b.textContent='Waiting for their answer…';await sleep(1500);const r=M.requestRematch(state);save();if(r){close();page='arena';gunner=null;render();matchIntro();toast('Challenge accepted. Their accuracy is reduced 20%.');}else{modal('<div class="rematch-scene">'+artImage('fog')+'</div><h2>RUNNING SCARED.</h2><p>'+esc(state.lastResult.enemyName)+' has decided the open sea looks safer. No rematch, no reward. Their pride is another matter.</p><div class="spaced">'+button('Back to port','return','','primary')+'</div>');}break;}
 }});
 document.addEventListener('change',async e=>{if(e.target.id==='waterLook'){const library=waterLibrary(state.settings.water);library.selected=e.target.value;state.settings.water=waterLibrary(library);save();toast('Battle water look selected.');}if(e.target.id==='captainName'){state.name=e.target.value.trim().slice(0,24)||'Captain';save();}if(e.target.id==='importSave'){const file=e.target.files[0];if(!file)return;try{const next=M.restore(await file.text());state=next;saveError='';save();render();toast('Captain restored.');}catch{toast('That file is not a valid captain backup. Nothing changed.');}}});
-window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;const d=e.data;if(d.type==='pirate-ready'){const preview=[...document.querySelectorAll('[data-preview]')].find(f=>f.contentWindow===e.source);if(preview&&state.battle){const side=preview.dataset.preview,f=state.battle[side];e.source.postMessage({type:'pirate-render',action:'configure',preview:true,level:f.shipLevel,crew:visualCrew(f),parts:f,cosmetic:side==='player'?state.cosmetic:null,motion:state.settings.motion},location.origin);return;}}if(d.type==='pirate-ready'&&['home','player','enemy'].includes(d.side)&&e.source===el(d.side+'Ship')?.contentWindow)configure(d.side);});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;const d=e.data;if(d.type==='pirate-ready'){const preview=[...document.querySelectorAll('[data-preview]')].find(f=>f.contentWindow===e.source);if(preview&&state.battle){const side=preview.dataset.preview,f=state.battle[side];e.source.postMessage({type:'pirate-render',action:'configure',preview:true,level:f.shipLevel,crew:visualCrew(f),parts:f,cosmetic:f.cosmetic??(side==='player'?state.cosmetic:null),sailLevel:f.sailLevel,flag:f.flag,figure:f.figure,motion:state.settings.motion},location.origin);return;}}if(d.type==='pirate-ready'&&['home','player','enemy'].includes(d.side)&&e.source===el(d.side+'Ship')?.contentWindow)configure(d.side);});
 
 window.addEventListener('message',e=>{
  if(e.origin!==location.origin||e.source!==el('battleOcean')?.contentWindow)return;
@@ -424,3 +477,4 @@ document.addEventListener('keydown',e=>{if(page==='arena'&&!el('sheet').open&&e.
 setInterval(async()=>{if(page==='arena'&&!busy&&!document.hidden&&!el('sheet').open&&state.battle?.phase==='player'){const expired=M.elapse(state);updateArena();if(expired){await runEnemyTurn();}}const old=state.bench?.id,stamp=state.day+state.week+state.season,dealKeys=Object.keys(state.deals).join();M.offers(state);if(page==='store'&&dealKeys!==Object.keys(state.deals).join())render();M.advance(state,Date.now());if(stamp!==state.day+state.week+state.season){save();if(page!=='arena')render();}if(old&&!state.bench){save();if(page!=='arena')render();toast('Your gunner’s upgrade is complete.');}document.querySelectorAll('[data-timer]').forEach(n=>n.textContent=duration(Number(n.dataset.timer)-Date.now())+' remaining');},1000);
 function duration(ms){const m=Math.max(0,Math.ceil(ms/60000));return m>=60?Math.floor(m/60)+'h '+m%60+'m':m+'m';}
 render();if(!state.onboarded)setTimeout(help,500);
+

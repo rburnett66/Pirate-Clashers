@@ -1,0 +1,62 @@
+{
+  "retrieved": "2026-09-15",
+  "files": [
+    {
+      "local": "sources/upgrade-media/source-0.mp4",
+      "id": "1aEkWpO8mBDQicPjL0H2cb-v0z_rAMt75",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_3746533a-6861-48a1-b6a1-fc3bbf8d94d1_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1aEkWpO8mBDQicPjL0H2cb-v0z_rAMt75/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-1.mp4",
+      "id": "1baLb2uBiIcVjXuZ8ecfD32wjPJJg7Nk6",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_1e433f7d-e4f0-47c1-84ea-b3d5c99b5b86_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1baLb2uBiIcVjXuZ8ecfD32wjPJJg7Nk6/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-2.mp4",
+      "id": "1Cs7S7w8e6049Mk-JY6JOxY7ydTw3qwvg",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_c60fb5ad-0468-4c60-aa78-89f3105681db_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1Cs7S7w8e6049Mk-JY6JOxY7ydTw3qwvg/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-3.mp4",
+      "id": "1M59o4IFTIbDZ2_W0Yi_vbgwP-qa5N79c",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_8e92256c-b02a-4788-9964-ff8994945ea8_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1M59o4IFTIbDZ2_W0Yi_vbgwP-qa5N79c/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-4.mp4",
+      "id": "1iEJRhJQZ9SixYnohKrBbVkqfEh5M-CcJ",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_87f02307-475a-4e5b-9b58-091e1cee540b_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1iEJRhJQZ9SixYnohKrBbVkqfEh5M-CcJ/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-5.mp4",
+      "id": "1Tv6Xx2KAmNzFgm-7NOUdOB0_P9RZT9gz",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_87e87f01-0b9b-4170-b290-df02ced4bd03_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1Tv6Xx2KAmNzFgm-7NOUdOB0_P9RZT9gz/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    },
+    {
+      "local": "sources/upgrade-media/source-6.mp4",
+      "id": "1CFF6bAinvaEcfMFCUbNUuBDSkjbAYT8P",
+      "name": "_users_17b869b0-5dd1-4b83-8d21-5fccf6dd10f8_generated_905d9bd8-2665-4b56-ae6b-0521e853dfcb_generated_video.mp4",
+      "url": "https://drive.google.com/file/d/1CFF6bAinvaEcfMFCUbNUuBDSkjbAYT8P/view?usp=drivesdk",
+      "mime_type": "video/mp4"
+    }
+  ],
+  "construction": {
+    "source": "sources/upgrade-media/source-0.mp4",
+    "start": 0,
+    "duration": 3,
+    "output": "public/upgrade-audio/construction.m4a"
+  },
+  "reveal": null,
+  "figurehead_art": null
+}

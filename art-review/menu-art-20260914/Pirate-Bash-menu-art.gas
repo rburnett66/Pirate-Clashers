@@ -1,0 +1,510 @@
+{
+  "version": 1,
+  "source": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+  "output": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\processed",
+  "settings": {
+    "engine": "solid",
+    "mode": "exterior",
+    "tolerance": 28,
+    "shadow": 35,
+    "threshold": 8,
+    "morph": 0,
+    "feather": 0.4,
+    "halo": 30
+  },
+  "assets": [
+    {
+      "id": "4d65463eec6a41f4b864916e39b6ebb4",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\chest-icon.JPG",
+      "name": "chest-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "4f92ad3339f84b86853531684df77802",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\crew-icon.JPG",
+      "name": "crew-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "engine": "solid",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.5,
+        "halo": 0
+      },
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "fa59e28086d345deb19a839e6d608d2b",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\fight-icon.JPG",
+      "name": "fight-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "engine": "solid",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.5,
+        "halo": 0
+      },
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "4186e1734c2049a69a60d80805793c92",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\gift-icon.JPG",
+      "name": "gift-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "454c9d84e5f047eda1f475c44aadc26e",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\map-icon.JPG",
+      "name": "map-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "fb0e71256aa04e87b0351a1e855a2d97",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\options-icon.JPG",
+      "name": "options-icon.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Approved",
+      "overrides": {
+        "morph": 0,
+        "threshold": 8,
+        "shadow": 15,
+        "halo": 10,
+        "feather": 0.35,
+        "tolerance": 10,
+        "engine": "solid"
+      },
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "8f2f3bffbcc9400b9314a2c023f24d57",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\battle.JPG",
+      "name": "battle.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "ab7b9def6b164df7acadccfe4bd183a9",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\bombay.JPG",
+      "name": "bombay.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "395cc0eb659f414ebc389e0fed9f6bf9",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\booty-pass.JPG",
+      "name": "booty-pass.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "819ba7b5880c43148aab0c436823c3cb",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\crew-frame.JPG",
+      "name": "crew-frame.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 78,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [
+        [
+          704,
+          704
+        ]
+      ],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "c937254a92e345b08da7931056d5f6fc",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\crew.JPG",
+      "name": "crew.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "253f7e6ecf5343538022a03d28af4470",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\davies-locker.JPG",
+      "name": "davies-locker.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "794c68513f164129afcf5042c9d8762f",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\find-match.JPG",
+      "name": "find-match.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 35,
+        "shadow": 0,
+        "threshold": 24,
+        "morph": 10,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "85ab914340484e62a9028e376b63f7af",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\hawaii.JPG",
+      "name": "hawaii.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "08e28e4c809c42fa8a000aee9736b23b",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\header.JPG",
+      "name": "header.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "3d56a169ccb2491d92fb4134b36209df",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\lost.JPG",
+      "name": "lost.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "2221d2d6b95546f6a354db3559abea55",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\madagascar.JPG",
+      "name": "madagascar.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "1f08e7bef31a4f24937628feb843b29a",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\menu.JPG",
+      "name": "menu.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "5a0cb1a0822b474b9948c56d14e3e640",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\open-chest.JPG",
+      "name": "open-chest.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 4,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "e48b14f885e74cd0a2fdec191b44c275",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\rematch.JPG",
+      "name": "rematch.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 22,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 10,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "03d8deddddc74b75a7e276c835f0203c",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\spooky-fog.JPG",
+      "name": "spooky-fog.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    },
+    {
+      "id": "69204157a834452eaae09c859149eba8",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\store.JPG",
+      "name": "store.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "exterior",
+        "tolerance": 3,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 8,
+        "feather": 0.35,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 2,
+      "stale": false
+    },
+    {
+      "id": "1eedb918a4824c5f9a76a160f6f34d35",
+      "path": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source\\victory.JPG",
+      "name": "victory.JPG",
+      "folder": "C:\\Users\\hottd\\Documents\\Metamax\\Pirate Crashers\\1002 Pirate Crashers\\art-review\\menu-art-20260914\\source",
+      "status": "Needs Review",
+      "overrides": {
+        "engine": "solid",
+        "mode": "selected",
+        "tolerance": 10,
+        "shadow": 0,
+        "threshold": 8,
+        "morph": 0,
+        "feather": 0,
+        "halo": 0
+      },
+      "regions": [],
+      "error": "",
+      "revision": 1,
+      "stale": false
+    }
+  ],
+  "atlas": {
+    "mode": "grid",
+    "cols": 4,
+    "rows": 4,
+    "size": 2048,
+    "padding": 2,
+    "extrusion": 1
+  },
+  "export": {
+    "trim": true,
+    "padding": 12,
+    "scale": 1,
+    "center": false,
+    "width": 0,
+    "height": 0,
+    "preserve": true
+  }
+}

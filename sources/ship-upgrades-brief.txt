@@ -1,0 +1,814 @@
+﻿Pirate Bash Update — Design & Implementation Specification
+Document Type: Feature Design / Development Work List
+Project: Pirate Clashers
+Current Game/Build: Pirate Bash
+Status: Development Specification
+Purpose: Define the design, behavior, data requirements, visual
+presentation, implementation tasks, and acceptance criteria for the
+Victory/Defeat screens and Ship Upgrade/Customization systems.
+1. Overview
+This update is intended to move Pirate Clashers from a functional
+implementation toward a polished, rewarding player experience.
+The major goals of this work are:
+        1.        Update the Victory Screen to match the approved mockup while
+displaying live battle data.
+        2.        Update the Defeat Screen to match the approved mockup while
+displaying live battle data.
+        3.        Redesign and polish the Ship Upgrade Screen.
+        4.        Expose the player’s Sail, Flag, and Figurehead inventories
+directly from the Ship screen.
+        5.        Make ship upgrades feel like a significant celebration of player
+progression and spending.
+        6.        Establish clear, data-driven progression for:
+        ●        Hulls
+        ●        Gunner positions
+        ●        Cannon ports
+        ●        Masts
+        ●        Sails
+        7.        Correct ship and crew rendering in both the Ship Builder and Combat.
+        8.        Add equippable Figureheads that provide gameplay bonuses.
+        9.        Keep the implementation extensible so future ship levels, equipment,
+bonuses, and visual assets can be added without rebuilding the
+system.
+2. General Implementation Principles
+The existing Pirate Clashers architecture should be audited before
+implementing these changes.
+Do not automatically replace working systems.
+Where possible:
+        ●        Reuse existing components.
+        ●        Reuse existing inventory behavior.
+        ●        Reuse existing progression/state systems.
+        ●        Reuse the existing Crew UI interaction model.
+        ●        Keep gameplay data separate from presentation.
+        ●        Avoid hard-coded upgrade values in UI components.
+        ●        Avoid hard-coded equipment bonuses in combat logic.
+        ●        Use shared data/configuration for Ship Builder and Combat rendering.
+        ●        Preserve compatibility with saved player progression wherever
+possible.
+The implementation should be modular enough that additional hulls,
+sails, figureheads, flags, mast configurations, bonuses, and upgrade
+levels can be added later.
+3. Victory Screen
+3.1 Design Goal
+The Victory Screen should visually match the approved Victory mockup as
+closely as practical.
+There are two acceptable implementation approaches:
+Option A — Recreated UI
+Recreate the mockup using actual UI components and existing game
+artwork.
+Option B — Mockup Artwork + Dynamic Data
+Use the approved mockup artwork as the underlying visual presentation
+and render dynamic game data over designated locations.
+Option B is acceptable when it produces a more visually accurate result
+and remains functional across supported resolutions.
+3.2 Dynamic Data
+Values shown on the Victory Screen must come from the battle that was
+just completed.
+No battle-result values should be permanently baked into the artwork.
+The exact fields should correspond to the approved mockup and existing
+battle-result data.
+3.3 Behavior
+When a battle ends in victory:
+        1.        Complete battle-result calculation.
+        2.        Save/apply rewards through the normal game systems.
+        3.        Open the Victory Screen.
+        4.        Populate all result fields with data from the completed battle.
+        5.        Allow the player to continue using the intended navigation/action.
+        6.        Clear or replace previous battle data before the next Victory Screen
+is displayed.
+3.4 Acceptance Criteria
+        ●        Victory Screen closely matches the approved mockup.
+        ●        Battle values are dynamic.
+        ●        Values represent the battle just completed.
+        ●        No previous battle values remain visible.
+        ●        UI remains correctly positioned at supported resolutions.
+        ●        Navigation from the screen functions correctly.
+        ●        Rewards are not accidentally granted more than once.
+        ●        Shared result-screen functionality is reused where practical.
+4. Defeat Screen
+4.1 Design Goal
+The Defeat Screen should visually match the approved Defeat mockup as
+closely as practical.
+As with Victory, the screen may be:
+        ●        Recreated from UI components, or
+        ●        Built using approved artwork with dynamic data overlays.
+4.2 Dynamic Data
+Displayed battle information must come from the completed battle.
+No result values should be baked permanently into the background
+artwork.
+4.3 Behavior
+When a battle ends in defeat:
+        1.        Complete battle-result calculation.
+        2.        Apply any appropriate progression/result state.
+        3.        Open the Defeat Screen.
+        4.        Populate the screen with the completed battle’s data.
+        5.        Allow the player to continue through the intended navigation.
+        6.        Clear or replace old result data before the next result screen.
+4.4 Acceptance Criteria
+        ●        Defeat Screen closely matches the approved mockup.
+        ●        Displayed values are dynamic.
+        ●        Values correspond to the battle just completed.
+        ●        Previous battle data does not remain.
+        ●        UI remains correct at supported resolutions.
+        ●        Victory and Defeat reuse common result-screen architecture where
+appropriate.
+5. Ship Screen — Overall Design
+The Ship screen should become the central location for ship progression,
+equipment, and customization.
+The player should have access to the following primary actions:
+        1.        Upgrade Hull
+        2.        Upgrade Sails
+        3.        Customize Sails
+        4.        Customize Flag
+        5.        Customize Figurehead
+The ship itself remains the visual focus of the screen.
+Progression and customization controls should support the ship visually
+rather than overwhelm it.
+6. Ship Customization Inventory
+6.1 Right-Side Inventory Panel
+The player’s customization inventory should be visible on the right
+half of the Ship screen.
+The presentation should behave similarly to the existing Crew inventory.
+The panel should be scrollable and use tabs.
+6.2 Tabs
+Provide the following inventory tabs:
+        ●        Sails
+        ●        Flags
+        ●        Figureheads
+Each tab displays the player’s owned items for that equipment category.
+6.3 Inventory Behavior
+The player should be able to:
+        ●        Switch between equipment categories.
+        ●        Scroll through owned items.
+        ●        See which item is currently equipped.
+        ●        Select an owned item.
+        ●        Preview or equip the selected item as appropriate.
+        ●        Return to the currently equipped item/state without corrupting
+inventory state.
+Where practical, reuse the established Crew inventory behavior and
+presentation conventions.
+6.4 Acceptance Criteria
+        ●        Sails, Flags, and Figureheads have separate tabs.
+        ●        Inventory lists are scrollable.
+        ●        Owned items display correctly.
+        ●        Equipped state is clearly identifiable.
+        ●        Equipment changes update the ship.
+        ●        Equipped state persists appropriately.
+        ●        Inventory UI does not interfere with ship rendering.
+        ●        Existing Crew inventory behavior is reused where appropriate rather
+than unnecessarily duplicated.
+7. Ship Upgrade Philosophy
+A ship upgrade is a major progression moment.
+The upgrade should not feel like:
+> Click button → number changes.
+It should feel like the player has spent meaningful currency and
+received a significant improvement.
+The upgrade sequence should provide:
+        ●        Purchase acknowledgment
+        ●        Anticipation
+        ●        Construction
+        ●        Transformation
+        ●        Reveal
+        ●        Audio reward
+        ●        Visual reward
+        ●        Clear communication of the new benefits
+8. Hull Upgrade Celebration Sequence
+8.1 Sequence Overview
+The Hull Upgrade sequence should follow this order:
+        1.        Player selects Upgrade Hull.
+        2.        Player confirms the purchase if confirmation is part of the current
+purchase flow.
+        3.        Purchase is acknowledged.
+        4.        Currency/progression transaction is processed.
+        5.        Construction smoke begins.
+        6.        Ship becomes hidden behind smoke/dust.
+        7.        Build audio plays.
+        8.        Hull changes while hidden.
+        9.        Construction smoke clears.
+        10.        Upgraded ship is revealed.
+        11.        Golden god rays appear behind the ship.
+        12.        Angelic “oohs and aahs” audio plays.
+        13.        Upgrade Results modal appears.
+        14.        Modal describes the improvements.
+9. Purchase Acknowledgment
+When the player purchases a Hull Upgrade, acknowledge the purchase
+immediately.
+The transaction should use the game’s normal authoritative
+currency/progression system.
+The presentation should not independently deduct currency.
+Important protections:
+        ●        Prevent accidental double purchase.
+        ●        Prevent repeated input during the upgrade sequence.
+        ●        Do not grant the upgrade if the transaction fails.
+        ●        Do not play the full successful upgrade celebration for a failed
+transaction.
+        ●        Ensure saved progression reflects the completed purchase.
+10. Construction Smoke / Dust Effect
+10.1 Visual Goal
+The existing ship should disappear behind a large construction effect so
+the hull can be changed without the player seeing the old ship instantly
+pop into the new configuration.
+10.2 Effect
+Use approximately 30 individual smoke/dust puffs.
+The puffs should:
+        ●        Appear around the ship.
+        ●        Build quickly enough to obscure the hull.
+        ●        Scale up as they appear.
+        ●        Fade out naturally.
+        ●        Have enough positional/scale/timing variation to avoid looking like
+one repeated sprite.
+        ●        Cover the transition between old and new hulls.
+The exact count may be tuned visually, but the target is approximately
+30 puffs.
+10.3 Timing
+The construction effect should be designed around the approximately
+3-second build audio.
+The ship should become sufficiently obscured before the underlying hull
+is switched.
+11. Build Audio
+Use the build/construction audio extracted from the provided build
+video.
+Target duration:
+Approximately 3 seconds
+The audio should begin with the construction sequence and be
+synchronized with the smoke/dust animation.
+The implementation should use the supplied project asset rather than
+inventing a substitute when the correct asset is available.
+12. Hull Swap
+The actual visual hull transition should occur while the ship is hidden
+by construction smoke.
+The player should not see:
+        ●        Old hull abruptly disappear.
+        ●        New hull abruptly pop into place.
+        ●        Crew floating while the hull changes.
+        ●        Cannon ports visibly appear before the reveal.
+The ship should be in its complete upgraded visual configuration before
+the reveal begins.
+13. Upgrade Reveal
+13.1 Golden God Rays
+When the construction smoke clears, reveal the new ship with
+translucent golden god rays behind it.
+The rays should:
+        ●        Sit behind the ship.
+        ●        Be visibly golden.
+        ●        Remain translucent.
+        ●        Reinforce the feeling of a major reward.
+        ●        Not obscure the ship itself.
+13.2 Angelic Audio
+Play the angelic “oohs and aahs” audio from the supplied
+source/video during the reveal.
+The reveal audio should reinforce the celebratory nature of the upgrade.
+14. Upgrade Results Modal
+After the ship is revealed, display an Upgrade Results modal.
+The modal should clearly communicate what changed.
+14.1 Information
+At minimum, the Hull Upgrade modal should support displaying changes to:
+        ●        Hit Points / HP
+        ●        Movement Speed
+        ●        Gunner Slots / Gunner Capacity
+Display previous and new values when practical.
+Example:
+```text
+SHIP UPGRADED
+
+Hull Level 3
+
+HP
+1,200 → 1,450
+
+Gunner Capacity
+4 → 5
+
+Movement Speed
++5%
+```
+The exact values must come from progression data.
+Do not hard-code example values into the presentation logic.
+14.2 Acceptance Criteria
+        ●        Modal appears after the reveal.
+        ●        New hull level is correct.
+        ●        HP improvement is correct.
+        ●        Movement improvement is correct.
+        ●        Gunner capacity improvement is correct.
+        ●        Values come from game data.
+        ●        Modal can be dismissed using the intended interaction.
+        ●        Player cannot accidentally trigger another purchase behind the
+modal.
+15. Hull Progression
+15.1 Gunner Layout Notation
+The Gunner Layout notation uses:
+On-Deck Gunners × Below-Deck Gunners
+This notation does not mean multiplication.
+Example:
+2 × 1 = 2 gunners on deck + 1 gunner below deck = 3 total gunners.
+15.2 Gunner Progression
+Hull Level     Layout   On Deck   Below Deck   Total Gunners
+1               2 × 1         2            1           3
+2               2 × 2         2            2           4
+3               3 × 2         3            2           5
+4               3 × 3         3            3           6
+5               4 × 3         4            3           7
+6               4 × 4         4            4           8
+These values should be data-driven.
+15.3 Important Terminology
+Use Gunner Slots or Gunner Capacity when describing this
+progression.
+Do not treat these values as the ship’s total general Crew capacity
+unless another design system explicitly defines them that way.
+16. Cannon Ports
+Each below-deck Gunner position requires one visible cannon port in
+the hull.
+Therefore:
+Hull Level     Below-Deck Gunners   Required Cannon Ports
+1                               1                       1
+2                               2                       2
+3                               2                       2
+4                               3                       3
+5                               3                       3
+6                               4                       4
+On-deck gunners do not generate hull cannon ports.
+Cannon-port visuals must correspond to below-deck gunner positions.
+The cannon ports should appear correctly in both:
+        ●        Ship Builder / Upgrade screen
+        ●        Combat
+17. Crew / Gunner Positioning
+Crew placement requires a dedicated visual polish pass.
+17.1 On-Deck Crew
+Crew assigned to deck positions must:
+        ●        Stand on the correct deck surface.
+        ●        Have their feet visually grounded.
+        ●        Remain associated with the correct gunner position.
+        ●        Not float above the deck.
+        ●        Not sink incorrectly into the deck or hull.
+17.2 Below-Deck Crew
+Crew assigned below deck must:
+        ●        Remain below deck.
+        ●        Align with their intended below-deck position.
+        ●        Not pop through the deck.
+        ●        Not appear above the hull when they should be hidden.
+        ●        Work correctly with the outer-hull overlay.
+17.3 Hull Changes
+Changing hull levels must correctly update crew anchors/positions.
+Crew should not retain coordinates intended for a different hull.
+17.4 Recommended Implementation
+Where possible, use defined hull-specific slot anchors rather than
+arbitrary screen coordinates.
+Each hull configuration should define its valid:
+        ●        On-deck gunner anchors
+        ●        Below-deck gunner anchors
+        ●        Cannon-port anchors
+The same configuration should be reusable by Ship Builder and Combat.
+18. Ship Rendering / Hull Layering
+This requirement applies in both:
+        ●        Combat
+        ●        Ship Builder / Upgrade Screen
+The outer hull draws over the inner hull.
+The outer hull is a visual layer.
+It is not a replacement image for the inner hull.
+A conceptual rendering order is:
+```text
+Foreground crew/effects where appropriate
+        ↓
+Outer Hull
+        ↓
+Below-deck crew / internal ship elements
+        ↓
+Inner Hull
+        ↓
+Background / Water
+```
+Actual crew layering may vary by position, but below-deck crew must be
+correctly occluded by the outer hull.
+The same ship composition rules should be used consistently across Ship
+Builder and Combat.
+19. Mast and Sail Progression
+Mast and sail progression should support the following configurations.
+Sail Upgrade Level     Masts   Sails Configuration
+1                          1       1 Main mast + main sail
+2                          2       2 Main mast/main sail + foremast/foresail
+3                          2       3 Two masts, three sails
+4                          3       4 Main, fore, and mizzen masts
+5                          3       5 Three masts, five sails
+6                          3       6 Future front jib
+7                          3       7 Future front jib + rear spanker
+19.1 Future Content
+Levels 6 and 7 include future sail configurations.
+Even if the final front jib and rear spanker assets are not available
+during this pass, the progression/data model should allow those
+configurations to be added without restructuring the entire system.
+19.2 Separation of Systems
+The following concepts should remain distinct:
+        ●        Upgrade Sails = progression/capacity/configuration.
+        ●        Customize Sails = appearance/equipped cosmetic sail selection.
+This prevents cosmetic ownership from becoming incorrectly tied to ship
+progression.
+20. Figurehead System
+20.1 Design
+Figureheads provide both:
+        1.        Ship customization.
+        2.        A gameplay bonus.
+The player may equip only one Figurehead at a time.
+20.2 Initial Bonus Value
+For the initial implementation:
+All Figurehead base bonuses = 5%.
+The 5% value must be configurable.
+Do not hard-code the value separately into each combat calculation.
+20.3 Figurehead Bonuses
+Figurehead           Bonus Type                                Base Bonus
+Siren            Anti-Fire Attack / Fire Resistance                5%
+Unicorn          Anti-Cannon Balls / Cannon Resistance             5%
+Skull            Protect Crew / Crew Protection                    5%
+Dolphin          Movement Bonus                                    5%
+Endowed Female   Cannon Attack Bonus                               5%
+Shark            Crew Attack Bonus                                 5%
+Asian Dragon     Fire Attack Bonus                                 5%
+20.4 Data Model
+Figureheads should be data-driven.
+Suggested conceptual fields:
+```text
+figurehead_id
+display_name
+asset_id
+bonus_type
+bonus_value
+owned
+equipped
+```
+Additional metadata may be added as required by the existing
+architecture.
+20.5 Equipment Rules
+        ●        Player may own multiple Figureheads.
+        ●        Player may equip only one.
+        ●        Equipping a new Figurehead removes the previous Figurehead’s active
+bonus.
+        ●        The newly equipped Figurehead applies its configured bonus.
+        ●        Figurehead state persists.
+        ●        Figurehead appearance updates on the ship.
+        ●        Figurehead effects must be included in the appropriate gameplay
+calculations.
+21. Figurehead Bonus Definitions
+The initial gameplay intent is:
+Siren
+Provides protection against Fire Attack.
+Unicorn
+Provides protection against Cannon Ball / Cannon Attack damage.
+Skull
+Provides protection for the player’s Crew.
+Dolphin
+Provides a Movement bonus.
+Endowed Female
+Provides a Cannon Attack bonus.
+Shark
+Provides a Crew Attack bonus.
+Asian Dragon
+Provides a Fire Attack bonus.
+The implementation should map these design concepts to the game’s
+existing stat/combat architecture rather than creating duplicate stat
+systems.
+22. Data-Driven Ship Configuration
+Where practical, each hull level should have configuration data
+describing:
+```text
+hull_level
+hull_asset
+inner_hull_asset
+outer_hull_asset
+hp
+movement_modifier
+on_deck_gunner_slots
+below_deck_gunner_slots
+total_gunner_capacity
+cannon_port_count
+deck_gunner_anchors
+below_deck_gunner_anchors
+cannon_port_anchors
+upgrade_cost
+```
+Mast/sail progression should similarly be represented in configuration
+rather than embedded directly into UI logic.
+The exact schema should conform to the existing Pirate Clashers
+architecture.
+23. Development Work List
+Phase 1 — Architecture Audit
+Before modifying major systems:
+        ●        Locate Victory Screen implementation.
+        ●        Locate Defeat Screen implementation.
+        ●        Locate battle-result state/data.
+        ●        Locate Ship Builder/Upgrade screen.
+        ●        Locate ship progression data.
+        ●        Locate Crew inventory UI.
+        ●        Locate equipment inventory/state.
+        ●        Locate ship rendering/composition code.
+        ●        Locate Combat ship rendering.
+        ●        Locate crew positioning logic.
+        ●        Locate currency/purchase logic.
+        ●        Locate player save/persistence logic.
+        ●        Locate combat stat calculation.
+        ●        Identify available mockups.
+        ●        Identify build video/audio source.
+        ●        Identify “ooh/aah” reveal audio source.
+        ●        Identify existing hull, mast, sail, flag, figurehead, cannon-port,
+smoke, and effects assets.
+Document what already exists before replacing anything.
+24. Phase 2 — Victory / Defeat Screens
+Tasks
+        ●        Implement approved Victory presentation.
+        ●        Bind Victory fields to battle-result data.
+        ●        Implement approved Defeat presentation.
+        ●        Bind Defeat fields to battle-result data.
+        ●        Reuse common components where appropriate.
+        ●        Verify screen scaling.
+        ●        Verify battle-state reset.
+        ●        Verify navigation.
+        ●        Verify rewards cannot duplicate.
+Done When
+Both result screens visually match their mockups and correctly display
+live battle data.
+25. Phase 3 — Ship Screen Structure
+Tasks
+        ●        Add/confirm Upgrade Hull.
+        ●        Add/confirm Upgrade Sails.
+        ●        Add Customize Sails.
+        ●        Add Customize Flag.
+        ●        Add Customize Figurehead.
+        ●        Build right-side customization inventory.
+        ●        Add Sails tab.
+        ●        Add Flags tab.
+        ●        Add Figureheads tab.
+        ●        Make inventory scrollable.
+        ●        Display owned/equipped state.
+        ●        Reuse Crew inventory patterns where practical.
+Done When
+The player can navigate ship progression and all three customization
+categories from the Ship screen.
+26. Phase 4 — Hull Progression
+Tasks
+Implement the gunner progression:
+        ●        Level 1: 2 deck + 1 below = 3 total
+        ●        Level 2: 2 deck + 2 below = 4 total
+        ●        Level 3: 3 deck + 2 below = 5 total
+        ●        Level 4: 3 deck + 3 below = 6 total
+        ●        Level 5: 4 deck + 3 below = 7 total
+        ●        Level 6: 4 deck + 4 below = 8 total
+Also:
+        ●        Connect HP progression.
+        ●        Connect movement progression.
+        ●        Connect upgrade cost.
+        ●        Ensure values are data-driven.
+        ●        Ensure upgrade modal can compare previous/new values.
+Done When
+Each hull level correctly changes the ship’s configured stats and gunner
+capacity.
+27. Phase 5 — Cannon Ports
+Tasks
+Implement cannon ports based on below-deck gunner capacity:
+        ●        Level 1: 1 port
+        ●        Level 2: 2 ports
+        ●        Level 3: 2 ports
+        ●        Level 4: 3 ports
+        ●        Level 5: 3 ports
+        ●        Level 6: 4 ports
+Verify ports in:
+        ●        Ship Builder
+        ●        Combat
+Done When
+Every below-deck gunner position has the appropriate cannon-port
+representation and no port is incorrectly generated for an on-deck
+gunner.
+28. Phase 6 — Crew / Gunner Anchors
+Tasks
+        ●        Define deck gunner anchors per hull.
+        ●        Define below-deck gunner anchors per hull.
+        ●        Correct floating crew.
+        ●        Correct crew intersecting the hull.
+        ●        Correct below-deck crew popping above deck.
+        ●        Verify transitions between hull levels.
+        ●        Verify Combat.
+        ●        Verify Ship Builder.
+Done When
+All crew/gunners are visually grounded and correctly occluded for every
+supported hull.
+29. Phase 7 — Hull Rendering
+Tasks
+        ●        Confirm inner hull remains present.
+        ●        Render outer hull over inner hull.
+        ●        Correct below-deck occlusion.
+        ●        Share composition rules between Ship Builder and Combat where
+practical.
+        ●        Verify crew/effects do not break layering.
+Done When
+The outer hull functions as an overlay rather than replacing the inner
+hull, in both required game contexts.
+30. Phase 8 — Mast / Sail Progression
+Tasks
+Implement progression data for:
+        ●        1 mast / 1 sail
+        ●        2 masts / 2 sails
+        ●        2 masts / 3 sails
+        ●        3 masts / 4 sails
+        ●        3 masts / 5 sails
+        ●        3 masts / 6 sails — future front jib
+        ●        3 masts / 7 sails — future front jib + rear spanker
+Also:
+        ●        Keep sail progression separate from cosmetic sail selection.
+        ●        Allow future sail attachment points/assets.
+        ●        Verify upgraded configuration in Ship Builder.
+        ●        Verify upgraded configuration in Combat.
+Done When
+Mast/sail progression is data-driven and supports all seven planned
+configurations, including future extension points.
+31. Phase 9 — Figurehead Equipment
+Tasks
+        ●        Add Figurehead inventory tab.
+        ●        Add owned state.
+        ●        Add equipped state.
+        ●        Restrict player to one equipped Figurehead.
+        ●        Display equipped Figurehead on ship.
+        ●        Implement configurable 5% base bonuses.
+        ●        Integrate bonus types with existing gameplay stats.
+        ●        Remove old bonus when Figurehead changes.
+        ●        Persist selected Figurehead.
+        ●        Verify bonus in Combat.
+Done When
+The player can equip exactly one owned Figurehead and its correct
+gameplay bonus is active.
+32. Phase 10 — Hull Upgrade Celebration
+Tasks
+        ●        Acknowledge successful purchase.
+        ●        Lock inappropriate input during sequence.
+        ●        Start construction effect.
+        ●        Spawn approximately 30 smoke/dust puffs.
+        ●        Scale/fade puffs.
+        ●        Play approximately 3-second build audio.
+        ●        Obscure old hull.
+        ●        Swap hull while hidden.
+        ●        Update crew anchors.
+        ●        Update cannon ports.
+        ●        Update ship configuration.
+        ●        Reveal new hull.
+        ●        Display translucent golden god rays.
+        ●        Play supplied angelic “ooh/aah” audio.
+        ●        Open Upgrade Results modal.
+        ●        Display HP improvement.
+        ●        Display movement improvement.
+        ●        Display Gunner Capacity improvement.
+        ●        Restore normal input.
+Done When
+The player experiences one uninterrupted, polished purchase-to-reveal
+sequence with no visible asset popping or incorrect intermediate ship
+state.
+33. Phase 11 — Integration / Regression
+Test all new functionality against existing systems.
+Ship Progression
+        ●        Hull level persists.
+        ●        Upgrade cost is correct.
+        ●        Currency deducts once.
+        ●        HP updates.
+        ●        Movement updates.
+        ●        Gunner capacity updates.
+        ●        Cannon ports update.
+        ●        Crew positions update.
+Customization
+        ●        Sail selection persists.
+        ●        Flag selection persists.
+        ●        Figurehead selection persists.
+        ●        Only one Figurehead is active.
+        ●        Correct Figurehead bonus is applied.
+Rendering
+        ●        Inner hull renders.
+        ●        Outer hull renders over inner hull.
+        ●        Below-deck crew is correctly occluded.
+        ●        Deck crew remains visible.
+        ●        Ship looks correct in Ship Builder.
+        ●        Ship looks correct in Combat.
+Battle Results
+        ●        Victory Screen receives correct data.
+        ●        Defeat Screen receives correct data.
+        ●        No stale result values.
+        ●        No duplicate reward processing.
+Upgrade Sequence
+        ●        Purchase failure does not trigger successful celebration.
+        ●        Repeated clicking does not double-purchase.
+        ●        Smoke hides hull swap.
+        ●        Build audio plays once.
+        ●        Reveal audio plays once.
+        ●        God rays appear behind ship.
+        ●        Results modal contains correct values.
+        ●        Closing modal returns player to a stable Ship screen.
+34. Acceptance Checklist
+The feature set is complete when all of the following are true:
+                Victory Screen matches approved mockup.
+                Victory Screen uses dynamic battle data.
+                Defeat Screen matches approved mockup.
+                Defeat Screen uses dynamic battle data.
+                Ship screen exposes Upgrade Hull.
+                Ship screen exposes Upgrade Sails.
+                Ship screen exposes Customize Sails.
+                Ship screen exposes Customize Flag.
+                Ship screen exposes Customize Figurehead.
+                Sails inventory is scrollable.
+                Flags inventory is scrollable.
+                Figureheads inventory is scrollable.
+                Hull Level 1 supports 2 deck + 1 below = 3 gunners.
+                Hull Level 2 supports 2 deck + 2 below = 4 gunners.
+                Hull Level 3 supports 3 deck + 2 below = 5 gunners.
+                Hull Level 4 supports 3 deck + 3 below = 6 gunners.
+                Hull Level 5 supports 4 deck + 3 below = 7 gunners.
+                Hull Level 6 supports 4 deck + 4 below = 8 gunners.
+                Cannon-port count matches below-deck gunner count.
+                Crew/gunners no longer float.
+                Below-deck crew do not pop above deck.
+                Outer hull renders over inner hull.
+                Hull layering works in Ship Builder.
+                Hull layering works in Combat.
+                Mast/sail levels 1–7 are represented in progression data.
+                Sail cosmetics are separate from sail progression.
+                Figureheads can be owned.
+                Exactly one Figurehead can be equipped.
+                Siren provides configured Anti-Fire bonus.
+                Unicorn provides configured Anti-Cannon bonus.
+                Skull provides configured Crew Protection bonus.
+                Dolphin provides configured Movement bonus.
+                Endowed Female provides configured Cannon Attack bonus.
+                Shark provides configured Crew Attack bonus.
+                Asian Dragon provides configured Fire Attack bonus.
+                Initial Figurehead bonus value is configurable at 5%.
+                Hull purchase is acknowledged.
+                Construction effect uses approximately 30 dust/smoke puffs.
+                Construction audio uses supplied ~3-second audio.
+                Hull swaps while hidden.
+                Golden translucent god rays appear during reveal.
+                Supplied angelic reveal audio plays.
+                Upgrade modal displays HP improvement.
+                Upgrade modal displays Movement improvement.
+                Upgrade modal displays Gunner Capacity improvement.
+                Purchases cannot be accidentally duplicated.
+                Progression/equipment state persists.
+                Regression tests pass.
+35. Instructions for Coding Agent
+Before beginning implementation:
+> Audit the current Pirate Clashers codebase after the active refactor.
+> Map every requirement in this document to existing components,
+> systems, state, assets, and data structures before replacing or
+> rebuilding anything.
+Implementation rules:
+        1.        Do not unnecessarily rebuild working systems.
+        2.        Reuse existing architecture and components where practical.
+        3.        Separate progression/gameplay data from presentation.
+        4.        Do not hard-code balance values into UI components.
+        5.        Do not duplicate ship configuration independently between Combat
+and Ship Builder.
+        6.        Use the existing inventory architecture where practical.
+        7.        Use the existing player save/progression architecture.
+        8.        Use supplied mockups and media assets where specified.
+        9.        Keep future mast/sail and equipment expansion possible.
+        10.        Complete work in independently testable increments.
+        11.        Do not leave the repository in a partially migrated
+architecture.
+        12.        Run appropriate tests/checks after each major phase.
+        13.        Report missing assets or ambiguous requirements rather than
+silently inventing replacements.
+        14.        Preserve unrelated working behavior.
+36. Recommended Implementation Order
+The recommended order is:
+```text
+1. Audit current post-refactor architecture
+        ↓
+2. Victory / Defeat screens
+        ↓
+3. Ship screen navigation and inventory
+        ↓
+4. Hull progression data
+        ↓
+5. Cannon-port configuration
+        ↓
+6. Crew / gunner positioning
+        ↓
+7. Hull rendering / layering
+        ↓
+8. Mast and sail progression
+        ↓
+9. Figurehead equipment and bonuses
+        ↓
+10. Hull upgrade celebration
+        ↓
+11. Integration and regression testing
+```
+This order deliberately implements the underlying ship state and
+rendering before adding the final upgrade celebration.
+The celebration should reveal a correctly functioning upgraded ship
+rather than masking unfinished progression behavior.
+37. Final Design Intent
+The Ship Upgrade system should communicate three things to the player:
+Progress
+The ship becomes visibly and mechanically more capable.
+Ownership
+Sails, flags, and figureheads allow the player to make the ship their
+own.
+Reward
+Spending currency on a major ship upgrade should produce a memorable
+moment:
+purchase → construction → anticipation → transformation → reveal →
+benefits
+The final experience should make the player want to see what the next
+ship upgrade looks like.

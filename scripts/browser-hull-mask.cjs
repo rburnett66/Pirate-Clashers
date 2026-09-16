@@ -38,10 +38,10 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
   assert.ok(intact.alphas[0][3]>200);assert.equal(chipped.alphas[0][3],0);
   assert.ok(chipped.alphas[1][3]>200);assert.equal(chipped.alphas[2][3],0);assert.equal(chipped.portraits,1);
   const sizes=await page.locator('#gameCrew img, #gamePorts img').evaluateAll(imgs=>imgs.map(i=>({width:i.getBoundingClientRect().width,height:i.getBoundingClientRect().height})));
-  assert.equal(sizes.length,3);assert.ok(sizes.every(s=>Math.abs(s.width-sizes[0].width)<.1&&Math.abs(s.height-sizes[0].height)<.1));
+  assert.equal(sizes.length,3);assert.ok(sizes.every(s=>Math.abs(s.width-sizes[0].width)<.1));assert.ok(Math.abs(sizes[2].height/sizes[0].height-.38/(.44*1.3))<.01,'hold crew fit below the deck using shared geometry');
   await page.screenshot({path:'test-results/hull-pixel-mask.png'});
   assert.deepEqual(errors,[]);
-  const report={passed:true,intact,chipped,errors,checks:['all 163840 GPU mask texels equal saved collision mask','supplied exterior art is transparent inside the collision breach','nearby surviving wood remains opaque','port crew in independent layer behind wood','above and below deck crew have equal sprite dimensions','interior image remains opaque behind open breaches and crew','interior is clipped outside ship silhouette']};
+  const report={passed:true,intact,chipped,errors,checks:['all 163840 GPU mask texels equal saved collision mask','supplied exterior art is transparent inside the collision breach','nearby surviving wood remains opaque','port crew in independent layer behind wood','crew share width while hold height fits below deck','interior image remains opaque behind open breaches and crew','interior is clipped outside ship silhouette']};
   fs.writeFileSync('test-results/hull-mask-report.json',JSON.stringify(report,null,2));console.log('Hull mask browser checks passed.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

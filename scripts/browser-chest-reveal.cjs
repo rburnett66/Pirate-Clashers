@@ -1,0 +1,9 @@
+const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'),fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:4173');await page.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;s.chests=[{id:'four-card-test',kind:'captain',seed:12}];localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});await page.reload();
+ await page.locator('[data-action=chest]').click();const cards=page.locator('#chestCardReveal .chest-reward-card');
+ await page.waitForFunction(()=>document.querySelectorAll('#chestCardReveal .chest-reward-card').length===4);assert.equal(await cards.count(),4);const times=await cards.evaluateAll(nodes=>nodes.map(n=>Number(n.dataset.revealedAt)));assert.ok(times.slice(1).every((time,i)=>time-times[i]>=480),'each card appears about 500 ms after the previous one');await page.screenshot({path:'test-results/chest-reveal-mobile.png'});assert.equal(await page.locator('#chestCardReveal').getAttribute('aria-label'),'Four cards revealed one at a time');assert.equal((await page.locator('#sheet .gold').innerText()).includes('gold'),true);assert.deepEqual(errors,[]);
+ fs.writeFileSync('test-results/chest-reveal-report.json',JSON.stringify({passed:true,errors,revealedCards:await cards.count(),intervalMs:times.slice(1).map((time,i)=>Math.round(time-times[i])),viewport:'390x844'},null,2));console.log('Four-card chest reveal passed.');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});

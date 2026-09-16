@@ -1,3 +1,5 @@
+import {hullConfig} from './ship-config.js';
+export {deckFoot} from './ship-config.js';
 import {SHIP_ART} from './ship-art-data.js';
 export {SHIP_ART};
 export const ART_SCALE=1/480,ART_ORIGIN={x:810,y:960},ART_KEEL=-.56;
@@ -17,8 +19,7 @@ export const RIG_FLAGS=[{mast:1,part:0,origin:[810,24],width:126},{mast:2,part:1
 export const sailPanels=set=>RIG_SAILS.map(s=>s.upper!==undefined&&set.id==='IMG_7255'?SHIP_ART.upperSails[s.upper]:set.sails[s.part]);
 export const SAIL_STYLES=[['IMG_7254','Emerald Roger'],['IMG_7255','Crimson Roger'],['IMG_7256','Royal Blue'],['IMG_7257','White Pearl'],['IMG_7258','Black Flag'],['IMG_7261','Golden Star']];
 export function shipAppearance(level=3,cosmetic=null,side='player',plating='bare'){
- const levels=['IMG_7285','IMG_7289','IMG_7298','IMG_7291','IMG_7299','IMG_7294','IMG_7287','IMG_7300'];
- const hull=plating==='iron'?'IMG_7294':levels[Math.max(0,Math.min(7,level-1))];
+ const hull=hullConfig(level).hull;
  return {hull:SHIP_ART.hulls.find(h=>h.id===hull),sails:SHIP_ART.sailSets.find(s=>s.id===(SAIL_STYLES[cosmetic]?.[0]||(side==='enemy'?'IMG_7256':'IMG_7255'))),flag:SHIP_ART.flags.find(f=>f.id===7)};
 }
 export function clothPlacement(index,part){
@@ -37,4 +38,3 @@ const rig={masts:SHIP_ART.masts.map((m,i)=>{const [dx,dy]=[MAST_MOUNTS[i][0]-m.p
 sailPanels(canonical).forEach((s,panel)=>{const {mast,zones:n}=RIG_SAILS[panel],place=clothPlacement(panel,s),polygon=s.outline.map(p=>artToWorld(place.point(p))),xs=polygon.map(p=>p.x),ys=polygon.map(p=>p.y),left=Math.min(...xs),right=Math.max(...xs),bottom=Math.min(...ys),top=Math.max(...ys);for(let j=0;j<n;j++)rig.sails.push({mast,panel,x:(left+right)/2,y:bottom+(j+.5)*(top-bottom)/n,halfW:(right-left)/2,halfH:(top-bottom)/(2*n),polygon});});
 export const artRig=()=>rig;
 // Feet follow the visible deck; the hold crew use the lower interior deck.
-export function deckFoot(x){const points=[[-1,.28],[-.63,.12],[-.38,-.015],[0,-.115],[.25,-.085],[.65,.025],[1,.10]];for(let i=1;i<points.length;i++)if(x<=points[i][0]){const a=points[i-1],b=points[i],t=Math.max(0,(x-a[0])/(b[0]-a[0]));return a[1]+(b[1]-a[1])*t;}return .10;}

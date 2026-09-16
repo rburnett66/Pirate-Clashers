@@ -9,13 +9,13 @@ const s=M.fresh(T);assert.equal(M.PIRATES.length,36);
 assert.equal(M.assign(s,36,'d0'),false);assert.equal(M.assign(s,1,'h3'),false);
 assert.equal(M.assign(s,1,'h0'),true);assert.equal(s.slots.d0,undefined);
 assert.equal(new Set(Object.values(s.slots)).size,Object.values(s.slots).length);
-for(let l=1;l<=8;l++){s.shipLevel=l;assert.equal(M.positions(s).length,l);}
+for(let l=1;l<=6;l++){s.shipLevel=l;assert.equal(M.positions(s).length,l+2);}
 });
 test('ship progression consumes exact prototype materials, no gold',()=>{
-const s=rich(),before=clone(s),c=M.E.SHIP[s.shipLevel-1];
+const s=rich(),before=clone(s),c=M.hullConfig(s.shipLevel).cost;
 assert.ok(M.shipUpgrade(s));assert.equal(s.gold,before.gold);
 for(const k of Object.keys(c))assert.equal(s.mats[k],before.mats[k]-c[k]);
-s.shipLevel=8;assert.equal(M.shipUpgrade(s),false);
+s.shipLevel=6;assert.equal(M.shipUpgrade(s),false);
 });
 test('insufficient wallet and invalid exchange leave state untouched',()=>{
 const s=M.fresh(T),before=clone(s);assert.equal(M.pay(s,{wood:1,gems:999}),false);assert.deepEqual(s,before);
@@ -30,7 +30,7 @@ M.advance(resumed,end+1);assert.equal(resumed.levels[1],2);assert.equal(M.skip(r
 test('chest claims are specific, deterministic and idempotent',()=>{
 const s=M.fresh(T);s.chests=[{id:'reward',kind:'captain',seed:12}];const other=clone(s);
 const a=M.openChest(s,'reward');assert.deepEqual(a,M.openChest(other,'reward'));
-assert.equal(Object.values(a.cards).reduce((a,b)=>a+b,0),70);
+assert.equal(Object.values(a.cards).reduce((a,b)=>a+b,0),4);assert.equal(a.draws.length,4);
 const after=clone(s);assert.equal(M.openChest(s,'reward'),null);assert.deepEqual(s,after);
 });
 test('daily reset retains unopened chest contents',()=>{
@@ -71,7 +71,7 @@ assert.equal(M.attack(s,{side:'enemy'}),null);assert.equal(M.attack(s,{side:'inv
 });
 test('rematch preserves rival loadout after player changes crew',()=>{
 const s=M.fresh(T),b=M.startBattle(s,T),opponent=clone(b.enemy);
-b.phase='result';b.won=false;M.settle(s,T+1);s.shipLevel=8;s.slots.d2=10;
+b.phase='result';b.won=false;M.settle(s,T+1);s.shipLevel=6;s.slots.d2=10;
 assert.ok(M.requestRematch(s,()=>0));assert.deepEqual(s.battle.enemy,opponent);
 assert.equal(M.requestRematch(s,()=>0),null);
 });
@@ -114,9 +114,9 @@ const s=rich();const before=clone(s);assert.equal(M.equip(s,'plating','iron',3),
 assert.ok(M.equip(s,'plating','iron',2));assert.equal(s.plates[0].kind,'bare');
 });
 test('figureheads upgrade permanently at source prices',()=>{
-const s=rich();assert.ok(M.figure(s,1));const gold=s.gold;
-assert.ok(M.upgradeFigure(s,1));assert.equal(s.gold,gold-M.E.FIG_UPGRADE.gold[0]);assert.equal(s.figureheads[1],2);
-assert.ok(M.upgradeFigure(s,1));assert.ok(M.upgradeFigure(s,1));assert.equal(M.upgradeFigure(s,1),false);
+const s=rich();assert.ok(M.figure(s,'unicorn'));const gold=s.gold;
+assert.ok(M.upgradeFigure(s,'unicorn'));assert.equal(s.gold,gold-M.E.FIG_UPGRADE.gold[0]);assert.equal(s.figureheads.unicorn,2);
+assert.ok(M.upgradeFigure(s,'unicorn'));assert.ok(M.upgradeFigure(s,'unicorn'));assert.equal(M.upgradeFigure(s,'unicorn'),false);
 });
 test('offers cap at three with real expiry and seven-day cooldown',()=>{
 const s=M.fresh(T);s.offerQueue=[0,1,2,3].map((bundle)=>({key:'q'+bundle,bundle,category:'bundle-'+bundle,created:T}));
