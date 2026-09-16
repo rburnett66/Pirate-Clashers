@@ -15,7 +15,9 @@ const [outDir, rawPrefix] = process.argv.slice(2);
 if (!outDir || !rawPrefix) throw Error('usage: pages-stage.cjs <outDir> <urlPrefix>');
 const prefix = '/' + rawPrefix.replace(/^\/|\/$/g, '');
 
-const SHIP = ['index.html', 'src', 'public'];          // only what the game needs to run
+const SHIP = ['index.html', 'src', 'public', 'Pirate Art'];   // only what the game needs to run
+// `Pirate Art` ships because the crew portraits load from /Pirate%20Art/pirate_segments/...;
+// it was missing from the first publish and the characters did not render.
 const REWRITE = /\.(html|js|mjs|css|webmanifest|json)$/i;
 const out = path.join(root, outDir);
 
@@ -24,7 +26,7 @@ let copied = 0, rewritten = 0, hits = 0;
 
 const rewrite = (text) => {
   let n = 0;
-  const done = text.replace(/(["'`(])\/(src|public)\//g, (_m, q, dir) => { n++; return `${q}${prefix}/${dir}/`; });
+  const done = text.replace(/(["'`(])\/(src|public|Pirate%20Art|Pirate Art)\//g, (_m, q, dir) => { n++; return `${q}${prefix}/${dir}/`; });
   hits += n;
   return { done, n };
 };
@@ -67,7 +69,7 @@ const scan = (dir) => {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) { scan(p); continue; }
     if (!REWRITE.test(p)) continue;
-    if (/(["'`(])\/(src|public)\//.test(fs.readFileSync(p, 'utf8'))) leftovers.push(path.relative(out, p));
+    if (/(["'`(])\/(src|public|Pirate%20Art|Pirate Art)\//.test(fs.readFileSync(p, 'utf8'))) leftovers.push(path.relative(out, p));
   }
 };
 scan(out);
