@@ -1,0 +1,60 @@
+# Publish PIRATE BASH to GitHub Pages on every push to master that touches the game.
+# ONLY the playable ships (index.html + src/ + public/) — docs, sources and prototypes stay repo-only.
+# Play URL: https://rburnett66.github.io/Pirate-Clashers/
+#
+# The game loads its assets by ROOT-ABSOLUTE path, which is correct for `npm start` and would 404
+# under a project URL, so scripts/pages-stage.cjs prefixes them in the PUBLISHED COPY only. It fails
+# the build if any path survives unprefixed — a page that returns 200 with no assets is the failure
+# this gate exists to prevent.
+name: Deploy game to Pages
+on:
+  push:
+    branches: [master]
+    paths: ['index.html', 'src/**', 'public/**', 'scripts/pages-stage.cjs', '.github/workflows/deploy-game.yml']
+  # Gate the PR, not the merge: a suite that runs after the change is on master is too late to block it.
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # The repo's own test script (node --test tests/*.test.js). No install: the game has no runtime
+      # dependencies, and the only devDependency (Playwright) belongs to the browser scripts.
+      - run: npm test
+      # Staging is gated too: it refuses to emit a copy that still points at the domain root.
+      - run: node scripts/pages-stage.cjs _site "${{ github.event.repository.name }}"
+  deploy:
+    needs: test
+    # PUBLISH ONLY FROM master, or a pull_request run would ship unreviewed work to the live game.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/pages-stage.cjs _site "${{ github.event.repository.name }}"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
