@@ -81,6 +81,7 @@ dialog.match-intro{position:fixed;width:min(1040px,94vw);max-width:94vw;max-heig
 @media(max-width:649px){#waterMovement{width:238px;bottom:8px!important}}
 @media(max-height:560px){.ship-wheel-control{width:134px;height:134px;bottom:-90px}}
 .polished-battle .crew-stack{top:96px;bottom:auto}
+.polished-battle .crew-stack .gun-panel{order:-1}
 @media(max-width:649px){.polished-battle .crew-stack{top:92px;bottom:auto}}
 @media(max-height:560px){.polished-battle .crew-stack{top:62px;bottom:auto}}
 
