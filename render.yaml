@@ -1,0 +1,26 @@
+# =============================================================================
+# PIRATE BASH — playable web build, served as a Render Static Site.
+#
+# The repo stays PRIVATE; Render serves the built game publicly.
+#
+# WHY A SITE ROOT, not a subfolder of another site: index.html and src/app.js
+# load their assets by ROOT-ABSOLUTE path (/src/..., /public/...), so the game
+# only works when it IS the site root. Publishing it under metamaxdev.com/play/
+# or a GitHub Pages project URL would 404 every asset.
+#
+# No build step: the game is plain static files (index.html + src/ + public/).
+# =============================================================================
+services:
+  - type: web
+    name: pirate-bash
+    runtime: static
+    buildCommand: echo static-site-no-build
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
