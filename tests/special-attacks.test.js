@@ -71,3 +71,27 @@ test('shark keeps the victim snapshot alive and delays victory and rewards until
  assert.equal(M.active(b.enemy).length,0);assert.equal(M.active(p.before).length,1);assert.equal(b.phase,'special');assert.equal(M.settle(s),null);
  M.completeFinishMove(s);assert.equal(b.phase,'result');assert.equal(b.won,true);assert.ok(M.settle(s));assert.equal(M.settle(s),null);
 });
+test('whale destroys a hull with living crew and intact sails after its aftermath',()=>{
+ let s=M.fresh(T);s.moves.push(2);s.move=2;M.startBattle(s,T);
+ for(let i=0;i<3;i++){
+  s.battle.charged=true;s.battle.streak=4;assert.ok(M.finishMove(s));assert.ok(M.resolveFinishMove(s));
+  const hull=s.battle.enemy.hull;
+  s=M.restore(JSON.stringify(s),T);assert.equal(M.resolveFinishMove(s),false);assert.equal(s.battle.enemy.hull,hull);
+  assert.equal(s.battle.phase,'special');
+  M.completeFinishMove(s);
+ }
+ assert.equal(s.battle.enemy.hull,0);assert.ok(s.battle.enemy.sails>0);assert.ok(M.active(s.battle.enemy).length>0);
+ assert.equal(s.battle.phase,'result');assert.equal(s.battle.won,true);
+ assert.equal(M.settle(s,T).looted,false);assert.equal(M.settle(s,T),null);
+});
+test('exhausted attack targets stay unavailable across turns and incomplete charge',()=>{
+ for(const id of [0,1,5]){
+  const s=M.fresh(T);s.moves.push(id);s.move=id;M.startBattle(s,T);
+  if(id===1)s.battle.enemy.mastParts.forEach(p=>p.hp=0);
+  else s.battle.enemy.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);
+  for(const phase of ['player','enemy','flight'])for(const charged of [false,true]){
+   s.battle.phase=phase;s.battle.charged=charged;
+   assert.match(M.specialTargetUnavailable(s),/No /);
+  }
+ }
+});

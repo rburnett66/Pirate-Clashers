@@ -13,14 +13,14 @@ test('both hulls stay closed during enemy flight and impact hold, including a tu
  assert.equal(cutawaySide({phase:'enemy'},true,'player','impact','enemy'),'player');
  assert.equal(cutawaySide({phase:'result'},true,'player','wide','enemy'),null);
 });
-test('a hull or sails alone can survive, destruction requires both; empty crew can be boarded',()=>{
- const b=setup().battle;b.enemy.hull=0;assert.equal(M.outcome(b),null);b.enemy.sails=0;assert.equal(M.outcome(b),true);
- b.enemy.hull=10;assert.equal(M.outcome(b),null);b.enemy.crew.forEach(g=>g.hp=0);assert.equal(M.outcome(b),true);
- const other=setup().battle;other.player.hull=0;assert.equal(M.outcome(other),null);other.player.sails=0;assert.equal(M.outcome(other),false);
+test('zero hull destroys either ship regardless of sails and crew; sails alone do not',()=>{
+ const b=setup().battle;b.enemy.hull=0;assert.equal(M.outcome(b),true);
+ b.enemy.hull=10;b.enemy.sails=0;assert.equal(M.outcome(b),null);b.enemy.crew.forEach(g=>g.hp=0);assert.equal(M.outcome(b),true);
+ const other=setup().battle;other.player.hull=0;assert.equal(M.outcome(other),false);
 });
 test('boarding earns exactly 10% extra gold once, destruction and retreat do not',()=>{
  for(const reason of ['board','destroy','retreat']){const s=setup(),b=s.battle,before=s.gold;b.phase='result';b.won=reason!=='retreat';
-  if(reason==='board')b.enemy.crew.forEach(g=>g.hp=0);if(reason==='destroy'){b.enemy.hull=0;b.enemy.sails=0;b.enemy.crew.forEach(g=>g.hp=0);}
+  if(reason==='board')b.enemy.crew.forEach(g=>g.hp=0);if(reason==='destroy'){b.enemy.hull=0;b.enemy.crew.forEach(g=>g.hp=0);}
   const result=M.settle(s),base=Math.floor(M.E.MATCH.gold*(b.won?1:M.E.MATCH.lossShare)),bonus=reason==='board'?Math.floor(base*.1):0;
   assert.equal(result.lootBonus,bonus);assert.equal(result.gold,base+bonus);assert.equal(s.gold,before+base+bonus);assert.equal(M.settle(s),null);
   assert.equal(M.restore(JSON.stringify(s),1900000000000).lastResult.lootBonus,bonus);
