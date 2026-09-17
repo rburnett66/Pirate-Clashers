@@ -95,3 +95,30 @@ test('exhausted attack targets stay unavailable across turns and incomplete char
   }
  }
 });
+test('enemy attacks charge independently, misses reset, pellets count once and player turns preserve progress',()=>{
+ const s=setup(),b=s.battle;
+ fire(s,true,'enemy');assert.equal(b.enemyStreak,1);fire(s,false,'player');assert.equal(b.enemyStreak,1);
+ fire(s,false,'enemy');assert.equal(b.enemyStreak,0);
+ b.enemy.crew[0].id=6;
+ for(let i=1;i<=4;i++){assert.ok(fire(s,true,'enemy').damage>0);assert.equal(b.enemyStreak,i);}
+ assert.equal(b.enemyCharged,true);assert.equal(b.streak,0);
+ fire(s,false,'enemy');assert.equal(b.enemyCharged,true);
+ const restored=M.restore(JSON.stringify(s),T);assert.equal(restored.battle.enemyCharged,true);
+});
+test('all enemy specials damage the player once, survive reload and return to the enemy turn',()=>{
+ for(const id of [0,1,2,3,4,5,6]){
+  let s=setup(),b=s.battle;b.enemy.move=id;b.enemyCharged=true;b.enemyStreak=4;b.phase='enemy';
+  const foe=copy(b.enemy),before=copy(b.player);assert.ok(M.finishMove(s,'enemy'));
+  assert.equal(b.special.side,'enemy');assert.equal(b.enemyCharged,false);
+  s=M.restore(JSON.stringify(s),T);assert.ok(M.resolveFinishMove(s));
+  assert.notDeepEqual(s.battle.player,before);assert.deepEqual(s.battle.enemy,foe);
+  const damaged=copy(s.battle.player);s=M.restore(JSON.stringify(s),T);
+  assert.equal(M.resolveFinishMove(s),false);assert.deepEqual(s.battle.player,damaged);
+  assert.equal(s.battle.phase,'special');M.completeFinishMove(s);assert.equal(s.battle.phase,'enemy');
+  assert.equal(s.battle.enemyStreak,0);
+ }
+});
+test('enemy keeps a charged shark when player only has hull gunners',()=>{
+ const s=setup();s.battle.enemyCharged=true;s.battle.phase='enemy';s.battle.player.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);
+ assert.equal(M.finishMove(s,'enemy'),false);assert.equal(s.battle.enemyCharged,true);
+});

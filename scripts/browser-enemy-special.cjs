@@ -1,0 +1,11 @@
+const {chromium}=require('@playwright/test'),assert=require('node:assert/strict');
+(async()=>{const b=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});try{
+const p=await b.newPage({viewport:{width:932,height:430},isMobile:true,hasTouch:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:4173');
+for(const id of [0,1,2,5,6]){
+await p.evaluate(async id=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;s.sailLevel=5;s.settings.motion=false;s.settings.sound=false;M.startBattle(s);s.battle.enemy.move=id;s.battle.phase='enemy';s.battle.enemyCharged=true;s.battle.enemyStreak=4;localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));},id);await p.reload();await p.locator('[data-action=start]').click();await p.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.special?.applied);
+const impact=await p.evaluate(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle);assert.equal(impact.special.side,'enemy');assert.equal(impact.enemy.hull,impact.enemy.maxHull);assert.equal(impact.enemyCharged,false);await p.screenshot({path:'test-results/enemy-special-'+id+'.png'});
+await p.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='player',{},{timeout:20000});console.log('PASS enemy special',id);
+}
+await p.evaluate(async()=>{const M=await import('/src/model.js'),s=M.fresh();s.onboarded=true;M.startBattle(s);s.battle.enemy.crew.filter(g=>g.slot.startsWith('d')).forEach(g=>g.hp=0);localStorage.setItem('pirate-clashers-v1',JSON.stringify(s));});await p.reload();await p.locator('[data-action=start]').click();await p.locator('#chargeAttackIcon').waitFor();assert.equal(await p.locator('#chargeBalls').isVisible(),false);assert.ok(await p.locator('#chargeAttackIcon').isVisible());assert.match(await p.locator('#chargeAttackText').textContent(),/No More Crew/);
+assert.deepEqual(errors,[]);console.log('PASS retained no-target icon and no browser errors');
+}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
