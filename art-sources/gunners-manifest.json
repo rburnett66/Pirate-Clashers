@@ -1,0 +1,214 @@
+{
+  "folder": "https://drive.google.com/drive/folders/1WRXEuvRMPhNcX9j5qpszoGFK0rZhSMnX",
+  "originals": "art-sources/gunners-originals",
+  "sprites": [
+    {
+      "pirateId": 1,
+      "source": "IMG_7390.JPG",
+      "file": "public/gunners/gunner-1.png",
+      "driveId": "1A_2KLJDpnyTDAuiIOUs7WKGLFV3Bj5ky"
+    },
+    {
+      "pirateId": 2,
+      "source": "IMG_7391.JPG",
+      "file": "public/gunners/gunner-2.png",
+      "driveId": "16tXnlalyHqGbI3AIUOaoae7k29o2l_zu"
+    },
+    {
+      "pirateId": 3,
+      "source": "IMG_7396.JPG",
+      "file": "public/gunners/gunner-3.png",
+      "driveId": "1GeLsVK678a_b-SYkRLwTHdXIYOr0xCoF"
+    },
+    {
+      "pirateId": 4,
+      "source": "IMG_7394.JPG",
+      "file": "public/gunners/gunner-4.png",
+      "driveId": "137y1UP2olWoknuMu_UwGawiTWTyi2E4r"
+    },
+    {
+      "pirateId": 5,
+      "source": "IMG_7395.JPG",
+      "file": "public/gunners/gunner-5.png",
+      "driveId": "1cwR-spLik4isaS3pGBegAOMXgm1q2dGj"
+    },
+    {
+      "pirateId": 6,
+      "source": "IMG_7393.JPG",
+      "file": "public/gunners/gunner-6.png",
+      "driveId": "1wGeUhcNPuiznWGObo4s39MsG7nj6r0am"
+    },
+    {
+      "pirateId": 9,
+      "source": "IMG_7397.JPG",
+      "file": "public/gunners/gunner-9.png",
+      "driveId": "1OsDe9vBRelvkTBcIQwXgubiu7kqZ-caH"
+    },
+    {
+      "pirateId": 10,
+      "source": "IMG_7398.JPG",
+      "file": "public/gunners/gunner-10.png",
+      "driveId": "1jbjvJksqrvALq0ibG1aG1AaunYqMUiAX"
+    },
+    {
+      "pirateId": 11,
+      "source": "IMG_7400.JPG",
+      "file": "public/gunners/gunner-11.png",
+      "driveId": "1HfvczDa8ezxL4rEUCFy5ucXi0AroOjnu"
+    },
+    {
+      "pirateId": 12,
+      "source": "IMG_7399.JPG",
+      "file": "public/gunners/gunner-12.png",
+      "driveId": "1sGT9xOccMJiwEwzGFI1nlY2oltfZzs48"
+    },
+    {
+      "pirateId": 13,
+      "source": "IMG_7401.JPG",
+      "file": "public/gunners/gunner-13.png",
+      "driveId": "1ITRN4hVnjMb6JsC7FLIuCU8zO505f1eW"
+    },
+    {
+      "pirateId": 14,
+      "source": "IMG_7402.JPG",
+      "file": "public/gunners/gunner-14.png",
+      "driveId": "1M985J5N02v7rbos9YTGnZ67gerNbRX5v"
+    },
+    {
+      "pirateId": 15,
+      "source": "IMG_7404.JPG",
+      "file": "public/gunners/gunner-15.png",
+      "driveId": "13yqrhGOMygLTarXcS3QZtABZv5Fcwokk"
+    },
+    {
+      "pirateId": 17,
+      "source": "IMG_7403.JPG",
+      "file": "public/gunners/gunner-17.png",
+      "driveId": "178jvJvTmOjnKtnUG7FIbKM1bLF3kJO06"
+    },
+    {
+      "pirateId": 18,
+      "source": "IMG_7405.JPG",
+      "file": "public/gunners/gunner-18.png",
+      "driveId": "1V222pqM8vJCSm-qRb2duNU_ekTnp0JxM"
+    },
+    {
+      "pirateId": 19,
+      "source": "IMG_7409.JPG",
+      "file": "public/gunners/gunner-19.png",
+      "driveId": "1AIO0NCKCxsaYGVFwYvaUoOb-RPBH_jdT"
+    },
+    {
+      "pirateId": 20,
+      "source": "IMG_7411.JPG",
+      "file": "public/gunners/gunner-20.png",
+      "driveId": "1Xha10nVpJvcytji6TkcOAMn2ZHprW43n"
+    },
+    {
+      "pirateId": 21,
+      "source": "IMG_7407.JPG",
+      "file": "public/gunners/gunner-21.png",
+      "driveId": "1NGpyohAWmXmS4RuXsNdHQgSXdMUy7k4S"
+    },
+    {
+      "pirateId": 22,
+      "source": "IMG_7406.JPG",
+      "file": "public/gunners/gunner-22.png",
+      "driveId": "1onP3npVgmFeLh5jItgYwle2G0CqQ5Ur9"
+    },
+    {
+      "pirateId": 23,
+      "source": "IMG_7408.JPG",
+      "file": "public/gunners/gunner-23.png",
+      "driveId": "1yy0-p_e-C193Dt-1JYN6eN23iwlD5NYa"
+    },
+    {
+      "pirateId": 24,
+      "source": "IMG_7413.JPG",
+      "file": "public/gunners/gunner-24.png",
+      "driveId": "1N3WL-U6BvqD8bz4txPDLsDuBdlZcFGcl"
+    },
+    {
+      "pirateId": 25,
+      "source": "IMG_7414.JPG",
+      "file": "public/gunners/gunner-25.png",
+      "driveId": "1QlZMysJzmN6CyZwAKiN1_5-Ybt5wJuv_"
+    },
+    {
+      "pirateId": 26,
+      "source": "IMG_7415.JPG",
+      "file": "public/gunners/gunner-26.png",
+      "driveId": "1IEZbnRbMq14Zf4QuVAyddyaD129dubvT"
+    },
+    {
+      "pirateId": 27,
+      "source": "IMG_7416.JPG",
+      "file": "public/gunners/gunner-27.png",
+      "driveId": "1VxmrD6QN-TkWkpdBZ7wHDu-ytUUQXwst"
+    },
+    {
+      "pirateId": 28,
+      "source": "IMG_7419.JPG",
+      "file": "public/gunners/gunner-28.png",
+      "driveId": "1v_ibyBKxRb02tI7dZNIgvsa4totSdeH_"
+    },
+    {
+      "pirateId": 29,
+      "source": "IMG_7417.JPG",
+      "file": "public/gunners/gunner-29.png",
+      "driveId": "1s354sgl-u8IFJvo13SGayNGD4dlTSb2A"
+    },
+    {
+      "pirateId": 30,
+      "source": "IMG_7418.JPG",
+      "file": "public/gunners/gunner-30.png",
+      "driveId": "1LJIu_ly86ncSBwiuAkfJzjs1Gw4cWTgu"
+    },
+    {
+      "pirateId": 31,
+      "source": "IMG_7421.JPG",
+      "file": "public/gunners/gunner-31.png",
+      "driveId": "1NW7wV2CN4m-hxesscTy-vevBRD7hPo4M"
+    },
+    {
+      "pirateId": 32,
+      "source": "IMG_7420.JPG",
+      "file": "public/gunners/gunner-32.png",
+      "driveId": "1HDtk3iRfSzq8JvnCK_kGy4RUgV06WlPP"
+    },
+    {
+      "pirateId": 33,
+      "source": "IMG_7422.JPG",
+      "file": "public/gunners/gunner-33.png",
+      "driveId": "19iMShdwEwOvpNsdn3qdTAoCmRTIigwEf"
+    },
+    {
+      "pirateId": 34,
+      "source": "IMG_7425.JPG",
+      "file": "public/gunners/gunner-34.png",
+      "driveId": "13KPagbTPhhoRP39FBm9UEC-71yWB1bRG"
+    },
+    {
+      "pirateId": 35,
+      "source": "IMG_7423.JPG",
+      "file": "public/gunners/gunner-35.png",
+      "driveId": "1uuemm3-_bruil9vX9ynmkCgVd2RSs42A"
+    },
+    {
+      "pirateId": 36,
+      "source": "IMG_7426.JPG",
+      "file": "public/gunners/gunner-36.png",
+      "driveId": "1AWvTN2u1U_eaJArHrpFsjKB52rLo7KTU"
+    }
+  ],
+  "retainedOriginalArt": [
+    7,
+    8,
+    16
+  ],
+  "unusedAlternates": [
+    "IMG_7392.JPG",
+    "IMG_7412.JPG",
+    "IMG_7424.JPG"
+  ]
+}
