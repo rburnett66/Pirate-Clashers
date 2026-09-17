@@ -12,9 +12,15 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
   };
   const pixels=id=>page.evaluate(id=>{const c=document.querySelector(id),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let alpha=0,hash=0;for(let i=0;i<d.length;i+=4){alpha+=d[i+3];hash=(hash*31+d[i]+d[i+1]*3+d[i+2]*7+d[i+3]*11)>>>0;}return {alpha,hash};},id);
   const styles=['IMG_7254','IMG_7255','IMG_7256','IMG_7257','IMG_7258','IMG_7261'],hashes=[];
+  for(let level=1;level<=6;level++){
+   await configure(1,level);
+   await page.evaluate(()=>{const c=document.querySelector('#gameHullArt');window.outerAlpha=c.getContext('2d').getImageData(0,0,c.width,c.height).data;window.postMessage({type:'pirate-render',action:'view',cutaway:true,hideRig:true},location.origin);});
+   await page.waitForTimeout(200);
+   assert.ok(await page.evaluate(()=>{const c=document.querySelector('#gameInterior'),a=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let different=0,solid=0;for(let i=3;i<a.length;i+=4){if(a[i]>127||window.outerAlpha[i]>127){solid++;if((a[i]>127)!==(window.outerAlpha[i]>127))different++;}}return solid>0&&different/solid<.001;}),'same exterior/interior silhouette at hull level '+level);
+  }
   for(let i=0;i<6;i++){await configure(i);assert.equal(await page.evaluate(()=>document.body.dataset.sailArt),styles[i]);hashes.push((await pixels('#gameRigArt')).hash);}
   assert.equal(new Set(hashes).size,6);
-  await configure(3,6);assert.equal(await page.evaluate(()=>document.body.dataset.hullArt),'IMG_7287');await page.screenshot({path:'test-results/ship-art-white-sails.png'});
+  await configure(3,6);assert.equal(await page.evaluate(()=>document.body.dataset.hullArt),'revised-hull');await page.screenshot({path:'test-results/ship-art-white-sails.png'});
   await configure(1,6);await page.screenshot({path:'test-results/ship-art-template-red.png'});
   const intact=await pixels('#gameRigArt'),closed=await pixels('#gameHullArt');assert.ok(intact.alpha>0&&closed.alpha>0);
   await page.evaluate(()=>{window.fixture.sailParts.forEach(p=>p.hp=p.maxHp*.3);window.postMessage({type:'pirate-render',action:'sync',parts:window.fixture,crew:[]},location.origin);});await page.waitForTimeout(200);

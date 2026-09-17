@@ -19,14 +19,14 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  assert.equal(await page.locator('[data-action=sail]').evaluateAll(nodes=>nodes.every(n=>n.hidden)),true);
  await page.locator('[data-action=scope]').click();await page.waitForTimeout(550);assert.equal(await page.locator('#combatField').getAttribute('data-view'),'scope');assert.equal(await page.locator('#combatField').getAttribute('data-scope'),'on');await page.screenshot({path:'test-results/battle-polish-overview.png'});
  await page.locator('#guns [data-action=gun]').first().click();await page.waitForTimeout(550);const selectedGunner=await page.locator('#guns [data-action=gun].active').getAttribute('data-id'),alternate=page.locator('#guns [data-action=gun]').last(),alternateId=await alternate.getAttribute('data-id');if(alternateId!==selectedGunner){await alternate.click();assert.equal(await page.locator('#combatField').getAttribute('data-selected'),alternateId);await page.locator('#guns [data-action=gun][data-id="'+selectedGunner+'"]').click();}assert.equal(await page.locator('#combatField').getAttribute('data-selected'),selectedGunner);
- assert.match(await page.locator('#weaponInfo').innerText(),/Lv\./);let infoBox=await page.locator('#weaponInfo').boundingBox(),crewBox=await page.locator('#guns').locator('xpath=..').boundingBox();assert.ok(Math.abs(infoBox.x-crewBox.x)<2&&infoBox.y+infoBox.height<=crewBox.y+1,'gunner info sits directly above crew controls');await page.screenshot({path:'test-results/battle-polish-gunner-window.png'});
+ assert.match(await page.locator('#weaponInfo').innerText(),/Lv\./);let infoBox=await page.locator('#weaponInfo').boundingBox(),crewBox=await page.locator('#guns').locator('xpath=..').boundingBox();assert.ok(Math.abs(infoBox.x-crewBox.x)<2&&crewBox.y+crewBox.height<=infoBox.y+1,'crew controls sit directly above gunner info');await page.screenshot({path:'test-results/battle-polish-gunner-window.png'});
  const playerFrame=()=>page.frames().find(f=>f.url().endsWith('ship.html?side=player'));
  assert.equal(await playerFrame().locator('[data-pedestal]').count(),1);assert.equal(await page.locator('#aimArc circle').count(),9);
  const field=await page.locator('#combatField').boundingBox(),x=field.width*.7,y=field.y+field.height*.35;
- const beforeCancel=(await state()).battle.shots;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+70,y+35,{steps:5});await page.mouse.up();
+ const beforeCancel=(await state()).battle.shots;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x-70,y+35,{steps:5});await page.mouse.up();
  assert.equal(await page.locator('#combatField').getAttribute('data-selected'),selectedGunner);assert.equal((await state()).battle.shots,beforeCancel);
  await page.locator('#guns [data-action=gun]').first().click();await page.waitForTimeout(550);
- await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x-90,y+48,{steps:7});await page.mouse.up();
+ await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+90,y+48,{steps:7});await page.mouse.up();
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pirate-clashers-v1')).battle.phase==='flight');
  assert.ok(await page.locator('[data-action=fire]').isDisabled());assert.ok(await page.locator('#flyingShots circle').count()>0);
  await page.screenshot({path:'test-results/battle-polish-flight.png'});
@@ -44,7 +44,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  for(const [name,width,height] of [['desktop',1440,900],['phone-landscape',932,430],['small-landscape',667,375],['phone-portrait',390,844]]){
  await page.setViewportSize({width,height});await page.waitForTimeout(650);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'no page scrolling: '+name);
-  const info=await page.locator('#weaponInfo').boundingBox(),crew=await page.locator('#guns').locator('xpath=..').boundingBox();assert.ok(Math.abs(info.x-crew.x)<2&&info.y+info.height<=crew.y+1,'gunner info above crew: '+name);
+  const info=await page.locator('#weaponInfo').boundingBox(),crew=await page.locator('#guns').locator('xpath=..').boundingBox();assert.ok(Math.abs(info.x-crew.x)<2&&crew.y+crew.height<=info.y+1,'crew controls above gunner info: '+name);
   for(const control of await page.locator('[data-action=fire],[data-action=finisher],[data-action=retreat],[data-action=sail],[data-action=scope]').all()){const r=await control.boundingBox();assert.ok(r&&r.x>=0&&r.y>=0&&r.x+r.width<=width+1&&r.y+r.height<=height+1,name+' '+await control.getAttribute('data-action')+' '+JSON.stringify(r));}
   await page.screenshot({path:'test-results/battle-polish-'+name+'.png'});
  }

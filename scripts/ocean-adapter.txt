@@ -1,6 +1,7 @@
 
  // Battle adapter: retain the prototype GPU wheels, foam, spray and impact records.
  const gameScale=5,gameOffset=4,gameRow=4,gameHulls=new Float32Array(8),gameDirections=new Float32Array([1,-1]);
+ const skyScenery=createSkyScenery();
  let gameScene=null,gameLayoutKey='',gameSampleAt=0,gameSplashSlot=0,gameSplashCount=0,gameLastContacts=[],gameSettingsKey='';
  const gameImpacts=[],gameSeenImpacts=new Set(),gameReadback=new Float32Array(COLS*STATE_ROWS*4);
  const clampGame=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -18,6 +19,7 @@
    rowBase[r]=-.29*gameScale+(rowBase[r]+.29*gameScale)*spread;
    rowAmp[r]=gameScale*(.34-.022*r)*vert/baseline;
   }
+  skyScenery.update({horizon:(canvas.height/2-(rowBase[ROWS-1]-cam.y)*cam.ppu)/dpr,width:canvas.width/dpr,height:canvas.height/dpr,center:(cam.x-gameOffset)*cam.ppu/dpr,motion:gameScene.motion});
  }
  function readGameWater(){
   const old=gl.getParameter(gl.FRAMEBUFFER_BINDING);

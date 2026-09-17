@@ -1,7 +1,8 @@
 
 module.exports=function oceanRenderer(water){
  const fs=require('node:fs');
- water=water.replace('<script>','<script type="module">\nimport {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";');
+ water=water.replace('<script>','<script type="module">\nimport {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";\nimport {createSkyScenery} from "/src/sky-scenery.js";');
+ water=water.replace('</head>','<link rel="stylesheet" href="/src/sky-scenery.css"></head>');
  let a=water.indexOf('id="fs-sim"'),b=water.indexOf('</script>',a),shader=water.slice(a,b);
  shader=shader.replace('uniform vec4 uHull;', 'uniform vec4 uCombatHulls[2];\nuniform float uCombatDirs[2];\nuniform vec4 uHull;');
  const ls=shader.indexOf('void hullLevels('),le=shader.indexOf('// One impact record',ls);

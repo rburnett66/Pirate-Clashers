@@ -42,8 +42,8 @@ test('aim dots taper, use the launch parabola and expose only a short hint',()=>
  dots.forEach((p,i)=>{const t=(p.x-origin.x)/(speed*Math.cos(angle*Math.PI/180));assert.ok(Math.abs(p.y-(origin.y+speed*Math.sin(angle*Math.PI/180)*t-1.6*t*t))<1e-9);if(i)assert.ok(p.r<dots[i-1].r);});
 });
 test('drag launch is anchored to the gesture, with no-shot taps and upward/backward cancellation',()=>{
- const start={x:300,y:200};assert.equal(dragAim(start,{x:200,y:258}).angle,30);assert.equal(dragAim(start,{x:200,y:258}).cancel,false);
- assert.equal(dragAim(start,{x:302,y:201}).moved,false);assert.equal(dragAim(start,{x:400,y:240}).cancel,true);assert.equal(dragAim(start,{x:300,y:300}).cancel,true);
+ const start={x:300,y:200};assert.equal(dragAim(start,{x:400,y:142}).angle,30);assert.equal(dragAim(start,{x:400,y:142}).cancel,false);
+ assert.equal(dragAim(start,{x:302,y:201}).moved,false);assert.equal(dragAim(start,{x:200,y:240}).cancel,true);assert.equal(dragAim(start,{x:300,y:300}).cancel,true);
 });
 test('five crew responses distinguish misses, glancing hits, solid hits, heavy hits and kills',()=>{
  const levels=[crewReaction(null,500),crewReaction({hit:true,damage:5},500),crewReaction({hit:true,damage:30},500),crewReaction({hit:true,damage:90},500),crewReaction({hit:true,damage:5},500,1)].map(c=>c.level);assert.deepEqual(levels,[0,1,2,3,4]);

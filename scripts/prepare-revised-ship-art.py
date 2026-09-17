@@ -97,7 +97,11 @@ for name,poly,attachment in tops:
     path='sails/cloth/template-upper-'+name+'.png';cloth.save(OUT/path,optimize=True)
     manifest['upperSails'].append({'id':name,'cloth':path,'sourceBox':list(box),'attachment':[[x-box[0],y-box[1]] for x,y in attachment]})
 manifest['assemblyTemplate']=sources['template']
+exterior=manifest.get('registration',{}).get('exterior')
 manifest['registration']={'canvas':[1792,1008],'interior':interior,'mastScale':1,'mastTranslation':[0,0],'source':'owner-supplied mast-free hull and separate masts'}
+if exterior:
+    manifest['registration']['exterior']=exterior
+    manifest['hulls']=[{'id':'revised-hull','interior':False,'body':{'right':'bodies/revised-exterior.png'},'mastMounts':[s[1] for s in specs]}]
 (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
 (SOURCE/'verification.json').write_text(json.dumps({'sources':checks,'mirrorPairsChecked':4,'nativeCanvas':[1792,1008]},indent=2)+'\n',encoding='utf-8')
 print('Prepared mast-free interior and three registered masts; four exact mirror pairs verified.')

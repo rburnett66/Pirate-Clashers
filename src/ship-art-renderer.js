@@ -16,8 +16,17 @@ export class ShipArtRenderer{
   const request=(this.request||0)+1;this.request=request;this.motion=d.motion!==false;this.preview=!!d.preview;this.setView(d);this.config=hullConfig(d.level);this.rigConfig=sailConfig(d.sailLevel??d.parts?.sailLevel);this.figure=figureConfig(d.figure??d.parts?.figure);this.appearance=shipAppearance(d.level,d.cosmetic,side,d.parts?.plating??d.plating);this.setParts(d.parts,true);
   const a=this.appearance,panels=sailPanels(a.sails);
   try{const loaded=await Promise.all([image(a.hull.body.right),image(SHIP_ART.registration.interior.right),...SHIP_ART.masts.map(m=>image(m.images.right)),...panels.map(s=>image(s.cloth)),...RIG_FLAGS.map(()=>image(SHIP_ART.flags.find(f=>f.id===(d.flag??d.parts?.flag??7)).image)),...(this.figure?.asset?[image(this.figure.asset)]:[])]);if(request!==this.request)return;
-   [this.skin,this.xray]=loaded;this.masts=loaded.slice(2,5);this.cloth=loaded.slice(5,10);this.flags=loaded.slice(10,12);this.figureImage=loaded[12];this.panels=panels;this.ready=true;this.rebuild();document.body.dataset.mastCount=String(this.rigConfig.masts.length);document.body.dataset.portCount=String(this.config.ports);document.body.dataset.figurehead=this.figure?.id||'';document.body.dataset.shipArt='ready';requestAnimationFrame(()=>requestAnimationFrame(()=>{if(request===this.request)parent.postMessage({type:'pirate-art-ready',side,requestId:d.requestId},location.origin);}));document.body.dataset.hullArt=a.hull.id;document.body.dataset.sailArt=a.sails.id;document.body.dataset.sailCount=String(this.rigConfig.panels.length);document.body.dataset.flagCount=String(RIG_FLAGS.filter(f=>this.rigConfig.masts.includes(f.mast)).length);
+   [this.skin,this.xray]=loaded;this.alignSkin();this.masts=loaded.slice(2,5);this.cloth=loaded.slice(5,10);this.flags=loaded.slice(10,12);this.figureImage=loaded[12];this.panels=panels;this.ready=true;this.rebuild();document.body.dataset.mastCount=String(this.rigConfig.masts.length);document.body.dataset.portCount=String(this.config.ports);document.body.dataset.figurehead=this.figure?.id||'';document.body.dataset.shipArt='ready';requestAnimationFrame(()=>requestAnimationFrame(()=>{if(request===this.request)parent.postMessage({type:'pirate-art-ready',side,requestId:d.requestId},location.origin);}));document.body.dataset.hullArt=a.hull.id;document.body.dataset.sailArt=a.sails.id;document.body.dataset.sailCount=String(this.rigConfig.panels.length);document.body.dataset.flagCount=String(RIG_FLAGS.filter(f=>this.rigConfig.masts.includes(f.mast)).length);
   }catch(error){document.body.dataset.shipArt='error';console.error(error);}
+ }
+ alignSkin(){
+  const aligned=surface(),ctx=aligned.getContext('2d'),r=SHIP_ART.registration.exterior;
+  // Both views use the revised interior's alpha, deck and keel. The generated
+  // exterior supplies color only, so toggling cannot change the silhouette.
+  ctx.fillStyle='#65411f';ctx.fillRect(0,0,aligned.width,aligned.height);
+  ctx.drawImage(this.skin,...r.sourceBounds,...r.targetBounds);
+  ctx.globalCompositeOperation='destination-in';ctx.drawImage(this.xray,0,0);
+  this.skin=aligned;
  }
  setView(d){const cutaway=!!d.cutaway,hideRig=!!d.hideRig;document.body.dataset.cutaway=String(cutaway);if(cutaway===this.cutaway&&hideRig===this.hideRig)return;if(cutaway!==this.cutaway){this.cutaway=cutaway;if(this.ready)this.buildBody();}this.hideRig=hideRig;this.revision++;}
  setParts(f,reset=false){
@@ -28,11 +37,16 @@ export class ShipArtRenderer{
   if(this.ready)this.rebuild();
  }
  rebuild(){this.buildBody();this.buildRig();this.revision++;}
+ snapshotRig(index,before){
+  if(!this.ready||!Number.isInteger(index)||index<0||index>2)return null;
+  const current=this.parts;this.setParts(before,true);
+  const image=this.groups[index].toDataURL('image/png');this.setParts(current,true);this.specialMast=index;return image;
+ }
  buildBody(){
   const ctx=this.body.getContext('2d');ctx.clearRect(0,0,1792,1008);if(!this.cutaway){ctx.drawImage(this.skin,0,0);
    // Port doors are exterior details; the intact material mask still protects crew.
    ctx.save();ctx.globalCompositeOperation='source-atop';
-   for(const p of this.config.holdAnchors){const [x,y]=worldToArt({x:p.x,y:p.y+.24});ctx.fillStyle='#ba8a41';ctx.fillRect(x-26,y-23,52,46);ctx.fillStyle='#23180f';ctx.fillRect(x-21,y-18,42,36);ctx.strokeStyle='#6a4823';ctx.lineWidth=4;ctx.strokeRect(x-26,y-23,52,46);ctx.fillStyle='#79716a';ctx.beginPath();ctx.ellipse(x+5,y+3,13,11,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#100e0a';ctx.beginPath();ctx.arc(x+8,y+3,7,0,Math.PI*2);ctx.fill();}
+   for(const p of this.config.holdAnchors){const [x,y]=worldToArt({x:p.x,y:p.y+.24});ctx.save();ctx.translate(x,y);ctx.scale(2,2);ctx.fillStyle='#ba8a41';ctx.fillRect(-26,-23,52,46);ctx.fillStyle='#23180f';ctx.fillRect(-21,-18,42,36);ctx.strokeStyle='#6a4823';ctx.lineWidth=4;ctx.strokeRect(-26,-23,52,46);ctx.fillStyle='#79716a';ctx.beginPath();ctx.ellipse(5,3,13,11,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#100e0a';ctx.beginPath();ctx.arc(8,3,7,0,Math.PI*2);ctx.fill();ctx.restore();}
    ctx.restore();if(this.figureImage)ctx.drawImage(this.figureImage,1350,730,130,180);
   }
   ctx.globalCompositeOperation='destination-out';
@@ -67,7 +81,7 @@ export class ShipArtRenderer{
   if(portKey!==this.portKey){this.portKey=portKey;const mask=surface(canvas.width,canvas.height),ctx=mask.getContext('2d');transform(ctx);drawMask(ctx,bitmap(initial));const ports=document.querySelector('#gamePorts');if(ports){ports.style.maskImage=`url(${mask.toDataURL()})`;ports.style.webkitMaskImage=ports.style.maskImage;ports.style.maskSize='100% 100%';ports.style.webkitMaskSize='100% 100%';}}
   if(key!==this.paintKey){this.paintKey=key;
    const ctx=this.rig.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);transform(ctx);
-   if(!this.hideRig)this.groups.forEach((g,i)=>{const at=this.fallen[i],age=at===null?0:clock-at;if(at!==null&&(!this.motion||age>=1.25))return;ctx.save();if(at!==null){const [x,y]=MAST_MOUNTS[i],t=age/1.25;ctx.translate(x,y);ctx.rotate((i%2?-1:1)*1.5*t*t);ctx.translate(-x,-y);ctx.globalAlpha=Math.max(0,1-Math.max(0,t-.6)/.4);}ctx.drawImage(g,0,0);ctx.restore();});
+   if(!this.hideRig)this.groups.forEach((g,i)=>{const at=this.fallen[i],age=at===null?0:clock-at;if(at!==null&&(this.specialMast===i||!this.motion||age>=1.25))return;ctx.save();if(at!==null){const [x,y]=MAST_MOUNTS[i],t=age/1.25;ctx.translate(x,y);ctx.rotate((i%2?-1:1)*1.5*t*t);ctx.translate(-x,-y);ctx.globalAlpha=Math.max(0,1-Math.max(0,t-.6)/.4);}ctx.drawImage(g,0,0);ctx.restore();});
    const inner=this.interior.getContext('2d');inner.setTransform(1,0,0,1,0,0);inner.clearRect(0,0,canvas.width,canvas.height);transform(inner);inner.drawImage(this.inside,0,0);
   }
   const wetKey=key+':'+Math.floor(now*15);if(wetKey===this.wetKey)return;this.wetKey=wetKey;

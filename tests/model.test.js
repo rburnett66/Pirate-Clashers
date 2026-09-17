@@ -80,13 +80,17 @@ const s=M.fresh(T),b=M.startBattle(s,T);b.phase='result';b.won=false;M.settle(s,
 const gold=s.gold;assert.equal(M.requestRematch(s,()=>.99),false);assert.equal(s.gold,gold);
 assert.equal(M.requestRematch(s,()=>0),null);
 });
-test('all six finishers affect intended target once',()=>{
-for(let id=0;id<6;id++){const s=M.fresh(T);s.moves=[0,1,2,3,4,5];s.move=id;
+test('all finishers resolve only at impact and affect their intended target once',()=>{
+for(let id=0;id<M.FINISHERS.length;id++){const s=M.fresh(T);s.moves=M.FINISHERS.map(m=>m.id);s.move=id;
 const b=M.startBattle(s,T);b.charged=true;const before=clone(b.enemy);
 assert.ok(M.finishMove(s));assert.equal(M.finishMove(s),false);
+assert.deepEqual(b.enemy,before);assert.ok(M.resolveFinishMove(s));
+const after=clone(b.enemy);assert.equal(M.resolveFinishMove(s),false);assert.deepEqual(b.enemy,after);
 if(id===2)assert.ok(b.enemy.hull<before.hull);
 else if([1,3,4].includes(id))assert.ok(b.enemy.sails<before.sails);
+else if(id===6)assert.ok(b.enemy.crew.reduce((n,g)=>n+g.hp,0)<before.crew.reduce((n,g)=>n+g.hp,0));
 else assert.ok(M.active(b.enemy).length<M.active(before).length);
+assert.equal(b.phase,'special');assert.ok(M.completeFinishMove(s));assert.equal(M.completeFinishMove(s),false);
 }
 });
 test('malformed saved state is rejected before gameplay',()=>{

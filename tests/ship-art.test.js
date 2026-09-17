@@ -5,6 +5,7 @@ import * as M from '../src/model.js';
 import * as H from '../src/hull-mask.js';
 import {rigLayout,collisionAt,stationPosition} from '../src/ballistics.js';
 import {shipToWorld} from '../src/ship-pose.js';
+import {LEGACY_ART_HULL_BITS} from '../src/legacy-ship-art-mask.js';
 import {artToWorld,worldToArt,shipAppearance,SHIP_ART,MAST_MOUNTS,RIG_SAILS,RIG_FLAGS,sailPanels,clothPlacement} from '../src/ship-art-layout.js';
 
 test('prototype saves migrate to the art silhouette without healing damaged sections',()=>{
@@ -32,7 +33,21 @@ test('art keeps a uniform scale and owned sail choices map to the supplied desig
  for(const p of [[0,0],[810,960],[1792,1008]]){const back=worldToArt(artToWorld(p));back.forEach((v,i)=>assert.ok(Math.abs(v-p[i])<1e-9));}
  assert.equal(shipAppearance(3,null,'player').sails.id,'IMG_7255');assert.equal(shipAppearance(3,null,'enemy').sails.id,'IMG_7256');
  for(let i=0;i<6;i++)assert.ok(shipAppearance(3,i).sails.sails.every(s=>s.cloth));
- assert.equal(shipAppearance(6).hull.id,'IMG_7287');
+ assert.equal(shipAppearance(6).hull.id,'revised-hull');
+});
+
+test('previous exterior masks migrate once with section damage preserved',()=>{
+ const s=M.fresh();M.startBattle(s);const f=s.battle.player;
+ const bytes=Buffer.from(LEGACY_ART_HULL_BITS,'base64');
+ const full=Array(f.hullParts.length).fill(0),remaining=full.slice();
+ for(let i=0;i<H.HULL_MASK.width*H.HULL_MASK.height;i++)if(bytes[i>>3]&(1<<(i&7))){
+  const p=H.pixelPoint(i%H.HULL_MASK.width,Math.floor(i/H.HULL_MASK.width)),section=H.hullSection(p.x,full.length);full[section]++;
+  if(i%3===0)bytes[i>>3]&=~(1<<(i&7));else remaining[section]++;
+ }
+ f.hullMask={version:2,bits:bytes.toString('base64')};H.maskPixels(f);
+ assert.equal(f.hullMask.version,3);
+ f.hullParts.forEach((p,i)=>assert.ok(Math.abs(p.hp/p.maxHp-remaining[i]/full[i])<.001));
+ const once=structuredClone(f.hullMask);H.maskPixels(f);assert.deepEqual(f.hullMask,once);
 });
 
 
