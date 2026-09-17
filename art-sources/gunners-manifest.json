@@ -39,6 +39,16 @@
       "driveId": "1wGeUhcNPuiznWGObo4s39MsG7nj6r0am"
     },
     {
+      "pirateId": 7,
+      "source": "IMG_7412.JPG",
+      "file": "public/gunners/gunner-7.png"
+    },
+    {
+      "pirateId": 8,
+      "source": "IMG_7424.JPG",
+      "file": "public/gunners/gunner-8.png"
+    },
+    {
       "pirateId": 9,
       "source": "IMG_7397.JPG",
       "file": "public/gunners/gunner-9.png",
@@ -79,6 +89,11 @@
       "source": "IMG_7404.JPG",
       "file": "public/gunners/gunner-15.png",
       "driveId": "13yqrhGOMygLTarXcS3QZtABZv5Fcwokk"
+    },
+    {
+      "pirateId": 16,
+      "source": "IMG_7392.JPG",
+      "file": "public/gunners/gunner-16.png"
     },
     {
       "pirateId": 17,
@@ -201,14 +216,7 @@
       "driveId": "1AWvTN2u1U_eaJArHrpFsjKB52rLo7KTU"
     }
   ],
-  "retainedOriginalArt": [
-    7,
-    8,
-    16
-  ],
-  "unusedAlternates": [
-    "IMG_7392.JPG",
-    "IMG_7412.JPG",
-    "IMG_7424.JPG"
-  ]
+  "retainedOriginalArt": [],
+  "unusedAlternates": [],
+  "assignmentNote": "Owner requested all 36 supplied images and no placeholder art. Remaining assignments: Rocketeer uses IMG_7412, Ice Zombie uses IMG_7424, Crossbow uses IMG_7392. Gameplay identities and stats are preserved."
 }
