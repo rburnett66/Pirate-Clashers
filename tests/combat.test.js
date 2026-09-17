@@ -1,3 +1,4 @@
+import {windSpeed} from '../src/wind.js';
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +16,7 @@ test('flight samples follow one parabola and displayed range determines launch s
  const s=battle(),flight=M.previewShot(s,{gunner:1,angle:45}),{speed}=flight.spec,rad=Math.PI/4;
  assert.ok(Math.abs(speed*speed/BALLISTICS.gravity*10-M.stats(M.PIRATES[0]).range)<1e-10);
  for(const p of flight.shots[0].path){
-  assert.ok(Math.abs(p.x-(flight.origin.x+speed*Math.cos(rad)*p.t))<1e-8);
+  assert.ok(Math.abs(p.x-(flight.origin.x+(speed*Math.cos(rad)+windSpeed(flight.wind))*p.t))<1e-8);
   assert.ok(Math.abs(p.y-(flight.origin.y+speed*Math.sin(rad)*p.t-.5*BALLISTICS.gravity*p.t*p.t))<1e-8);
  }
  const rifle=M.previewShot(s,{gunner:2,angle:45});assert.ok(rifle.spec.speed>speed);
