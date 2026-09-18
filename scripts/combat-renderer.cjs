@@ -1,5 +1,6 @@
 
 module.exports=function combatRenderer(hull){
+ hull=hull.replace('Math.min(window.devicePixelRatio || 1, 2)',"Math.min(window.devicePixelRatio || 1, matchMedia('(pointer:coarse)').matches ? 1 : 2)");
  const at=hull.lastIndexOf('<script>');if(at<0)throw Error('Missing prototype script');
  hull=hull.slice(0,at)+'<script type="module">\nimport {HULL_MASK,maskPixels} from "/src/hull-mask.js";\nimport {stationPosition,SHIP_LADDER} from "/src/ballistics.js";\nimport {stationAnchors} from "/src/ship-config.js";\nimport {gunnerImage} from "/src/gunner-art.js";\nimport {ShipArtRenderer} from "/src/ship-art-renderer.js";'+hull.slice(at+8);
  hull=hull.replace('const COMMON_GLSL =',"\nconst gameSurface=new Float32Array(32).fill(-.29),gameFoam=new Float32Array(32).fill(.3);\nlet gameFoamLook=1;\nlet lastMaterialBits=null;\nconst gameMaterialTexture=gl.createTexture();\nfunction uploadMaterial(f){\n const pixels=maskPixels(f);if(lastMaterialBits===f.hullMask.bits)return;\n gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,gameMaterialTexture);\n gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);\n gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);\n gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,HULL_MASK.width,HULL_MASK.height,0,gl.RED,gl.UNSIGNED_BYTE,pixels);\n lastMaterialBits=f.hullMask.bits;gl.activeTexture(gl.TEXTURE0);\n}\nuploadMaterial({});\n"+'\nconst COMMON_GLSL =');
@@ -23,9 +24,9 @@ module.exports=function combatRenderer(hull){
  hull=hull.replace('if (showInner) {','if (showInner && !gameCutaway) {').replace('{\n      const L = hullProg.loc;','if (!gameCutaway) {\n      const L = hullProg.loc;');
  hull=hull.replace('if (showInner && !gameCutaway) {','if (!artRenderer.ready && showInner && !gameCutaway) {').replace('if (!gameCutaway) {','if (!artRenderer.ready && !gameCutaway) {');
  hull=hull.replaceAll('if (showRig) drawRig(', 'if (!artRenderer.ready && showRig) drawRig(');
- hull=hull.replace('    resize();\n    gl.bindFramebuffer', '    resize();\n    artRenderer.paint(cam,canvas,now,gameSurface,gameFoam);\n    gl.bindFramebuffer');
+ hull=hull.replace('    resize();\n    gl.bindFramebuffer', '    resize();\n    artRenderer.paint(cam,canvas,now,gameSurface,gameFoam,gameFoamLook);\n    gl.bindFramebuffer');
  hull=hull.replace('cam.ppu = Math.min(canvas.width / 3.5, canvas.height / 3.3);',"cam.ppu = document.body.dataset.preview==='true'?Math.min(canvas.width/3.1,canvas.height/(document.body.dataset.previewClose==='true'?1.45:2.3)):Math.min(canvas.width/3.5,canvas.height/3.3);").replace('cam.y = .85;',"cam.y = document.body.dataset.preview==='true'?(document.body.dataset.previewClose==='true'?-.06:.39):.85;");
  hull=hull.replace('float r = uDebrisSize *','float r = 2.0 * uDebrisSize *');
- hull=hull.replace(':not(#pirateMark)',':not(#pirateMark):not(#gameCrew):not(#gamePorts)');
+ hull=hull.replace(':not(#pirateMark)',':not(#pirateMark):not(#gameCrew):not(#gamePorts):not(#deathEffects)');
  return hull.replace(/[ \t]+$/gm,'');
 };

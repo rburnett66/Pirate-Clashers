@@ -2,7 +2,7 @@
 
 Implemented in the local game for MetaMax project 1002, E11 / K20 (`story_mu091sxb_w`).
 
-- Main menu: independent navigation, wallet, harbor scene, crew/orders panels and chest hold. Five selectable harbor scenes persist as a visual preference; the captain's actual progression port is shown separately.
+- Main menu: independent navigation, wallet, harbor scene, crew/orders panels and chest hold. All 21 supplied location images are selectable harbor scenes and persist as a visual preference; the captain's actual progression port is shown separately.
 - Crew: Ship, Collection, Shipyard and Equipment; portraits also appear in pirate details, crew stations and chest rewards. All 36 existing character mappings are preserved.
 - Leaders: existing regions, map, standings and captain inspection, with supplied panoramas for Hawaii, Mumbai/Bombay and Madagascar.
 - Booty, Store, Settings and Water Workshop: shared wood/brass surfaces and typography, supplied banners/icons where available. Existing actions remain connected.
@@ -70,3 +70,9 @@ Battle's scenery picker opens from Scenery on the harbor. Booty Pass's weekly qu
 Find Match now selects `public/menu-art/find-match-shadow-v2.png`, an AI-assisted transparent extraction revision with outer shadow and dark interior shading. This is a regenerated variant, not a pixel-identical extraction. The original JPG and prior PNG are preserved for review. See [the exact edit prompt and provenance](FIND-MATCH-SHADOW-REVISION.md).
 
 Validation: `npm test` (55/55), `npm run check`, and browser menu-art, UI-scale, phone and fullscreen suites pass. `node scripts/browser-menu-refresh.cjs` checks every screen at 1792×1008, 844×390 and 390×844, header placement/name, required no-scroll layouts, map cycling/wrap, swipe/keyboard controls, reduced motion, standings/scouting, persistent scenery and one-time weekly claiming. Screenshots are in `test-results/menu-refresh/`. Automated checks use isolated Chromium/Edge; physical iPhone Safari visual acceptance remains with the owner. Reality graph was unavailable for project 1002, so implementation was grounded in the checkout and supplied assets.
+
+## Complete location scenery catalog — local validation
+
+All 21 IMG_*.JPG files under public/menu-art/ports are wired into the scenery picker, harbor background and match introduction through the existing saved harbor preference. Existing five selection IDs and labels remain compatible. New images with no clear place name use descriptive scenery labels. Picker thumbnails load lazily; original JPEGs are unchanged.
+
+Verified all 21 selections load their matching image, selection persists after reload, and the picker has no horizontal overflow at 390×844, 844×390 and 1440×900. npm test: 115 passing; npm run check and git diff --check passed. Local work only; MetaMax tracking deferred under the owner’s track-later direction while its tools are unavailable.

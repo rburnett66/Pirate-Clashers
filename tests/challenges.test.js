@@ -25,7 +25,34 @@ test('malformed, oversized and invalid ship challenge links are rejected',()=>{
  assert.equal(readChallenge('#elsewhere'),null);
 });
 
-test('recipients keep their own ship and new captains get repeatable randomized ships',()=>{const sender=M.fresh(),recipient=M.fresh();recipient.shipLevel=4;recipient.name='Friend';recipient.cosmetics=[3];recipient.cosmetic=3;const before=structuredClone(recipient),c=challengeSnapshot(sender,413),p=practiceGame(c,recipient);assert.equal(p.battle.player.shipLevel,4);assert.equal(p.battle.player.cosmetic,3);assert.equal(p.battle.enemy.shipLevel,1);assert.equal(p.battle.player.crew.length,Object.keys(recipient.slots).length+1);assert.deepEqual(recipient,before);const a=practiceGame(c),b=practiceGame(c);assert.deepEqual(a.battle.player,b.battle.player);assert.equal(a.battle.player.crew.length,M.positions(a).length+1);assert.ok(a.battle.bonusGunner);});
+test('new challenge captains get the sender crew count plus exactly one temporary gunner',()=>{
+ for(let shipLevel=1;shipLevel<=6;shipLevel++)for(const seed of [1,413,1234567890]){
+  const sender=M.fresh();sender.shipLevel=shipLevel;sender.slots={};
+  M.positions(sender).forEach((slot,i)=>{sender.slots[slot]=i+1;sender.levels[i+1]=1;});
+  const c=readChallenge(challengeURL(sender,'https://example.com/',seed)),game=practiceGame(c);
+  assert.equal(game.battle.player.crew.length,game.battle.enemy.crew.length+1);
+  assert.equal(Object.keys(game.slots).length,game.battle.enemy.crew.length);
+  assert.equal(game.battle.player.crew.filter(g=>g.id===game.battle.bonusGunner).length,1);
+  const kept=structuredClone(game);kept.battle=null;M.validate(kept);
+  const replay=practiceGame(c,M.restore(JSON.stringify(kept)));
+  assert.equal(replay.battle.player.crew.length,game.battle.player.crew.length);
+ }
+});
+
+test('a bonus in an empty station does not persist or accumulate on replay',()=>{
+ for(const slots of [{},{d0:1}]){
+  const recipient=M.fresh();recipient.slots=slots;recipient.onboarded=true;
+  const before=structuredClone(recipient),c=challengeSnapshot(M.fresh(),12);
+  const first=practiceGame(c,recipient),replay=practiceGame(c,first);
+  for(const game of [first,replay]){
+   assert.deepEqual(game.slots,before.slots);assert.deepEqual(game.levels,before.levels);
+   assert.equal(game.battle.player.crew.length,Object.keys(slots).length+1);
+  }
+  assert.deepEqual(recipient,before);
+ }
+});
+
+test('recipients keep their own ship and new captains get repeatable randomized ships',()=>{const sender=M.fresh(),recipient=M.fresh();recipient.shipLevel=4;recipient.name='Friend';recipient.cosmetics=[3];recipient.cosmetic=3;const before=structuredClone(recipient),c=challengeSnapshot(sender,413),p=practiceGame(c,recipient);assert.equal(p.battle.player.shipLevel,4);assert.equal(p.battle.player.cosmetic,3);assert.equal(p.battle.enemy.shipLevel,1);assert.equal(p.battle.player.crew.length,Object.keys(recipient.slots).length+1);assert.deepEqual(recipient,before);const a=practiceGame(c),b=practiceGame(c);assert.deepEqual(a.battle.player,b.battle.player);assert.equal(a.battle.player.crew.length,Object.keys(sender.slots).length+1);assert.ok(a.battle.bonusGunner);});
 
 test('both captains earn exactly 100 wood through a persistent return receipt, win or loss',()=>{
  for(const won of [true,false]){

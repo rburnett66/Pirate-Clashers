@@ -1,5 +1,6 @@
 
 module.exports=function oceanRenderer(water){
+ water=water.replace('Math.min(window.devicePixelRatio || 1, 2)',"Math.min(window.devicePixelRatio || 1, matchMedia('(pointer:coarse)').matches ? 1.5 : 2)");
  const fs=require('node:fs');
  water=water.replace('<script>','<script type="module">\nimport {waterValues,WATER_DEFAULTS} from "/src/ocean-settings.js";\nimport {createSkyScenery} from "/src/sky-scenery.js";');
  water=water.replace('</head>','<link rel="stylesheet" href="/src/sky-scenery.css"></head>');

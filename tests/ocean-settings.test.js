@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import {WATER_DEFAULTS,waterValues,parseWater,exportWater,waterLibrary,activeWater} from '../src/ocean-settings.js';
 import {PROTOTYPE_DEFAULTS} from '../src/ocean-catalog.js';
 import {fresh,restore} from '../src/model.js';
+import {AT_SEA} from '../src/ocean-presets.js';
+test('At Sea is the mobile default without replacing selected custom water',()=>{
+ assert.deepEqual(activeWater(undefined,true).values,AT_SEA);
+ assert.deepEqual(activeWater(undefined,false).values,WATER_DEFAULTS);
+ const s=fresh();s.settings.water={selected:'at-sea',presets:[]};
+ assert.deepEqual(activeWater(restore(JSON.stringify(s)).settings.water,false).values,AT_SEA);
+ const custom={id:'look-own',name:'My sea',values:{...WATER_DEFAULTS,speed:.4}};
+ assert.deepEqual(activeWater({selected:custom.id,presets:[custom]},true),custom);
+ assert.deepEqual(parseWater(exportWater('At Sea',AT_SEA)),{name:'At Sea',values:AT_SEA});
+});
 test('every prototype water value survives named JSON export and import',()=>{
  assert.deepEqual(waterValues(PROTOTYPE_DEFAULTS),PROTOTYPE_DEFAULTS);
  const values={...WATER_DEFAULTS,swellAmp:1.12,rock:0,splashSize:.8};

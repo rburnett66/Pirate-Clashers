@@ -9,7 +9,7 @@ const types={'.jpg':'image/jpeg','.webmanifest':'application/manifest+json','.ht
 function allowed(relative){
  if(relative==='index.html')return true;
  if(relative.startsWith('src/'))return /\.(js|css)$/.test(relative);
- if(relative.startsWith('public/'))return /\.(html|js|css|png|jpg|svg|webmanifest)$/.test(relative);
+ if(relative.startsWith('public/'))return /\.(html|js|css|png|jpg|svg|webmanifest)$/i.test(relative);
  return relative.startsWith('Pirate Art/pirate_segments/')&&relative.endsWith('.png');
 }
 const server=http.createServer(async(req,res)=>{
@@ -21,7 +21,7 @@ const server=http.createServer(async(req,res)=>{
   if(!allowed(relative)){res.writeHead(404).end();return;}
   const file=await fs.realpath(path.join(root,relative)),resolved=path.relative(root,file).replaceAll('\\','/');
   if(resolved.startsWith('../')||path.isAbsolute(resolved)||!allowed(resolved)){res.writeHead(404).end();return;}
-  const data=await fs.readFile(file),ext=path.extname(file);
+  const data=await fs.readFile(file),ext=path.extname(file).toLowerCase();
   res.writeHead(200,{'Content-Type':types[ext],'Content-Length':data.length,'X-Content-Type-Options':'nosniff','Cache-Control':['.png','.svg'].includes(ext)?'private, max-age=3600':'no-store'});
   res.end(req.method==='HEAD'?undefined:data);
  }catch{res.writeHead(404).end();}

@@ -5,6 +5,16 @@ import {stationPosition,collisionAt} from '../src/ballistics.js';
 import {shipToWorld} from '../src/ship-pose.js';
 import {cutawaySide,battleCamera,aimDots,dragAim,crewReaction} from '../src/combat-view.js';
 const setup=()=>{const s=M.fresh(1900000000000);M.startBattle(s,1900000000000);return s;};
+
+test('special camera keeps either target close and inside portrait and landscape viewports',()=>{
+ for(const [w,h] of [[390,650],[844,270],[932,300],[1440,780]])for(const target of [2.8,8.4]){
+  const c=battleCamera(w,h,2.8,8.4,'special',target);
+  assert.ok(Math.abs(c.ox+target*c.ppu-w/2)<.001);
+  assert.ok(c.oy-2.05*c.ppu>=0);assert.ok(c.oy+.75*c.ppu<=h);
+  assert.ok(c.ox+(target-1.7)*c.ppu>=0);assert.ok(c.ox+(target+1.7)*c.ppu<=w);
+  if(w>h&&h<=300)assert.ok(c.ppu*2.8>=h*.8,'ship framing must use the short screen height');
+ }
+});
 test('both hulls stay closed during enemy flight and impact hold, including a turn transition',()=>{
  assert.equal(cutawaySide({phase:'flight',pending:{side:'enemy'}},true,'enemy','impact','player'),null);
  assert.equal(cutawaySide({phase:'player'},true,'enemy','impact','player'),null);
